@@ -20,7 +20,7 @@
  * may converge onto this component in a later phase.
  *
  * `fields`' element type (Phase 127 plan 19) is `FieldSelectOption`, not `AttributeField` — this
- * component only ever reads `name`/`disabled`/`disabledReason` off each entry, so it was
+ * component only ever reads `name`/`label`/`disabled`/`disabledReason` off each entry, so it was
  * generalised to the minimal shape it actually needs rather than staying pinned to the GIS-only
  * `AttributeField` (`{name, type, is_label}`) shape. `AttributeField[]` remains assignable
  * wherever it is passed (every existing call site is unchanged) because `AttributeField` already
@@ -33,6 +33,10 @@ import type { CSSProperties } from 'react'
 
 export interface FieldSelectOption {
   name: string
+  /** The option's visible text when it should differ from `name` — e.g. an entry that is not a
+   *  field at all, like a "Geometry height" choice whose `name` is a reserved key the caller
+   *  recognises. `name` stays the value passed to `onChange`. Omit to show `name`. */
+  label?: string
   /** Renders this option `disabled`, with `disabledReason` as its `title` tooltip. Omit/`false`
    *  for a normal, selectable option — the common case. */
   disabled?: boolean
@@ -78,7 +82,7 @@ export function FieldSelect({ fields, value, onChange, allowNone = false, ariaLa
       {allowNone && <option value="">None</option>}
       {fields.map(f => (
         <option key={f.name} value={f.name} disabled={f.disabled} title={f.disabledReason}>
-          {f.name}
+          {f.label ?? f.name}
         </option>
       ))}
     </select>
