@@ -134,6 +134,18 @@ describe('FieldSelect (Phase 118 shared AttributeField picker)', () => {
     expect(options.map(o => o.value)).toEqual(['linear', 'density'])
   })
 
+  it('a label shows instead of the name; the name stays the value onChange receives', () => {
+    const { select, onChange, unmount } = renderFieldSelect({
+      fields: [{ name: '@geometry', label: 'Geometry height' }, { name: 'alt' }],
+    })
+    unmountFns.push(unmount)
+    const options = Array.from(select.querySelectorAll('option'))
+    expect(options.map(o => o.value)).toEqual(['@geometry', 'alt'])
+    expect(options.map(o => o.textContent)).toEqual(['Geometry height', 'alt'])
+    selectValue(select, '@geometry')
+    expect(onChange).toHaveBeenCalledWith('@geometry')
+  })
+
   it('disabled/disabledReason render the option disabled with the reason as its title', () => {
     const { select, unmount } = renderFieldSelect({
       fields: [
