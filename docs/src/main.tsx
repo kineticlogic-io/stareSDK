@@ -102,6 +102,12 @@ function useScrollSpy() {
 
 function Guide() {
   useScrollSpy()
+  // The examples render after the browser has jumped to a `#section` link and push it down the
+  // page, so land on it again once they are in.
+  useEffect(() => {
+    const target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)))
+    if (target) requestAnimationFrame(() => target.scrollIntoView())
+  }, [])
   // PageHeader sets document.title; the guide keeps its own. This parent effect runs after the
   // examples' effects on mount.
   useEffect(() => {
