@@ -9,6 +9,10 @@ chart and code-editor views.
 
 Components take their data as props. Routing, data fetching and app state stay in your app.
 
+**[Component guide](https://kineticlogic-io.github.io/stareSDK/)**: every component running live, the
+colour tokens for both themes, and the code for each example. Its source is `docs/src/`; rebuild it
+with `npm run docs`.
+
 ## Install
 
 ```sh

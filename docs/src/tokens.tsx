@@ -1,7 +1,7 @@
 // Colour swatches, type, spacing, radii and shadows. Swatch values are read from chromeTheme.ts
 // (the TS mirror of styles.css, drift-tested against it), so the guide cannot disagree with the
 // stylesheet; the chip itself paints the live token.
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { DARK_THEME, LIGHT_THEME, type ChromeTheme } from '../../src/index'
 
 type ScalarKey = { [K in keyof ChromeTheme]: ChromeTheme[K] extends string ? K : never }[keyof ChromeTheme]
@@ -112,9 +112,6 @@ const INTEL: Token[] = [
 const CLASSIFICATION = [
   { level: 'unclassified', label: 'UNCLASSIFIED', bg: '#006400', fg: '#ffffff' },
   { level: 'cui', label: 'CUI', bg: '#502b85', fg: '#ffffff' },
-  { level: 'confidential', label: 'CONFIDENTIAL', bg: '#0033a0', fg: '#ffffff' },
-  { level: 'secret', label: 'SECRET', bg: '#c8102e', fg: '#ffffff' },
-  { level: 'topsecret', label: 'TOP SECRET', bg: '#ff8300', fg: '#000000' },
 ]
 
 export function CanonicalSwatches() { return <Swatches tokens={CANONICAL} /> }
@@ -171,7 +168,7 @@ export function ClassificationSwatches() {
   )
 }
 
-const TYPE: { role: string; spec: string; style: React.CSSProperties; sample: string }[] = [
+const TYPE: { role: string; spec: string; style: CSSProperties; sample: string }[] = [
   { role: 'Wordmark', spec: '--font-header · 18 / 600', style: { fontFamily: 'var(--font-header)', fontSize: 18, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }, sample: 'OpenStare' },
   { role: 'Page title', spec: '14 / 600 · 0.08em · accent', style: { fontSize: 14, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-accent)' }, sample: 'Track database' },
   { role: 'Panel title, active tab', spec: '12 / 600 · 0.08em · accent', style: { fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-accent)' }, sample: 'Sources' },

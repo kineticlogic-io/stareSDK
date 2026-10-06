@@ -7,12 +7,13 @@
 // components, imported from `src/`, so the guide always shows what this checkout ships.
 //
 // `docs/index.html` and `docs/assets/` are generated: edit `docs/src/` and rebuild.
-import { readdirSync, rmSync } from 'node:fs'
+import { readFileSync, readdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 
 const here = dirname(fileURLToPath(import.meta.url))
+const { version } = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8')) as { version: string }
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -22,6 +23,7 @@ const slugOf = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N} _-]/gu
 /**
  * Gives every `<h2>`/`<h3>` in the guide an anchor and a hover `#` link, and writes the contents
  * rail from them in place of `<!-- toc -->` (the same treatment as OpenStare's user guide build).
+ * `__VERSION__` becomes the package version.
  */
 function contentsRail(): Plugin {
   return {
@@ -50,7 +52,7 @@ function contentsRail(): Plugin {
         }
       }
       if (open) toc += '</div>'
-      return out.replace('<!-- toc -->', toc)
+      return out.replace('<!-- toc -->', toc).replaceAll('__VERSION__', version)
     },
   }
 }
@@ -75,5 +77,11 @@ export default defineConfig({
     outDir: here,
     emptyOutDir: false,
     chunkSizeWarningLimit: 4000,
+    rollupOptions: {
+      // framer-motion's "use client" directives mean nothing outside a server-components build.
+      onwarn(warning, warn) {
+        if (warning.code !== 'MODULE_LEVEL_DIRECTIVE') warn(warning)
+      },
+    },
   },
 })
