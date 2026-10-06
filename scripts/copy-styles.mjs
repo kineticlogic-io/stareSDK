@@ -16,4 +16,4 @@ const destPath = join(destDir, 'styles.css')
 mkdirSync(destDir, { recursive: true })
 copyFileSync(sourcePath, destPath)
 
-console.log(`staresdk: copied ${sourcePath} -> ${destPath}`)
+console.log(`@kineticlogic/staresdk: copied ${sourcePath} -> ${destPath}`)
