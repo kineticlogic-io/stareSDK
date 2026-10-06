@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { headerControlStyle } from './headerControls'
+import { headerControlStyle } from './headerControls.js'
 
 export interface ClockBadge {
   timezone: string

@@ -20,7 +20,7 @@ vi.mock('uplot', () => ({
   },
 }))
 
-import { TimeSeriesChart, formatValue, toneOf } from './TimeSeriesChart'
+import { TimeSeriesChart, formatValue, toneOf } from './TimeSeriesChart.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

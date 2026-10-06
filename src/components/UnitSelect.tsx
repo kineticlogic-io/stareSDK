@@ -4,8 +4,8 @@
  * every form offers the same choices in the same order.
  */
 import type { CSSProperties } from 'react'
-import { Select } from './Select'
-import { UNIT_OPTIONS, type UnitFamily } from '../units/units'
+import { Select } from './Select.js'
+import { UNIT_OPTIONS, type UnitFamily } from '../units/units.js'
 
 export interface UnitSelectProps {
   family: UnitFamily

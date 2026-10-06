@@ -4,7 +4,7 @@ import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import { CodeEditor, toDiagnostics } from './CodeEditor'
+import { CodeEditor, toDiagnostics } from './CodeEditor.js'
 
 const cleanups: Array<() => void> = []
 afterEach(() => {

@@ -2,7 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach } from 'vitest'
-import { ProfileChart, formatAxisValue, terrainRuns } from './ProfileChart'
+import { ProfileChart, formatAxisValue, terrainRuns } from './ProfileChart.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

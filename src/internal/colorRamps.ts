@@ -20,7 +20,7 @@
  * specified in 64-UI-SPEC.md §2.
  */
 
-import { hexToRgb, type RGB } from './color'
+import { hexToRgb, type RGB } from './color.js'
 
 /**
  * A curated ramp entry. `anchors` are 2-3 reference stops (published

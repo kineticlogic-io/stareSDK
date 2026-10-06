@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { TbSparkles } from 'react-icons/tb'
-import { headerControlStyle } from './headerControls'
+import { headerControlStyle } from './headerControls.js'
 
 /**
  * Header "Assistant" chip — toggles an app's assistant panel. Styled to align with the other

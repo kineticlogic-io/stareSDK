@@ -8,7 +8,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { FieldSelect, type FieldSelectOption } from './FieldSelect'
+import { FieldSelect, type FieldSelectOption } from './FieldSelect.js'
 
 const FIELDS: FieldSelectOption[] = [
   { name: 'name' },

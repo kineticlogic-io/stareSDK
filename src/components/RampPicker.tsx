@@ -9,9 +9,9 @@
  */
 import { useEffect, useState } from 'react'
 import { TbSwitchHorizontal } from 'react-icons/tb'
-import { Button } from './Button'
-import { popoverContainer, popoverDivider, popoverLabel } from '../internal/layerRowStyles'
-import { RAMPS, sampleRamp, type ColorRamp } from '../internal/colorRamps'
+import { Button } from './Button.js'
+import { popoverContainer, popoverDivider, popoverLabel } from '../internal/layerRowStyles.js'
+import { RAMPS, sampleRamp, type ColorRamp } from '../internal/colorRamps.js'
 
 interface RampPickerProps {
   /** id of the currently selected curated ramp — see `colorRamps.ts`'s `RAMPS`. */

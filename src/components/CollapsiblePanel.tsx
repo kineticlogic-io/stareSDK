@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { TbChevronUp, TbChevronDown } from 'react-icons/tb'
 import type { CSSProperties, ReactNode } from 'react'
-import { readPanelState } from './CollapsiblePanel.helpers'
+import { readPanelState } from './CollapsiblePanel.helpers.js'
 
 interface Props {
   title: string

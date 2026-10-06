@@ -1,7 +1,7 @@
 import type { ReactNode, CSSProperties } from 'react'
-import { BADGE_BG } from './badgeTokens'
-import { relativeLuminance } from '../internal/color'
-import { useTheme } from '../theme/useTheme'
+import { BADGE_BG } from './badgeTokens.js'
+import { relativeLuminance } from '../internal/color.js'
+import { useTheme } from '../theme/useTheme.js'
 
 /**
  * Standardized pill Badge.

@@ -32,10 +32,10 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { useDock } from '../context/useDock'
-import { useTheme } from '../theme/useTheme'
-import { themeFor } from '../styles/chromeTheme'
-import { writeSideNavOpen } from './sideNavStorage'
+import { useDock } from '../context/useDock.js'
+import { useTheme } from '../theme/useTheme.js'
+import { themeFor } from '../styles/chromeTheme.js'
+import { writeSideNavOpen } from './sideNavStorage.js'
 
 export interface SideNavProps {
   open: boolean

@@ -21,9 +21,9 @@
 import { createRoot } from 'react-dom/client'
 import { act, useEffect } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { ToastProvider } from './Toast'
-import type { ToastOptions } from './Toast'
-import { useToast } from './useToast'
+import { ToastProvider } from './Toast.js'
+import type { ToastOptions } from './Toast.js'
+import { useToast } from './useToast.js'
 
 // ---------------------------------------------------------------------------
 // Helpers

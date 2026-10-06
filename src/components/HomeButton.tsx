@@ -1,5 +1,5 @@
 import { TbArrowLeft } from 'react-icons/tb'
-import { navigationClickHandler } from '../internal/navigationLink'
+import { navigationClickHandler } from '../internal/navigationLink.js'
 
 /**
  * Header "Home" link. Renders a real link so Ctrl/⌘-click opens a new tab; pass `onNavigate` to

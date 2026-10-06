@@ -27,7 +27,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { TbChevronDownRight } from 'react-icons/tb'
-import { useDraggable, type DragPos } from '../internal/useDraggable'
+import { useDraggable, type DragPos } from '../internal/useDraggable.js'
 
 export interface DraggablePopupProps {
   /** localStorage key — passed straight to useDraggable. */

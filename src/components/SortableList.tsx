@@ -67,8 +67,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { TbGripVertical } from 'react-icons/tb'
-import { Button } from './Button'
-import { buildSortableReorder } from './SortableList.helpers'
+import { Button } from './Button.js'
+import { buildSortableReorder } from './SortableList.helpers.js'
 
 export interface SortableListProps<T> {
   items: T[]

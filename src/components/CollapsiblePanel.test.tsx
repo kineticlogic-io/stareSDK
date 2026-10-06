@@ -2,7 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach, beforeEach } from 'vitest'
-import { CollapsiblePanel } from './CollapsiblePanel'
+import { CollapsiblePanel } from './CollapsiblePanel.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

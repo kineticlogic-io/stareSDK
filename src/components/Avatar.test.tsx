@@ -13,8 +13,8 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach } from 'vitest'
-import { Avatar } from './Avatar'
-import type { AvatarProps } from './Avatar'
+import { Avatar } from './Avatar.js'
+import type { AvatarProps } from './Avatar.js'
 
 function renderAvatar(props: AvatarProps) {
   const container = document.createElement('div')

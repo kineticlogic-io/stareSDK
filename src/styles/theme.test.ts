@@ -20,8 +20,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { contrastRatio } from '../internal/color'
-import { DARK_THEME, LIGHT_THEME, type ChromeTheme } from './chromeTheme'
+import { contrastRatio } from '../internal/color.js'
+import { DARK_THEME, LIGHT_THEME, type ChromeTheme } from './chromeTheme.js'
 // c2MapData's CONFIG is app-owned (landing page), not part of the SDK copy. The CONFIG-comparison
 // cases below (DARK_THEME.landingBasemap vs. CONFIG, the CONFIG.toHaveProperty boundary check, and
 // CONFIG.trackBlendMode vs. DARK_THEME.landingTrackBlendMode) are app-landing boundary tests and

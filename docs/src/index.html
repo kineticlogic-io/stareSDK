@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>stareSDK — Elite Command Design System</title>
+<meta name="description" content="The component guide for @kineticlogic/staresdk: React components, theming and design tokens for mission and geospatial applications, the design system behind OpenStare and OpenTrack.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B0F14'/%3E%3Cpath d='M8 16h16M16 8v16' stroke='%230FAF73' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='5' fill='none' stroke='%230FAF73' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Oswald:wght@500;600&display=swap">
+<script>
+  // Paint the reader's theme before first render: their saved choice, else their system setting.
+  (function () {
+    var t = null
+    try { t = localStorage.getItem('theme') } catch (e) {}
+    if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+    document.documentElement.dataset.theme = t
+  })()
+</script>
+<script type="module" src="./main.tsx"></script>
+</head>
+<body>
+<header class="guide-header">
+  <a class="guide-brand" href="#overview">stare<span>SDK</span></a>
+  <span class="guide-version">v0.2.0</span>
+  <nav class="guide-nav" aria-label="Site">
+    <a href="#getting-started">Start</a>
+    <a href="#foundations">Foundations</a>
+    <a href="#components">Components</a>
+    <a href="https://github.com/kineticlogic-io/stareSDK">GitHub</a>
+    <a href="https://www.npmjs.com/package/@kineticlogic/staresdk">npm</a>
+    <span class="guide-nav-slot" id="header-actions"></span>
+  </nav>
+</header>
+
+<div class="guide-layout">
+  <aside class="guide-rail" id="guide-rail" aria-label="Contents">
+    <div class="rail-label">Contents</div>
+    <hr class="rail-rule">
+    <nav class="toc"><!-- toc --></nav>
+  </aside>
+
+  <main class="guide">
+    <h1>Elite Command Design System</h1>
+    <p class="lede"><code>@kineticlogic/staresdk</code> is the React component library, theming and design-token set behind
+      <a href="https://github.com/kineticlogic-io/OpenStare">OpenStare</a> and
+      <a href="https://github.com/kineticlogic-io/OpenTrack">OpenTrack</a>. Every example on this page is the real
+      component from this release, running live. Use the theme button in the header to see each one in dark and light.</p>
+
+    <h2>Overview</h2>
+    <p>The package ships the components, <code>ThemeProvider</code>/<code>useTheme</code> (dark and light), the
+      <code>chromeTheme.ts</code> token set, and optional map, graph, chart and code-editor views. Components take their
+      data as props. Routing, data fetching and app state stay in your app.</p>
+    <div class="cards">
+      <a class="card" href="#getting-started"><strong>Getting started</strong><span>Install, import the stylesheet, wrap your tree in the providers.</span></a>
+      <a class="card" href="#design-contract"><strong>Design contract</strong><span>Page anatomy and which component to use for what.</span></a>
+      <a class="card" href="#foundations"><strong>Foundations</strong><span>Colour tokens for both themes, plus type, spacing, radii and shadows.</span></a>
+      <a class="card" href="#components"><strong>Components</strong><span>Every component with a live example and the code that renders it.</span></a>
+    </div>
+
+    <h2>Getting started</h2>
+    <h3>Install</h3>
+<pre><code>npm install @kineticlogic/staresdk react react-dom react-icons framer-motion react-markdown remark-gfm \
+  mdast-util-find-and-replace @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities</code></pre>
+    <p>The optional views need their own peer dependencies. Install them only if you use those views:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Entry point</th><th>Install</th></tr></thead>
+      <tbody>
+        <tr><td><code>@kineticlogic/staresdk/map-view</code></td><td><code>maplibre-gl</code></td></tr>
+        <tr><td><code>@kineticlogic/staresdk/graph-view</code></td><td><code>@xyflow/react @dagrejs/dagre</code></td></tr>
+        <tr><td><code>@kineticlogic/staresdk/chart</code></td><td><code>uplot</code></td></tr>
+        <tr><td><code>@kineticlogic/staresdk/code-editor</code></td><td><code>@codemirror/*</code> and <code>@lezer/highlight</code></td></tr>
+        <tr><td>Mermaid diagrams in <code>MDText</code></td><td><code>mermaid</code></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Usage</h3>
+    <p>Import the stylesheet once at your application's entry point, wrap your tree in <code>ThemeProvider</code>
+      (and <code>ToastProvider</code> if you use <code>Toast</code>/<code>useToast</code>), then import components by name:</p>
+<pre><code>import '@kineticlogic/staresdk/styles.css'
+import { ThemeProvider, ToastProvider, Button, Modal, useTheme } from '@kineticlogic/staresdk'
+
+function App() {
+  return (
+    &lt;ThemeProvider&gt;
+      &lt;ToastProvider&gt;
+        &lt;YourApp /&gt;
+      &lt;/ToastProvider&gt;
+    &lt;/ThemeProvider&gt;
+  )
+}</code></pre>
+
+    <h3>Theming</h3>
+    <p><code>ThemeProvider</code> resolves the active theme (<code>'dark'</code> | <code>'light'</code>, default
+      <code>'dark'</code>) onto <code>&lt;html data-theme="dark"|"light"&gt;</code> and exposes it through
+      <code>useTheme()</code>. Every component reads its colours from the <code>--color-*</code>/<code>--surface-*</code>/<code>--status-*</code>
+      custom properties in <code>styles.css</code>, so once the stylesheet and provider are mounted, components theme
+      correctly with no further wiring.</p>
+<pre><code>const { theme, setTheme, commitTheme } = useTheme()
+setTheme('light')     // paint only: a live preview
+commitTheme('light')  // paint and remember the choice (localStorage 'theme')</code></pre>
+    <div class="example">
+      <div class="example-label">Example <code>useTheme()</code></div>
+      <div class="demo" data-demo="theme"></div>
+    </div>
+
+    <h2>Design contract</h2>
+    <p><a href="https://github.com/kineticlogic-io/stareSDK/blob/main/DESIGN-CONTRACT.md"><code>DESIGN-CONTRACT.md</code></a>
+      says how an app built on stareSDK is laid out and which component to use for what. It is a contract, not a style
+      suggestion. Read it before building a page. In short:</p>
+    <h3>Rules that are never broken</h3>
+    <ol>
+      <li><strong>Tokens only.</strong> Every colour, font, radius, shadow and spacing value comes from a <code>var(--…)</code> token (or <code>chromeTheme.ts</code> on render paths that cannot read CSS).</li>
+      <li><strong>Use the component that exists.</strong> One component per pattern. Don't hand-roll modals, badges, sliders, tab bars or panels.</li>
+      <li><strong>No unrequested controls.</strong> Never add a button, menu item, toggle or advisory copy nobody asked for.</li>
+      <li><strong>Icons are Tabler.</strong> Every icon comes from <code>react-icons/tb</code>.</li>
+      <li><strong>No placeholder states.</strong> Every view handles loading, empty and error explicitly, with real copy.</li>
+      <li><strong>Compositor-safe motion only.</strong> Animate <code>transform</code>, <code>opacity</code> and <code>filter</code>.</li>
+      <li><strong>Tight, not oversized.</strong> Components are compact by default; let tables and panels take the width.</li>
+    </ol>
+    <h3>Page anatomy</h3>
+    <p>Every page is a full-height column: one <code>PageHeader</code>, a <code>Tabs variant="bar"</code> for primary
+      views, then stacked <code>CollapsiblePanel</code>s. Detail opens in a right <code>SideNav</code>. The example below
+      is that page, built from the real components in a small frame.</p>
+    <div class="example">
+      <div class="example-label">Example <code>PageHeader + Tabs + CollapsiblePanel + DataTable</code></div>
+      <div class="demo" data-demo="anatomy" style="padding:0"></div>
+<pre><code>&lt;DockProvider&gt;
+  &lt;div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
+                background: 'var(--color-bg-primary)', fontFamily: 'var(--font-sans)' }}&gt;
+    &lt;PageHeader title="OpenTrack" appName="OpenTrack" actions={…} /&gt;
+    &lt;Tabs variant="bar" aria-label="Workspaces" tabs={…} value={view} onChange={setView} /&gt;
+    &lt;main style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-lg)',
+                   marginRight: 'var(--assistant-width, 0px)' }}&gt;
+      &lt;div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}&gt;
+        &lt;CollapsiblePanel title="Sources" badge="4"&gt;…&lt;/CollapsiblePanel&gt;
+      &lt;/div&gt;
+    &lt;/main&gt;
+  &lt;/div&gt;
+&lt;/DockProvider&gt;</code></pre>
+    </div>
+    <h3>Which component, when</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Need</th><th>Use</th><th>Not</th></tr></thead>
+      <tbody>
+        <tr><td>Page title bar</td><td><a href="#pageheader"><code>PageHeader</code></a></td><td>a custom header div</td></tr>
+        <tr><td>Primary views of a page</td><td><a href="#tabs"><code>Tabs variant="bar"</code></a></td><td>buttons styled as tabs</td></tr>
+        <tr><td>A section of a page</td><td><a href="#collapsiblepanel"><code>CollapsiblePanel</code></a></td><td>bordered sections, cards</td></tr>
+        <tr><td>Detail of a selected item</td><td><a href="#sidenav"><code>SideNav</code></a></td><td>a split column, a modal</td></tr>
+        <tr><td>Confirm / short form</td><td><a href="#modal"><code>Modal</code></a>, <code>useToast().confirm()</code></td><td><code>window.confirm</code></td></tr>
+        <tr><td>Transient result or error</td><td><a href="#toast"><code>useToast().toast()</code></a></td><td>inline banners that never clear</td></tr>
+        <tr><td>Tabular data</td><td><a href="#datatable"><code>DataTable</code></a></td><td>hand-built <code>&lt;table&gt;</code></td></tr>
+        <tr><td>Status, count, category</td><td><a href="#badge"><code>Badge</code></a></td><td>coloured text, custom pills</td></tr>
+        <tr><td>Actions</td><td><a href="#button"><code>Button</code></a> (one <code>primary</code> per view)</td><td>links styled as buttons</td></tr>
+        <tr><td>Save with dirty/saving/saved states</td><td><a href="#savebutton"><code>SaveButton</code></a></td><td>ad-hoc state text</td></tr>
+        <tr><td>Text / number field</td><td><a href="#label-and-input"><code>Label</code> + <code>Input</code></a></td><td>bare <code>&lt;input&gt;</code></td></tr>
+        <tr><td>Pick one of a list</td><td><a href="#fieldselect"><code>FieldSelect</code></a>, <a href="#select"><code>Select</code></a></td><td>bare <code>&lt;select&gt;</code></td></tr>
+        <tr><td>Pick a unit or convention</td><td><a href="#unitselect"><code>UnitSelect</code></a></td><td>inline unit math</td></tr>
+        <tr><td>On/off setting</td><td><a href="#toggle"><code>Toggle</code></a></td><td>checkboxes for settings</td></tr>
+        <tr><td>Numeric range</td><td><a href="#slider"><code>Slider</code></a>, <a href="#opacityslider"><code>OpacitySlider</code></a>, <a href="#zoomrangeslider"><code>ZoomRangeSlider</code></a></td><td><code>&lt;input type="range"&gt;</code></td></tr>
+        <tr><td>Multi-step flow</td><td><a href="#stepper"><code>Stepper</code></a></td><td>numbered headings</td></tr>
+        <tr><td>Paging a long list</td><td><a href="#pagination"><code>Pagination</code></a></td><td>infinite scroll</td></tr>
+        <tr><td>Explaining a field</td><td><a href="#infotip"><code>InfoTip</code></a></td><td>helper text under every field</td></tr>
+        <tr><td>Row actions menu</td><td><a href="#popovermenubutton"><code>PopoverMenuButton</code></a> / <a href="#contextmenu"><code>ContextMenu</code></a></td><td></td></tr>
+        <tr><td>File input</td><td><a href="#filedropzone"><code>FileDropZone</code></a></td><td>bare file input</td></tr>
+        <tr><td>JSON / text editing</td><td><a href="#codeeditor"><code>CodeEditor</code></a></td><td><code>&lt;textarea&gt;</code></td></tr>
+        <tr><td>Points on a map</td><td><a href="#mapview"><code>MapView</code></a></td><td>a second map library</td></tr>
+        <tr><td>Lineage or a pipeline</td><td><a href="#graphview"><code>GraphView</code></a></td><td>hand-drawn SVG</td></tr>
+        <tr><td>Values over time</td><td><a href="#timeserieschart"><code>TimeSeriesChart</code></a></td><td>a second chart library</td></tr>
+        <tr><td>Rendered Markdown</td><td><a href="#mdtext"><code>MDText</code></a></td><td></td></tr>
+      </tbody>
+    </table></div>
+
+    <h2>Foundations</h2>
+    <p>Chrome colours come from two places, matched to where they are read. In CSS and inline <code>style={{}}</code>,
+      use <code>var(--token-name)</code>, resolved from <code>:root</code> (dark) and <code>[data-theme="light"]</code>
+      in <code>styles.css</code>. On JS, Canvas and other non-DOM render paths, use <code>chromeTheme.ts</code>'s
+      <code>DARK_THEME</code> / <code>LIGHT_THEME</code>, or <code>themeFor(name)</code>. Never call
+      <code>getComputedStyle</code> from a render path. Each swatch below shows the live token in the current theme,
+      with its dark and light values. Click a token name to copy <code>var(--…)</code>.</p>
+
+    <h3>Canonical roles</h3>
+    <p>The eight canonical token roles. Every surface, text run and accent in the system is one of these.</p>
+    <div data-demo="swatches-canonical"></div>
+
+    <h3>Surfaces, text and brand</h3>
+    <div data-demo="swatches-extended"></div>
+
+    <h3>Status and links</h3>
+    <p>Status colours go through <code>Badge</code> colours <code>success</code>, <code>warning</code>, <code>blue</code>
+      and <code>danger</code>. Links are always <code>--color-link</code> and underlined; the accent green is never a link.</p>
+    <div data-demo="swatches-status"></div>
+
+    <h3>Intelligence layer</h3>
+    <p>For charts, maps and overlays only, never for buttons or chrome. These are theme-invariant.</p>
+    <div data-demo="swatches-intel"></div>
+
+    <h3>Badge fills</h3>
+    <p><code>BADGE_BG</code> is one of the two deliberate raw-hex exceptions: <code>Badge</code>'s
+      <code>contrastText()</code> parses these as WCAG luminance values, so a <code>var()</code> string would not work.</p>
+    <div data-demo="swatches-badge"></div>
+
+    <h3>Severity ramp</h3>
+    <p><code>chromeTheme.ts</code>'s <code>severityRamp</code>, for topology, map and HUD-style consumers, is the other raw-hex
+      exception. Its hues stay distinct from the <code>--status-*</code> set.</p>
+    <div data-demo="swatches-severity"></div>
+
+    <h3>Classification markings</h3>
+    <p>Domain colours, not chrome. They read the same in both themes, so a marking never changes with the reader's setting.</p>
+    <div data-demo="swatches-classification"></div>
+
+    <h3>Typography</h3>
+    <p>Montserrat (<code>--font-sans</code>) for all chrome, Oswald (<code>--font-header</code>) for wordmarks only, and
+      <code>--font-mono</code> for data values only.</p>
+    <div class="example">
+      <div class="example-label">Type scale</div>
+      <div class="demo" data-demo="typography"></div>
+    </div>
+
+    <h3>Spacing, radii and shadows</h3>
+    <p>Page padding <code>--space-lg</code>; gap between panels <code>--space-md</code>; between related controls
+      <code>--space-sm</code>. Panels use <code>--radius-lg</code>, inputs and buttons <code>--radius-sm</code>/<code>--radius-md</code>.</p>
+    <div class="example">
+      <div class="example-label">Scales</div>
+      <div class="demo" data-demo="scales"></div>
+    </div>
+
+    <h3>Icons</h3>
+    <p>Every icon a stareSDK component renders comes from <code>react-icons/tb</code> (Tabler). Use the same set for
+      anything you build around them. No other icon set, and no emoji or Unicode glyphs as affordances.</p>
+    <div class="example">
+      <div class="example-label">Example <code>react-icons/tb</code></div>
+      <div class="demo" data-demo="icons"></div>
+<pre><code>import { TbMap2, TbRadar2, TbSettings } from 'react-icons/tb'
+&lt;Button variant="ghost" size="xs" icon={&lt;TbSettings /&gt;} aria-label="Settings" title="Settings" /&gt;</code></pre>
+    </div>
+
+    <h2>Components</h2>
+    <p>Each component below renders live. Interact with it, switch the theme, and copy the code underneath. Everything
+      is imported from <code>@kineticlogic/staresdk</code> unless the section names a subpath.</p>
+
+    <!-- ============================ Actions ============================ -->
+    <h3>Button</h3>
+    <p>Variants <code>primary</code> (at most one per panel or drawer), <code>secondary</code>, <code>ghost</code> (icon-only)
+      and <code>danger</code>; sizes <code>xs</code> (square, icon-only) to <code>xl</code>. Use <code>size="sm"</code> in panel headers and drawers.
+      Icon-only buttons always carry <code>aria-label</code> and <code>title</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Button</code></div>
+      <div class="demo" data-demo="button"></div>
+<pre><code>&lt;Button variant="primary" icon={&lt;TbPlus /&gt;}&gt;Add source&lt;/Button&gt;
+&lt;Button variant="secondary"&gt;Cancel&lt;/Button&gt;
+&lt;Button variant="danger" icon={&lt;TbTrash /&gt;}&gt;Delete&lt;/Button&gt;
+&lt;Button variant="ghost" size="xs" icon={&lt;TbRefresh /&gt;} aria-label="Refresh" title="Refresh" /&gt;
+&lt;Button variant="secondary" active&gt;Selected&lt;/Button&gt;</code></pre>
+    </div>
+
+    <h3>ButtonPalette</h3>
+    <p>Groups related buttons with even spacing, horizontally or vertically, on an optional glass surface. For map tool
+      palettes and layout switchers.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ButtonPalette</code></div>
+      <div class="demo" data-demo="buttonpalette"></div>
+<pre><code>&lt;ButtonPalette ariaLabel="Map tools"&gt;
+  &lt;Button variant="ghost" size="xs" icon={&lt;TbPointer /&gt;} aria-label="Select" title="Select" active /&gt;
+  &lt;Button variant="ghost" size="xs" icon={&lt;TbRuler2 /&gt;} aria-label="Measure" title="Measure" /&gt;
+&lt;/ButtonPalette&gt;</code></pre>
+    </div>
+
+    <h3>SaveButton</h3>
+    <p>A <code>Button</code> with built-in dirty, saving and saved states. It stays disabled until there is something to save.</p>
+    <div class="example">
+      <div class="example-label">Example <code>SaveButton</code></div>
+      <div class="demo" data-demo="savebutton"></div>
+<pre><code>&lt;SaveButton dirty={dirty} saving={saving} saved={saved} onSave={save} /&gt;</code></pre>
+    </div>
+
+    <h3>PopoverMenuButton</h3>
+    <p>A full-width, left-aligned menu item for kebab and popover menus.</p>
+    <div class="example">
+      <div class="example-label">Example <code>PopoverMenuButton</code></div>
+      <div class="demo" data-demo="popovermenubutton"></div>
+<pre><code>&lt;div role="menu"&gt;
+  &lt;PopoverMenuButton role="menuitem" icon={&lt;TbPencil /&gt;} onClick={rename}&gt;Rename&lt;/PopoverMenuButton&gt;
+  &lt;PopoverMenuButton role="menuitem" icon={&lt;TbTrash /&gt;} onClick={remove}
+    style={{ color: 'var(--color-destructive)' }}&gt;Delete&lt;/PopoverMenuButton&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+
+    <!-- ============================ Forms ============================ -->
+    <h3>Label and Input</h3>
+    <p>Every text or number field is a <code>Label</code> (uppercase, secondary) above an <code>Input</code>. <code>error</code>
+      turns the border destructive.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Label + Input</code></div>
+      <div class="demo" data-demo="input"></div>
+<pre><code>&lt;Label htmlFor="callsign"&gt;Callsign&lt;/Label&gt;
+&lt;Input id="callsign" value={value} onChange={e =&gt; setValue(e.target.value)} placeholder="e.g. VIPER 21" /&gt;
+&lt;Input error value="12.3.4" aria-invalid /&gt;</code></pre>
+    </div>
+
+    <h3>Select</h3>
+    <p>Pick one value from a list of options, with an optional "nothing chosen" placeholder.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Select</code></div>
+      <div class="demo" data-demo="select"></div>
+<pre><code>&lt;Select ariaLabel="Domain" placeholder="Any domain" value={domain} onChange={setDomain}
+  options={[{ value: 'air', label: 'Air' }, { value: 'sea', label: 'Sea' }, { value: 'land', label: 'Land' }]} /&gt;</code></pre>
+    </div>
+
+    <h3>FieldSelect</h3>
+    <p>Pick one field by name. <code>allowNone</code> adds a leading "None"; options can be disabled with a reason.</p>
+    <div class="example">
+      <div class="example-label">Example <code>FieldSelect</code></div>
+      <div class="demo" data-demo="fieldselect"></div>
+<pre><code>&lt;FieldSelect ariaLabel="Label field" allowNone value={field} onChange={setField}
+  fields={[{ name: 'callsign' }, { name: 'mmsi' }, { name: 'geometry', disabled: true, disabledReason: 'Not a text field' }]} /&gt;</code></pre>
+    </div>
+
+    <h3>MultiSelect</h3>
+    <p>Choose several values from a dropdown checklist. <code>locked</code> options are always on.</p>
+    <div class="example">
+      <div class="example-label">Example <code>MultiSelect</code></div>
+      <div class="demo" data-demo="multiselect"></div>
+<pre><code>&lt;MultiSelect ariaLabel="Roles" value={roles} onChange={setRoles}
+  options={[{ value: 'viewer', label: 'Viewer', locked: true }, { value: 'operator', label: 'Operator' }, …]} /&gt;</code></pre>
+    </div>
+
+    <h3>UnitSelect</h3>
+    <p>Pick a unit, orientation convention or confidence level. The <code>family</code> picks the list; conversions live in <code>units.ts</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>UnitSelect</code></div>
+      <div class="demo" data-demo="unitselect"></div>
+<pre><code>&lt;UnitSelect family="distance" value={unit} onChange={setUnit} ariaLabel="Distance unit" /&gt;
+distanceToMeters(12, 'nmi') // 22224</code></pre>
+    </div>
+
+    <h3>Toggle</h3>
+    <p>On/off settings. It renders no label of its own, so compose one beside it. <code>onColor</code> can mark a warning state.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Toggle</code></div>
+      <div class="demo" data-demo="toggle"></div>
+<pre><code>&lt;Toggle value={on} onChange={setOn} aria-label="Show labels" /&gt;
+&lt;Toggle size="sm" value={airgap} onChange={setAirgap} onColor="var(--status-warning)" aria-label="Disconnected mode" /&gt;</code></pre>
+    </div>
+
+    <h3>Slider</h3>
+    <p>The standard single-handle numeric slider, for any min, max and step.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Slider</code></div>
+      <div class="demo" data-demo="slider"></div>
+<pre><code>&lt;Slider min={0.5} max={4} step={0.25} value={scale} onChange={setScale}
+  aria-label="Symbol scale" formatValue={v =&gt; `${v}×`} /&gt;</code></pre>
+    </div>
+
+    <h3>OpacitySlider</h3>
+    <p>The single opacity control, 0–100.</p>
+    <div class="example">
+      <div class="example-label">Example <code>OpacitySlider</code></div>
+      <div class="demo" data-demo="opacityslider"></div>
+<pre><code>&lt;OpacitySlider value={opacity} onChange={setOpacity} aria-label="Layer opacity" /&gt;</code></pre>
+    </div>
+
+    <h3>ZoomRangeSlider</h3>
+    <p>A dual-handle zoom range that never crosses. With <code>currentZoom</code>, it can set either end from the map's zoom.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ZoomRangeSlider</code></div>
+      <div class="demo" data-demo="zoomrangeslider"></div>
+<pre><code>&lt;ZoomRangeSlider minValue={min} maxValue={max} currentZoom={9}
+  onChange={(lo, hi) =&gt; { setMin(lo); setMax(hi) }} /&gt;</code></pre>
+    </div>
+
+    <h3>ColorPicker</h3>
+    <p>A swatch popover with a custom hex field. Its value is always a resolved hex, never a token.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ColorPicker</code></div>
+      <div class="demo" data-demo="colorpicker"></div>
+<pre><code>&lt;ColorPicker value={hex} onChange={setHex} aria-label="Track colour" /&gt;</code></pre>
+    </div>
+
+    <h3>RampPicker</h3>
+    <p>Pick a curated ColorBrewer ramp (graduated or categorized), with a reverse toggle.</p>
+    <div class="example">
+      <div class="example-label">Example <code>RampPicker</code></div>
+      <div class="demo" data-demo="ramppicker"></div>
+<pre><code>&lt;RampPicker kind="sequential-diverging" rampId={ramp} onChange={setRamp}
+  reversed={reversed} onReverseChange={setReversed} /&gt;</code></pre>
+    </div>
+
+    <h3>FileDropZone</h3>
+    <p>Drag-and-drop or browse, with extension checks on both paths and optional progress.</p>
+    <div class="example">
+      <div class="example-label">Example <code>FileDropZone</code></div>
+      <div class="demo" data-demo="filedropzone"></div>
+<pre><code>&lt;FileDropZone inputId="layer-file" label="Layer file" accept=".geojson,.kml"
+  acceptedExtensions={['geojson', 'kml']} file={file} onFileChange={setFile}
+  onReject={message =&gt; toast({ variant: 'error', message })} hint="GeoJSON or KML, up to 50 MB" /&gt;</code></pre>
+    </div>
+
+    <h3>TypeaheadPicker</h3>
+    <p>The dropdown shell for search-and-pick from many: glass panel, highlight, loading, error and empty states. It owns
+      no fetching. Render the input as its sibling inside a <code>position: relative</code> wrapper.</p>
+    <div class="example">
+      <div class="example-label">Example <code>TypeaheadPicker</code></div>
+      <div class="demo" data-demo="typeahead"></div>
+<pre><code>&lt;div style={{ position: 'relative' }}&gt;
+  &lt;Input value={query} onChange={…} onKeyDown={onKeyDown} /&gt;
+  &lt;TypeaheadPicker open={open} items={matches} getKey={s =&gt; s.id}
+    renderRow={s =&gt; s.name} onSelect={pick} onDismiss={close}
+    highlightIndex={hi} onHighlightChange={setHi} emptyCopy="No matching sites" /&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+
+    <!-- ============================ Status & display ============================ -->
+    <h3>Badge</h3>
+    <p>Status, count or category. <code>grey</code> is the neutral default; <code>brand</code> is for brand affordances,
+      not status. Use <code>size="sm"</code> and <code>uppercase</code> for states. Status badges always carry text.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Badge</code></div>
+      <div class="demo" data-demo="badge"></div>
+<pre><code>&lt;Badge size="sm" uppercase color="success"&gt;Live&lt;/Badge&gt;
+&lt;Badge size="sm" uppercase color="warning" icon={&lt;TbAlertTriangle /&gt;}&gt;Lagging&lt;/Badge&gt;
+&lt;Badge size="sm" outline color="blue"&gt;12 tracks&lt;/Badge&gt;</code></pre>
+    </div>
+
+    <h3>Avatar</h3>
+    <p>A circular avatar. Missing or failing images fall back to an initials circle.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Avatar</code></div>
+      <div class="demo" data-demo="avatar"></div>
+<pre><code>&lt;Avatar size={32} username="jdoe" firstName="Jane" lastName="Doe" src={user.avatarUrl} /&gt;</code></pre>
+    </div>
+
+    <h3>InfoTip</h3>
+    <p>An ⓘ beside a label that explains a field, setting or heading. It shows above a <code>Modal</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>InfoTip</code></div>
+      <div class="demo" data-demo="infotip"></div>
+<pre><code>&lt;Label&gt;Gate distance &lt;InfoTip label="Gate distance"&gt;Contacts further than this from a track's
+  predicted position start a new track.&lt;/InfoTip&gt;&lt;/Label&gt;</code></pre>
+    </div>
+
+    <h3>Tooltip</h3>
+    <p>The hover label for a map feature, anchored to viewport coordinates. It sits below a <code>Modal</code>. Move the pointer over the frame.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Tooltip</code></div>
+      <div class="demo" data-demo="tooltip"></div>
+<pre><code>{hover &amp;&amp; &lt;Tooltip x={hover.x} y={hover.y} content={hover.feature.name} /&gt;}</code></pre>
+    </div>
+
+    <h3>ItemClassificationBar</h3>
+    <p>The per-item classification strip, coloured by level. <code>null</code> renders CLASSIFICATION NOT SET.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ItemClassificationBar</code></div>
+      <div class="demo" data-demo="itemclassificationbar"></div>
+<pre><code>&lt;ItemClassificationBar banner="SECRET//REL TO USA, FVEY" level="SECRET" /&gt;
+&lt;ItemClassificationBar banner={null} /&gt;</code></pre>
+    </div>
+
+    <h3>ClassificationBanner</h3>
+    <p>Fixed top and bottom strips above everything. Reserve <code>BANNER_HEIGHT_PX</code> through <code>--banner-height</code>.
+      Shown here inside a frame.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ClassificationBanner</code></div>
+      <div class="demo" data-demo="classificationbanner"></div>
+<pre><code>&lt;ClassificationBanner enabled text="UNCLASSIFIED"
+  background="var(--classification-unclassified-bg)" color="var(--classification-unclassified-text)" /&gt;</code></pre>
+    </div>
+
+    <!-- ============================ Page structure ============================ -->
+    <h3>PageHeader</h3>
+    <p>The glass page title bar, one per page, first in the column. It sets <code>document.title</code>. Optional
+      <code>leading</code>, <code>center</code> and <code>actions</code> slots take the home button, clocks, assistant and user chip.</p>
+    <div class="example">
+      <div class="example-label">Example <code>PageHeader + HomeButton + ClockBadges + AssistantButton + Avatar</code></div>
+      <div class="demo" data-demo="pageheader" style="padding:0"></div>
+<pre><code>&lt;PageHeader title="Track database" appName="OpenTrack"
+  leading={&lt;HomeButton onNavigate={navigate} /&gt;}
+  center={&lt;ClockBadges clocks={[{ timezone: 'UTC', label: 'Zulu' }, { timezone: 'America/New_York', label: 'HQ' }]} /&gt;}
+  actions={&lt;&gt;&lt;AssistantButton open={open} onToggle={toggle} /&gt;&lt;Avatar size={28} username="jdoe" /&gt;&lt;/&gt;}&gt;
+  &lt;Badge size="sm" uppercase color="success"&gt;Live&lt;/Badge&gt;
+&lt;/PageHeader&gt;</code></pre>
+    </div>
+
+    <h3>Tabs</h3>
+    <p><code>variant="bar"</code> is the page navigation directly under the header: uppercase, no icons. The inline
+      variant switches views inside a panel or drawer, with optional icons, counts and notification bubbles. Both are
+      WAI-ARIA tabs with arrow-key navigation; pair them with <code>TabPanel</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Tabs + TabPanel</code></div>
+      <div class="demo" data-demo="tabs"></div>
+<pre><code>&lt;Tabs variant="bar" aria-label="Workspaces" value={view} onChange={setView}
+  tabs={[{ id: 'sources', label: 'Sources' }, { id: 'tracks', label: 'Tracks' }, { id: 'schema', label: 'Schema' }]} /&gt;
+
+&lt;Tabs aria-label="Track detail" idPrefix="detail" value={tab} onChange={setTab}
+  tabs={[{ id: 'summary', label: 'Summary', icon: &lt;TbInfoCircle /&gt; },
+         { id: 'contacts', label: 'Contacts', count: 214 },
+         { id: 'reviews', label: 'Reviews', badge: 3, badgeLabel: '3 pending' }]} /&gt;
+&lt;TabPanel id={tab} idPrefix="detail"&gt;…&lt;/TabPanel&gt;</code></pre>
+    </div>
+
+    <h3>CollapsiblePanel</h3>
+    <p>The titled, collapsible section every page is built from. <code>titleActions</code> (directly after the title) and
+      <code>actions</code> (right-aligned) hold the panel's own compact controls; clicks there never toggle it.
+      <code>persistKey</code> remembers the open state.</p>
+    <div class="example">
+      <div class="example-label">Example <code>CollapsiblePanel</code></div>
+      <div class="demo" data-demo="collapsiblepanel"></div>
+<pre><code>&lt;CollapsiblePanel title="Sources" badge="4" persistKey="panel:sources"
+  titleActions={&lt;Input placeholder="Search" style={{ width: 180, height: 26 }} /&gt;}
+  actions={&lt;Button size="sm" variant="secondary" icon={&lt;TbPlus /&gt;}&gt;Add&lt;/Button&gt;}&gt;
+  …
+&lt;/CollapsiblePanel&gt;</code></pre>
+    </div>
+
+    <h3>Disclosure</h3>
+    <p>An inline expander. Its content renders only while open.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Disclosure</code></div>
+      <div class="demo" data-demo="disclosure"></div>
+<pre><code>&lt;Disclosure label="sensors (3)"&gt;…&lt;/Disclosure&gt;</code></pre>
+    </div>
+
+    <h3>Stepper</h3>
+    <p>A compact wizard step header. Completed or failed steps can be revisited; upcoming ones cannot.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Stepper</code></div>
+      <div class="demo" data-demo="stepper"></div>
+<pre><code>&lt;Stepper aria-label="Onboard a source" onStepClick={setStep} steps={[
+  { id: 'connect', label: 'Connect', status: 'complete' },
+  { id: 'map', label: 'Map fields', status: 'current' },
+  { id: 'review', label: 'Review', status: 'upcoming' },
+]} /&gt;</code></pre>
+    </div>
+
+    <h3>SideNav</h3>
+    <p>The drawer for detail views, docked left or right, resizable, stacking with other drawers. It reserves page width
+      through <code>--assistant-width</code> / <code>--dock-left-width</code> and must sit inside a <code>DockProvider</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>SideNav + DockProvider</code></div>
+      <div class="demo" data-demo="sidenav"></div>
+<pre><code>&lt;DockProvider&gt;
+  &lt;SideNav open={selected != null} side="right" ariaLabel="Track detail" storageKey="sidenav:track"&gt;
+    …
+  &lt;/SideNav&gt;
+&lt;/DockProvider&gt;</code></pre>
+    </div>
+
+    <h3>Modal</h3>
+    <p>For decisions, not browsing: confirmations and short create or edit forms. <code>AdminModal</code> is the same
+      dialog for admin-only forms. Esc and the backdrop close it.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Modal + AdminModal</code></div>
+      <div class="demo" data-demo="modal"></div>
+<pre><code>{open &amp;&amp; (
+  &lt;Modal title="Rename source" onClose={close} width={420}&gt;
+    &lt;Label htmlFor="name"&gt;Name&lt;/Label&gt;
+    &lt;Input id="name" defaultValue="AIS — Channel" /&gt;
+    &lt;Button size="sm" onClick={save}&gt;Save&lt;/Button&gt;
+  &lt;/Modal&gt;
+)}</code></pre>
+    </div>
+
+    <h3>ClassifyModal</h3>
+    <p>Picks a full classification marking (level, controls, releasability, NOFORN) with favourites and a live banner preview.
+      The host supplies the options and the banner text.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ClassifyModal</code></div>
+      <div class="demo" data-demo="classifymodal"></div>
+<pre><code>&lt;ClassifyModal options={options} value={marking} bannerFor={bannerFor}
+  favorites={favorites} onToggleFavorite={toggleFavorite}
+  onConfirm={setMarking} onClose={close} /&gt;</code></pre>
+    </div>
+
+    <h3>DraggablePopup</h3>
+    <p>A floating, draggable and resizable glass popup whose position is remembered under <code>storageKey</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>DraggablePopup</code></div>
+      <div class="demo" data-demo="draggablepopup"></div>
+<pre><code>&lt;DraggablePopup storageKey="popup:feature" title="Feature" getDefaultPos={() =&gt; ({ x: 120, y: 120 })}
+  headerRight={&lt;Button variant="ghost" size="xs" icon={&lt;TbX /&gt;} aria-label="Close" title="Close" onClick={close} /&gt;}&gt;
+  …
+&lt;/DraggablePopup&gt;</code></pre>
+    </div>
+
+    <!-- ============================ App shell ============================ -->
+    <h3>AppCard</h3>
+    <p>The landing-page app tile. It renders a real link, so Ctrl/⌘-click still opens a new tab; pass
+      <code>onNavigate</code> to route a plain click through your router. <code>HomeButton</code>,
+      <code>AssistantButton</code> and <code>ClockBadges</code> appear in the <a href="#pageheader">PageHeader</a> example.</p>
+    <div class="example">
+      <div class="example-label">Example <code>AppCard</code></div>
+      <div class="demo" data-demo="appcard"></div>
+<pre><code>&lt;AppCard label="Track DB" icon={&lt;TbRadar2 /&gt;} href="/tracks" description="Fused tracks and their sources" onNavigate={navigate} /&gt;
+&lt;AppCard label="Imagery" icon={&lt;TbPhoto /&gt;} href="/imagery" disabled disabledTooltip="Ask an administrator for access" /&gt;</code></pre>
+    </div>
+
+    <!-- ============================ Data ============================ -->
+    <h3>DataTable</h3>
+    <p>Sortable columns (stable, nulls last), row selection with keyboard activation, and a sticky header with
+      virtualisation when <code>maxHeight</code> is set. Header rows stay neutral: weight, uppercase and a bottom border,
+      no fill and no accent.</p>
+    <div class="example">
+      <div class="example-label">Example <code>DataTable</code></div>
+      <div class="demo" data-demo="datatable"></div>
+<pre><code>&lt;DataTable aria-label="Tracks" rows={tracks} rowKey={t =&gt; t.id} maxHeight={260}
+  selectedKey={selected} onRowClick={t =&gt; setSelected(t.id)}
+  defaultSort={{ key: 'updated', direction: 'desc' }} empty="No tracks yet."
+  columns={[
+    { key: 'id', header: 'Track', mono: true, width: 110, sortValue: t =&gt; t.id },
+    { key: 'callsign', header: 'Callsign', sortValue: t =&gt; t.callsign },
+    { key: 'status', header: 'Status', render: t =&gt; &lt;Badge size="sm" uppercase color={…}&gt;{t.status}&lt;/Badge&gt; },
+    { key: 'speed', header: 'Speed (kn)', align: 'right', mono: true, sortValue: t =&gt; t.speed },
+  ]} /&gt;</code></pre>
+    </div>
+
+    <h3>Pagination</h3>
+    <p>Offset/limit paging that matches <code>?offset=</code> and <code>?limit=</code>. It handles an unknown total and a backend offset ceiling.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Pagination</code></div>
+      <div class="demo" data-demo="pagination"></div>
+<pre><code>&lt;Pagination offset={offset} limit={50} total={1284} itemCount={rows.length} onOffsetChange={setOffset} /&gt;</code></pre>
+    </div>
+
+    <h3>Tree</h3>
+    <p>A hierarchical list with expand and collapse, in <code>none</code>, <code>single</code> or <code>multi</code> selection modes.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Tree</code></div>
+      <div class="demo" data-demo="tree"></div>
+<pre><code>&lt;Tree nodes={nodes} selectable="multi"
+  checkedIds={checked} onCheckedChange={(id, on) =&gt; …}
+  expandedIds={expanded} onExpandedChange={(id, open) =&gt; …} /&gt;</code></pre>
+    </div>
+
+    <h3>Facets</h3>
+    <p>A group of filter chips with counts, for narrowing a catalogue or search results.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Facets</code></div>
+      <div class="demo" data-demo="facets"></div>
+<pre><code>&lt;Facets label="Domain" icon={&lt;TbTag /&gt;} options={[{ value: 'air', label: 'Air', count: 412 }, …]}
+  selected={selected} onToggle={toggle} onClear={() =&gt; setSelected([])} /&gt;</code></pre>
+    </div>
+
+    <h3>SortableList</h3>
+    <p>Drag-to-reorder by a grip handle (or the whole row with <code>dragMode="row"</code>), keyboard-accessible through dnd-kit.</p>
+    <div class="example">
+      <div class="example-label">Example <code>SortableList</code></div>
+      <div class="demo" data-demo="sortablelist"></div>
+<pre><code>&lt;SortableList items={layers} getId={l =&gt; l.id} onReorder={setLayers} itemLabel="layer"
+  renderItem={l =&gt; &lt;span&gt;{l.name}&lt;/span&gt;} /&gt;</code></pre>
+    </div>
+
+    <h3>VirtualList</h3>
+    <p>A windowed list for long, fixed-height rows. Only the visible window renders.</p>
+    <div class="example">
+      <div class="example-label">Example <code>VirtualList</code></div>
+      <div class="demo" data-demo="virtuallist"></div>
+<pre><code>&lt;VirtualList items={contacts} rowHeight={28} maxHeight={200} ariaLabel="Contacts"
+  getKey={c =&gt; c.id} renderRow={c =&gt; &lt;div&gt;{c.id}&lt;/div&gt;} emptyState="No contacts." /&gt;</code></pre>
+    </div>
+
+    <!-- ============================ Menus & feedback ============================ -->
+    <h3>ContextMenu</h3>
+    <p>A right-click menu at the pointer, flipped to stay inside the viewport. Right-click the frame.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ContextMenu + ContextMenuItem</code></div>
+      <div class="demo" data-demo="contextmenu"></div>
+<pre><code>{menu &amp;&amp; (
+  &lt;ContextMenu x={menu.x} y={menu.y} onClose={close} ariaLabel="Track actions" header="TRK-0412"&gt;
+    &lt;ContextMenuItem onClick={follow}&gt;&lt;TbFocus2 /&gt; Follow&lt;/ContextMenuItem&gt;
+    &lt;ContextMenuItem danger onClick={drop}&gt;&lt;TbTrash /&gt; Drop track&lt;/ContextMenuItem&gt;
+  &lt;/ContextMenu&gt;
+)}</code></pre>
+    </div>
+
+    <h3>Flyout</h3>
+    <p>A tool menu anchored to a trigger, with an optional filter box, shortcuts, hints, disabled reasons and favourites.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Flyout</code></div>
+      <div class="demo" data-demo="flyout"></div>
+<pre><code>&lt;Flyout open={open} onClose={close} anchorRef={triggerRef} ariaLabel="Tools" filterable
+  onSelect={run} onToggleFavourite={toggleFavourite}
+  items={[{ id: 'measure', label: 'Measure', icon: &lt;TbRuler2 /&gt;, shortcut: 'M', hint: 'Distance and bearing' }, …]} /&gt;</code></pre>
+    </div>
+
+    <h3>Toast</h3>
+    <p><code>useToast().toast()</code> raises a transient result. Errors never auto-dismiss.
+      <code>useToast().confirm()</code> replaces <code>window.confirm</code> and always names the object.
+      Needs a <code>ToastProvider</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>useToast()</code></div>
+      <div class="demo" data-demo="toast"></div>
+<pre><code>const { toast, confirm } = useToast()
+toast({ variant: 'success', message: 'Source saved.' })
+toast({ variant: 'error', title: 'Layer ingest failed', message: 'The file has no geometry column.' })
+if (await confirm('Delete source "AIS — Channel"?', { confirmLabel: 'Delete' })) remove()</code></pre>
+    </div>
+
+    <!-- ============================ Content & views ============================ -->
+    <h3>MDText</h3>
+    <p>Rendered Markdown with GFM (tables, task lists, strikethrough), in the <code>wiki</code>, <code>chat</code> or
+      <code>tool</code> style. Mermaid code blocks render as diagrams when <code>mermaid</code> is installed.</p>
+    <div class="example">
+      <div class="example-label">Example <code>MDText</code></div>
+      <div class="demo" data-demo="mdtext"></div>
+<pre><code>&lt;MDText markdown={article} /&gt;</code></pre>
+    </div>
+
+    <h3>ProfileChart</h3>
+    <p>Height against distance along a path, in plain SVG with token colours. <code>null</code> heights break the line;
+      an optional dashed sight line and obstruction marker show line of sight.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ProfileChart</code></div>
+      <div class="demo" data-demo="profilechart"></div>
+<pre><code>&lt;ProfileChart aria-label="Terrain profile" samples={samples}
+  sightLine={[{ distance_m: 0, height_m: 412 }, { distance_m: 18000, height_m: 260 }]}
+  obstruction={{ distance_m: 9400, height_m: 351 }} /&gt;</code></pre>
+    </div>
+
+    <h3>TimeSeriesChart</h3>
+    <p><code>@kineticlogic/staresdk/chart</code>. A compact uPlot line chart over time. Colours come from tokens and update
+      when the theme changes. Each series picks a <code>tone</code>, never a colour, and the legend shows values under the cursor.</p>
+    <div class="example">
+      <div class="example-label">Example <code>TimeSeriesChart</code></div>
+      <div class="demo" data-demo="timeserieschart"></div>
+<pre><code>import { TimeSeriesChart } from '@kineticlogic/staresdk/chart'
+import 'uplot/dist/uPlot.min.css'
+
+&lt;TimeSeriesChart aria-label="Ingest rate" times={times} unit="/min"
+  series={[{ label: 'Contacts', values: contacts, tone: 'accent' }, { label: 'Rejected', values: rejected, tone: 'danger' }]} /&gt;</code></pre>
+    </div>
+
+    <h3>GraphView</h3>
+    <p><code>@kineticlogic/staresdk/graph-view</code>. A directed graph for lineage, provenance and pipelines: React Flow
+      rendering, dagre layout and token-styled nodes. <code>ended</code> edges are dashed, and <code>animated</code> edges
+      move to show data flowing (drawn still under reduced motion).</p>
+    <div class="example">
+      <div class="example-label">Example <code>GraphView</code></div>
+      <div class="demo" data-demo="graphview"></div>
+<pre><code>import { GraphView } from '@kineticlogic/staresdk/graph-view'
+import '@xyflow/react/dist/base.css'
+
+&lt;GraphView aria-label="Pipeline" height={240} layerGap={48}
+  nodes={[{ id: 'ais', label: 'AIS', sublabel: 'source', width: 120 }, { id: 'fuse', label: 'Fuse', tone: 'accent', width: 120 }, …]}
+  edges={[{ id: 'e1', source: 'ais', target: 'fuse', animated: true }, …]} /&gt;</code></pre>
+    </div>
+
+    <h3>MapView</h3>
+    <p><code>@kineticlogic/staresdk/map-view</code>. A MapLibre GL map of points and polylines on the offline basemap
+      style (theme-aware), with selection, fit-to-points and parent-driven <code>fitTo</code>. Point and line colours are
+      data colours and stay the same in both themes. Click a point.</p>
+    <div class="example">
+      <div class="example-label">Example <code>MapView</code></div>
+      <div class="demo" data-demo="mapview"></div>
+<pre><code>import { MapView } from '@kineticlogic/staresdk/map-view'
+import 'maplibre-gl/dist/maplibre-gl.css'
+
+&lt;MapView aria-label="Tracks" height={320} outlines={countriesUrl}
+  points={tracks} lines={trails} selectedId={selected} onSelect={setSelected} fitKey="initial" /&gt;</code></pre>
+    <p class="caption" style="margin:0;padding:6px 12px">Set MapLibre's worker URL once in your app:
+      <code>setWorkerUrl(maplibreWorkerUrl)</code> with <code>import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&amp;url'</code>.</p>
+    </div>
+
+    <h3>CodeEditor</h3>
+    <p><code>@kineticlogic/staresdk/code-editor</code>. A CodeMirror 6 JSON or text editor, token-themed, with parse errors
+      and caller-supplied diagnostics. Try breaking the JSON.</p>
+    <div class="example">
+      <div class="example-label">Example <code>CodeEditor</code></div>
+      <div class="demo" data-demo="codeeditor"></div>
+<pre><code>import { CodeEditor } from '@kineticlogic/staresdk/code-editor'
+
+&lt;CodeEditor aria-label="Source config" language="json" value={json} onChange={setJson} minHeight={160}
+  diagnostics={[{ line: 4, message: 'Port 80 needs root on most hosts', severity: 'warning' }]} /&gt;</code></pre>
+    </div>
+
+    <h2>Reference</h2>
+    <h3>Hardcoded-hex exceptions</h3>
+    <p>Two places in the package keep raw hex literals instead of <code>var()</code> references, mirroring the same two
+      exceptions in OpenStare: <code>badgeTokens.ts</code>'s <code>BADGE_BG</code> (parsed for WCAG contrast) and
+      <code>chromeTheme.ts</code>'s <code>severityRamp</code>. Map feature, track, tactical and data-viz colours inside
+      OpenStare's layer rendering are deliberately theme-invariant and outside this package's scope.</p>
+
+    <h3>Peer dependencies</h3>
+    <p>stareSDK declares its runtime dependencies as <code>peerDependencies</code>, so your app controls the installed
+      versions: <code>react</code>, <code>react-dom</code>, <code>react-icons</code>, <code>framer-motion</code>,
+      <code>@dnd-kit/core</code>, <code>@dnd-kit/sortable</code>, <code>@dnd-kit/utilities</code>,
+      <code>react-markdown</code>, <code>remark-gfm</code>, <code>mdast-util-find-and-replace</code>, and
+      <code>mermaid</code> (optional, loaded with a dynamic <code>import()</code> only when <code>MDText</code> renders a Mermaid block).</p>
+
+    <h3>Lint</h3>
+    <p>The raw-colour-literal gate (<code>eslint/colorLiteralGate.js</code>) is exported for consuming apps, so colours stay on the tokens:</p>
+<pre><code>import { RAW_COLOR_LITERAL_SELECTORS } from '@kineticlogic/staresdk/eslint/colorLiteralGate.js'
+
+export default [{ files: ['src/**/*.{ts,tsx}'], rules: { 'no-restricted-syntax': ['error', ...RAW_COLOR_LITERAL_SELECTORS] } }]</code></pre>
+
+    <h3>Development</h3>
+<pre><code>npm install --legacy-peer-deps
+npm run check     # typecheck, lint (including the colour-literal gate) and tests
+npm run build     # dist/
+npm run docs      # this guide, into docs/</code></pre>
+    <p>To release, bump <code>version</code> in <code>package.json</code> and publish a GitHub release tagged
+      <code>v&lt;version&gt;</code>. The <code>publish</code> workflow then publishes the package to npm with provenance.</p>
+
+    <h3>License</h3>
+    <p><a href="https://github.com/kineticlogic-io/stareSDK/blob/main/LICENSE">MIT</a>. © 2026 kineticlogic.io. For consulting
+      or support, email <a href="mailto:parker@kineticlogic.io">parker@kineticlogic.io</a>.</p>
+
+    <footer class="guide-footer">stareSDK v0.2.0 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
+  </main>
+</div>
+</body>
+</html>

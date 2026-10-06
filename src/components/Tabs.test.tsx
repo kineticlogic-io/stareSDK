@@ -2,7 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import { act, useState } from 'react'
 import { describe, it, expect, afterEach } from 'vitest'
-import { TabPanel, Tabs } from './Tabs'
+import { TabPanel, Tabs } from './Tabs.js'
 
 const cleanups: Array<() => void> = []
 afterEach(() => {

@@ -1,5 +1,5 @@
 import type { ReactNode, MouseEventHandler, CSSProperties } from 'react'
-import { Button, type ButtonVariant } from './Button'
+import { Button, type ButtonVariant } from './Button.js'
 
 /**
  * PopoverMenuButton — the single shared shape for a kebab/dropdown popover menu

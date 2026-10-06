@@ -10,8 +10,8 @@ import {
   CLASSIFICATION_UNCLASSIFIED,
   ItemClassificationBar,
   classificationColor,
-} from './ItemClassificationBar'
-import type { ItemClassificationBarProps } from './ItemClassificationBar'
+} from './ItemClassificationBar.js'
+import type { ItemClassificationBarProps } from './ItemClassificationBar.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

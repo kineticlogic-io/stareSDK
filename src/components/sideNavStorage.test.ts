@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { sideNavOpenKey, readSideNavOpen, writeSideNavOpen } from './sideNavStorage'
+import { sideNavOpenKey, readSideNavOpen, writeSideNavOpen } from './sideNavStorage.js'
 
 describe('sideNavStorage', () => {
   beforeEach(() => {

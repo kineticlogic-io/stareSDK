@@ -10,7 +10,7 @@
  * ever rendered outside a provider, instead of throwing.
  */
 import { createContext, useContext } from 'react'
-import type { ThemeContextValue } from './ThemeContext'
+import type { ThemeContextValue } from './ThemeContext.js'
 
 export const ThemeCtx = createContext<ThemeContextValue>({
   theme: 'dark',

@@ -6,9 +6,9 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { ClassifyModal, fitsOptions, nextReleasability, NOFORN_MARKING, withDomestic } from './ClassifyModal'
-import type { ClassificationMarking, ClassifyOptions } from './ClassifyModal'
-import { Modal } from './Modal'
+import { ClassifyModal, fitsOptions, nextReleasability, NOFORN_MARKING, withDomestic } from './ClassifyModal.js'
+import type { ClassificationMarking, ClassifyOptions } from './ClassifyModal.js'
+import { Modal } from './Modal.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

@@ -8,7 +8,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach } from 'vitest'
-import { Tooltip } from './Tooltip'
+import { Tooltip } from './Tooltip.js'
 
 function renderTooltip(props: Partial<React.ComponentProps<typeof Tooltip>> = {}) {
   const container = document.createElement('div')

@@ -23,7 +23,7 @@ import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TbChevronDownRight, TbX } from 'react-icons/tb'
-import { Button } from './Button'
+import { Button } from './Button.js'
 
 export interface ModalProps {
   onClose: () => void
