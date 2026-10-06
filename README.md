@@ -220,8 +220,12 @@ npm run check     # typecheck, lint (including the color-literal gate) and tests
 npm run build     # dist/
 ```
 
-To release, bump `version` in `package.json` and publish a GitHub release tagged `v<version>`. The
-`publish` workflow then publishes the package to npm with provenance.
+To release, bump `version` in `package.json` (and run `npm run docs` so the guide shows it), then
+publish a GitHub release tagged `v<version>`. The `publish` workflow publishes the package to npm
+with provenance; it refuses a tag that does not match `package.json`, or a version npm already has
+from a different commit. The `release-sync` workflow (after each publish, on `main` and daily) fails
+if any npm version lacks a GitHub release on the commit it was built from, or a release never
+reached npm.
 
 ## License
 
