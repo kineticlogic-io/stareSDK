@@ -1,0 +1,77 @@
+// stareSDK barrel — re-exports every included component/hook/type plus theme and design tokens.
+// Keep this file a flat list of `export *` lines only: no re-aliasing, no re-shaping. OpenStare's
+// shared UI library lives here (#31); the app-coupled components take props and the app keeps the
+// data wiring.
+
+// Components
+export * from './components/AdminModal'
+export * from './components/AppCard'
+export * from './components/AssistantButton'
+export * from './components/Avatar'
+export * from './components/Badge'
+export * from './components/Button'
+export * from './components/ButtonPalette'
+export * from './components/ClassificationBanner'
+export * from './components/ClassifyModal'
+export * from './components/ClockBadges'
+export * from './components/CollapsiblePanel'
+export * from './components/ColorPicker'
+export * from './components/ContextMenu'
+export * from './components/DataTable'
+export * from './components/Disclosure'
+export * from './components/DraggablePopup'
+export * from './components/Facets'
+export * from './components/FieldSelect'
+export * from './components/FileDropZone'
+export * from './components/Flyout'
+export * from './components/HomeButton'
+export * from './components/InfoTip'
+export * from './components/ItemClassificationBar'
+export * from './components/Input'
+export * from './components/Label'
+export * from './components/MDText'
+export * from './components/Modal'
+export * from './components/MultiSelect'
+export * from './components/OpacitySlider'
+export * from './components/PageHeader'
+export * from './components/Pagination'
+export * from './components/ProfileChart'
+export * from './components/PopoverMenuButton'
+export * from './components/RampPicker'
+export * from './components/SaveButton'
+export * from './components/Select'
+export * from './components/SideNav'
+export * from './components/Slider'
+export * from './components/SortableList'
+export * from './components/Stepper'
+export * from './components/Tabs'
+export * from './components/Toast'
+export * from './components/Toggle'
+export * from './components/Tooltip'
+export * from './components/Tree'
+export * from './components/UnitSelect'
+export * from './components/TypeaheadPicker'
+export * from './components/VirtualList'
+export * from './components/ZoomRangeSlider'
+
+// Helpers
+export * from './components/CollapsiblePanel.helpers'
+export * from './components/SortableList.helpers'
+export * from './components/TypeaheadPicker.helpers'
+export * from './components/badgeTokens'
+export * from './components/headerControls'
+export * from './components/mermaidRender'
+export * from './components/sideNavStorage'
+export * from './components/useToast'
+
+// Dock (SideNav stacking)
+export * from './context/DockContext'
+export * from './context/useDock'
+
+// Theme
+export * from './theme/ThemeContext'
+export * from './theme/useTheme'
+
+// Design tokens
+export * from './styles/chromeTheme'
+export * from './units/units'

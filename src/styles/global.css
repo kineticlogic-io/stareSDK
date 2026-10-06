@@ -1,0 +1,710 @@
+/* Phase 127 plan 09 (VANT-03, operator direction 2026-09-10): `[data-theme="dark"]` is added
+   to this selector's LHS alongside `:root` so a NESTED container carrying its own
+   `data-theme="dark"` attribute re-declares every dark custom property directly on itself,
+   winning over an ANCESTOR `<html data-theme="light">`'s inherited values — custom properties
+   declared on a matching element always beat inheritance, regardless of the ancestor rule's
+   specificity. Nothing inside either token block changes.
+
+   SCOPE CORRECTION, Phase 128 UAT item 5 (operator 2026-09-15, "ui doesn't respond to light
+   mode"): this selector's one consumer used to be VantageShell.tsx's wrapper, which force-darkened
+   ALL of VANTAGE's chrome. It is now VantageStage.tsx's container only — the imagery stage stays
+   dark (a neutral ground to judge pixels against, analogous to the theme-invariant map-feature-
+   colour rule), while VANTAGE's sub-bar, tool rail, inspector, Search pane and status strip follow
+   the app theme like every other surface. The mechanism below is UNCHANGED and still load-bearing:
+   the override MOVED, it did not disappear, so this selector must not be reverted to bare `:root`.
+   What a future light-mode audit may not do is re-widen the attribute back up to the shell — see
+   VantageStage.tsx's "Always-dark scope" section for why (portalled `ui/*` popovers escape any
+   such subtree and mismatch it). */
+:root,
+[data-theme="dark"] {
+  /* === Elite Command Design System v1.0 — full token set === */
+
+  /* Surfaces */
+  --surface-layer-2: #1B2430;
+  --border-strong: #2F3E52;
+
+  /* Text */
+  --text-muted: #6E7F93;
+  --text-inverse: #0B0F14;
+
+  /* Brand */
+  --brand-primary-hover: #14C987;
+  --brand-primary-active: #0B8C5C;
+  --brand-subtle: rgba(15, 175, 115, 0.12);
+
+  /* Status */
+  --status-warning: #F5A623;
+  --status-success: #1DB954;
+  --status-info: #3B82F6;
+
+  /* Links — canonical treatment (reuses the existing on-brand info-blue hue; never overloads
+     the reserved --color-accent green accent). Single permanent reference for every inline
+     navigational link app-wide — see `.wiki-link` / `.wiki-md a` rule below. */
+  --color-link: var(--status-info);
+  --color-link-hover: #5B9BFF;
+
+  /* Intelligence layer — charts/maps/overlays only, never primary buttons */
+  --intel-cyan: #1FCFE8;
+  --intel-purple: #7C5CFA;
+  --intel-lime: #9FE870;
+  --intel-heat: #FF6A3D;
+
+  /* Shadows */
+  --shadow-standard: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-deep: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+
+  /* === Canonical token set (D-02, 87-21) — these are the real names for their eight roles;
+     the equivalent --surface-base/--surface-elevated/--brand-primary/--text-primary/
+     --text-secondary/--status-critical/--surface-layer-1/--border-subtle names were retired
+     as byte-identical duplicates and every consumer rewritten to reference these directly === */
+  --color-bg-primary: #0B0F14;
+  --color-bg-secondary: #11161D;
+  --color-accent: #0FAF73;
+  --color-text-primary: #E8EEF5;
+  --color-text-secondary: #93A4B8;
+  --color-destructive: #E03C3C;
+
+  /* Glass tokens → solid layer values */
+  --color-glass-bg: #151C24;
+  --color-glass-border: #263241;
+
+  /* Classification banner height — updated at runtime by BannerContext */
+  --banner-height: 0px;
+  /* Page header height — single source of truth for header-aware layout.
+     52px (post-checkpoint operator revision, 88-11, 2026-08-13; supersedes the original
+     56px/D-33 value — "make the header 4px smaller"), 9px breathing room above and below a
+     34px header control. This value is MIRRORED by `HEADER_OFFSET` in
+     openstare/src/components/hud/useDraggable.ts — that mirroring is the only place it must
+     be kept in sync by hand; every other consumer is a calc() offset that follows this token
+     automatically. */
+  --page-header-height: 52px;
+
+  /* Typography */
+  --font-sans: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+  --font-header: 'Oswald', 'Montserrat', sans-serif;
+  /* Monospace — code cells, telemetry readouts, and tabular data values ONLY.
+     Never UI chrome (use --font-sans / --font-header for that). System stack,
+     no web-font import required. */
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Menlo, Consolas, monospace;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* Native UA-painted chrome (Phase 89 plan 12, D-16/UAT-1) — <select> dropdown popups,
+     scrollbars, and form-control chrome are painted by the browser's own dark/light
+     heuristic, which tokenising background/color on the element itself cannot reach.
+     Declaring color-scheme is the only way to make those native surfaces follow the
+     active theme. */
+  color-scheme: dark;
+
+  /* Classification-level colors (Phase 127.4-11, live-UAT operator direction 2026-09-17:
+     "make sure the colors match the ones we use in the banner"). SINGLE source of truth for
+     every classification-level color in the app — the admin banner's color presets
+     (`admin/BannerSection.tsx`'s `PRESETS`) and the per-image classification badge
+     (`vantage/ImageSummary.helpers.ts`) both derive from these exact values. Domain colors, not
+     chrome (same D-07 exception category as the banner's own preset literals) — theme-invariant
+     by design, declared ONCE here rather than duplicated under `[data-theme="light"]`, matching
+     this project's existing precedent for map/track/tactical colors: a classification marking
+     must read identically regardless of which theme an operator has selected. */
+  --classification-unclassified-bg: #006400;
+  --classification-unclassified-text: #ffffff;
+  --classification-cui-bg: #502b85;
+  --classification-cui-text: #ffffff;
+  --classification-confidential-bg: #0033a0;
+  --classification-confidential-text: #ffffff;
+  --classification-secret-bg: #c8102e;
+  --classification-secret-text: #ffffff;
+  --classification-topsecret-bg: #ff8300;
+  --classification-topsecret-text: #000000;
+}
+
+/* ============================================================================
+   Light theme override (Phase 89 Light Mode, plan 01, D-03/D-11)
+   ----------------------------------------------------------------------------
+   Hand-authored light palette (D-01 — not an algorithmic inversion), scoped
+   EXACTLY to D-03's 19 tokens plus --color-link-hover (a raw hex literal, not
+   a var, so it does not re-theme for free). Deliberately NOT repeated here —
+   theme-invariant per D-03/UI-SPEC, left to inherit from :root:
+     --intel-cyan / --intel-purple / --intel-lime / --intel-heat (data-viz only,
+       CLAUDE.md-scoped), all --radius-*, all --font-*, all --space-*,
+       --banner-height, --page-header-height, and --color-link (it is
+       `var(--status-info)`, so it re-themes automatically the instant
+       --status-info gets an override above/below).
+   Drift-tested against chromeTheme.ts's LIGHT_THEME by theme.test.ts — the two
+   must never disagree on a value (D-11). */
+[data-theme="light"] {
+  color-scheme: light;
+  --color-bg-primary: #F8F7F6;
+  --color-bg-secondary: #F1EFEC;
+  /* Phase 89 plan 12, D-16/UAT-2: moved from #0C7A4C (failed AA on glass-bg, 4.32:1) to
+     #0A6440 — chosen for WCAG parity with dark's own accent profile (6.74/6.29/5.80 vs
+     bg-primary/bg-secondary/glass-bg, closely matching dark's 6.77/6.05), not maximum
+     contrast, so neither theme reads as the weaker one. See deferred-items.md OPERATOR
+     DECISIONS and theme.test.ts's dedicated light-accent-vs-glass-bg gate. */
+  --color-accent: #0A6440;
+  --color-text-primary: #1B232B;
+  --color-text-secondary: #4B6072;
+  --color-destructive: #C62F2F;
+  --color-glass-bg: #E9E6E2;
+  --color-glass-border: #C4B9A5;
+  --surface-layer-2: #DCD7D1;
+  --border-strong: #8C7F6B;
+  --text-muted: #52667A;
+  --text-inverse: #FFFFFF;
+  /* Re-derived from the new --color-accent using the same proportional darken-on-hover/
+     darken-further-on-active ratios the original #0C7A4C ladder used, so the light-mode
+     "hover darkens" rule (89-UI-SPEC.md Interaction/State Contracts) still holds — the old
+     #0A6B42/#075A38 pair sat BETWEEN the new accent and black, inverting the intended
+     accent > hover > active lightness ordering. */
+  --brand-primary-hover: #085838;
+  --brand-primary-active: #064A2F;
+  --brand-subtle: rgba(15, 175, 115, 0.16);
+  --shadow-standard: 0 4px 12px rgba(23, 21, 15, 0.10);
+  --shadow-deep: 0 12px 32px rgba(23, 21, 15, 0.16);
+  --status-warning: #9A5A0A;
+  --status-success: #127A3A;
+  --status-info: #1D4ED8;
+  --color-link-hover: #15399E;
+}
+
+* { box-sizing: border-box; }
+
+/* ============================================================================
+   Base element reset — ported from Tailwind Preflight (D-01, 87-24)
+   ----------------------------------------------------------------------------
+   Tailwind (`tailwindcss` + `@tailwindcss/vite`) was removed in phase 87 plan 24
+   because zero utility classes were ever used anywhere in this app — it was a
+   build-toolchain-only dependency. But `@import "tailwindcss"` also shipped a
+   global browser-default reset ("Preflight") that every bare semantic element
+   in this app has implicitly relied on, even though nothing else in this file
+   provided an equivalent (this file had only `box-sizing: border-box` above and
+   `body { margin: 0 }` below — no element-level resets for headings, lists,
+   tables, form controls, or media).
+
+   Removing Tailwind without porting this block would be a real, broad visual
+   regression: bare headings reverting to native browser size/weight, `<ol>`/
+   `<ul>` gaining native bullets/numbers, EVERY react-icons/tb `<svg>` icon
+   reverting to inline-text layout with baseline gaps (misaligning icons
+   against adjacent text/buttons across the whole UI), native button/input/
+   select/textarea chrome (grey backgrounds, 3D borders, non-inherited fonts)
+   reappearing, and universal browser default margins/padding returning.
+
+   This block is a faithful, minimal port of the subset of Preflight this app
+   actually renders through, reconstructed from a real before/after production
+   CSS bundle diff (see 87-24-SUMMARY.md) — not a redesign, not new opinionated
+   styling. Rules Preflight shipped that have no matching element anywhere in
+   this app (multi-select `optgroup`, `<progress>`, `<input type="date">`,
+   visible `<input type="file">` chrome — this app's only file input is
+   `display: none` in `FileDropZone.tsx`) were deliberately left out as
+   inapplicable, not as an oversight.
+
+   DO NOT "clean this up" or fold it back into a Tailwind import — it is
+   load-bearing base styling this app now owns directly. */
+
+*,
+::before,
+::after {
+  /* box-sizing: border-box already covered by the rule directly above —
+     not repeated here to avoid a redundant duplicate declaration. */
+  margin: 0;
+  padding: 0;
+  border: 0 solid;
+}
+
+html {
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+  -webkit-tap-highlight-color: transparent;
+}
+
+hr {
+  height: 0;
+  color: inherit;
+  border-top-width: 1px;
+}
+
+abbr:where([title]) {
+  text-decoration: underline dotted;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+b, strong {
+  font-weight: bolder;
+}
+
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-size: 1em;
+}
+
+small {
+  font-size: 80%;
+}
+
+sub, sup {
+  vertical-align: baseline;
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+}
+sub { bottom: -0.25em; }
+sup { top: -0.5em; }
+
+table {
+  text-indent: 0;
+  border-color: inherit;
+  border-collapse: collapse;
+}
+
+summary {
+  display: list-item;
+}
+
+ol, ul, menu {
+  list-style: none;
+}
+
+/* The big one: every react-icons/tb icon renders as a bare <svg>. `display: block`
+   is what keeps icons out of inline-text baseline flow, which otherwise adds a
+   few px of baseline gap and misaligns icons against adjacent text/buttons. */
+img, svg, video, canvas, audio, iframe, embed, object {
+  vertical-align: middle;
+  display: block;
+}
+
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+button, input, select, optgroup, textarea {
+  font: inherit;
+  color: inherit;
+  background-color: transparent;
+  border-radius: 0;
+}
+
+::placeholder {
+  opacity: 1;
+  color: currentColor;
+}
+
+/* The Preflight reset above normalises placeholders to `currentColor`, which makes hint
+   text render IDENTICALLY to user-entered text in the canonical input. Operator direction
+   (2026-09-13): hint text must read as subdued. Scoped to `.ui-input` so the canonical
+   primitive is fixed coherently rather than patched per-form. `--text-muted` is defined in
+   both themes, so this stays token-correct in light and dark. */
+.ui-input::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+textarea {
+  resize: vertical;
+}
+
+button,
+input:where([type="button"], [type="reset"], [type="submit"]) {
+  appearance: button;
+}
+
+[hidden]:where(:not([hidden="until-found"])) {
+  display: none !important;
+}
+/* ======================= end ported Preflight base reset ======================= */
+
+/* html background: token-authoritative rule once CSS loads; pre-paint bootstrap
+   fallback lives in index.html <style> block (must match --color-bg-primary). */
+html {
+  background: var(--color-bg-primary);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg-primary);
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+}
+
+/* === Canonical link treatment — permanent, single reference used everywhere a navigational
+   link appears (article body prose, Sources citations, home/search-result titles). Underline +
+   --color-link is the required minimum unambiguous "this is a link" signal. Apply via the
+   `.wiki-link` class to non-anchor clickable elements (buttons styled as links), or rely on the
+   `.wiki-md a` selector for real anchors rendered inside Markdown prose. === */
+.wiki-link,
+.wiki-md a {
+  color: var(--color-link);
+  text-decoration: underline;
+}
+.wiki-link:hover,
+.wiki-md a:hover {
+  color: var(--color-link-hover);
+}
+
+/* === Red-link variant (Phase 79 LINK-02) — a `[[Title]]` whose target hasn't resolved to an id
+   yet. Same underline-is-a-link convention as .wiki-link, distinct hue (reuses --color-destructive,
+   the existing destructive/critical token — NOT a new color) so a red-link reads as "this is a
+   link, but the target doesn't exist yet," never as an error banner or a delete affordance.
+   Applied only via this class; resolved links keep .wiki-link / .wiki-md a unchanged. === */
+.wiki-link-red {
+  color: var(--color-destructive);
+  text-decoration: underline;
+}
+.wiki-link-red:hover {
+  color: #F06565; /* --color-destructive, lightened for hover feedback (dark). Light-mode value
+                     #A82525 is darkened instead, in the [data-theme="light"] override rule below —
+                     see chromeTheme.ts's colorLinkHover for the same lighten-dark/darken-light
+                     hover-direction rule applied to --color-link-hover. Raw hex, not a var, so it
+                     will not re-theme for free; sole consumer, no new named token. */
+}
+[data-theme="light"] .wiki-link-red:hover {
+  color: #A82525;
+}
+
+/* AttributionToggle.tsx popover links (quick task 260828-krt). The attribution HTML (e.g.
+   OpenFreeMap's required three-segment credit) is injected via dangerouslySetInnerHTML, so its
+   <a> tags can't be reached with a React inline style — themed here instead of rendering with
+   the browser's default blue/purple link colors. Mirrors the retired native attribution control's
+   own link rule this control replaces (same token pair, same intent). */
+.attribution-popover a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.attribution-popover a:hover {
+  color: var(--color-link-hover);
+  text-decoration: underline;
+}
+
+/* Phase 51: Imagery layer — spinner keyframe (compositor-safe: transform only). */
+@keyframes imagery-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Phase 112: Mermaid diagram PENDING spinner — reuses the imagery-spin keyframe above
+   (compositor-safe: transform only). */
+@media (prefers-reduced-motion: reduce) {
+  .mermaid-pending-spinner { animation: none; }
+}
+.mermaid-pending-spinner {
+  animation: imagery-spin 0.9s linear infinite;
+}
+
+/* fix(123-11): center rendered mermaid diagrams. The Preflight reset above sets
+   `display: block` on every injected `<svg>` (load-bearing for react-icons/tb — do not
+   narrow it), which otherwise leaves the mermaid diagram flush left in its wrapper.
+   `margin-inline: auto` centers a block-level child that is NARROWER than its wrapper; when
+   the diagram is WIDER than its wrapper, auto margins resolve to 0 and the svg stays flush
+   left at its true left edge, so the wrapper's `overflow-x: auto` horizontal scroll still
+   reaches all of it. Flex-centering the wrapper was rejected for exactly this case — it would
+   clip the left edge of an oversized diagram and make it unreachable by scrolling. */
+.mermaid-diagram > svg {
+  margin-inline: auto;
+}
+
+/* Standardized opacity slider — the single slider control across the app. The
+   `.imagery-opacity-slider` back-compat alias (for the retired ImageryLayerControls) was
+   removed in Phase 131 (ICUT). */
+.opacity-slider {
+  -webkit-appearance: none; appearance: none;
+  height: 4px; border-radius: var(--radius-sm);
+  background: var(--border-strong);
+  outline: none; cursor: pointer; flex: 1; min-width: 60px;
+}
+.opacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--color-accent);
+  border: 1px solid var(--color-bg-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.opacity-slider::-webkit-slider-thumb:hover { background: var(--brand-primary-hover); }
+.opacity-slider::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--color-accent); border: 1px solid var(--color-bg-primary); cursor: pointer;
+}
+.opacity-slider:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ui/Slider — the single, standardized generic single-handle numeric slider (any
+   min/max/step, e.g. a multiplier). Mirrors `.opacity-slider`'s track/thumb visual
+   language exactly; the optional value label mirrors `.zoom-range-slider__value`. */
+.ui-slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.ui-slider__input {
+  -webkit-appearance: none; appearance: none;
+  height: 4px; border-radius: var(--radius-sm);
+  background: var(--border-strong);
+  outline: none; cursor: pointer; flex: 1; min-width: 60px;
+}
+.ui-slider__input::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--color-accent);
+  border: 1px solid var(--color-bg-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ui-slider__input::-webkit-slider-thumb:hover { background: var(--brand-primary-hover); }
+.ui-slider__input::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--color-accent); border: 1px solid var(--color-bg-primary); cursor: pointer;
+}
+.ui-slider__input:disabled { opacity: 0.4; cursor: not-allowed; }
+.ui-slider__value {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ui/Toggle (D-20/D-21) — keyboard-only focus ring. Inline styles can't express a
+   pseudo-class selector, so the focus-visible ring lives in this scoped class rule. */
+.ui-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* VANTAGE's north arrow (Phase 128 UAT) — the overlay became a real control ("clicking the
+   north arrow should also execute snap to north"), so it needs a visible keyboard focus ring.
+   Same mechanism and same reason as .ui-toggle above: an inline style cannot express
+   :focus-visible. The ring rotates with the arrow, which is correct — it hugs the graphic it
+   belongs to. */
+.vantage-north-arrow:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ui/Input (D-20) — keyboard-and-mouse-click focus treatment. Several of the 9 local
+   inputStyle recipes this component supersedes explicitly set outline: 'none', so this is a
+   net accessibility improvement, not a preserved value (87-UI-SPEC.md Component Contracts §2). */
+.ui-input:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* LedgerPage's CatalogCard — the whole card is a click target that opens the right-docked
+   detail panel (operator UI feedback, 2026-08-22). A cheap border-color transition (not a
+   layout-triggering property) signals clickability on hover/keyboard-focus. */
+.ledger-card {
+  transition: border-color 0.15s;
+}
+.ledger-card:hover {
+  border-color: var(--color-accent);
+}
+.ledger-card:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+/* ZoomRangeSlider — dual-handle zoom-range control (D-20). Two native range inputs are
+   stacked over one shared visual track; each input's own track is transparent and
+   pointer-events are limited to its thumb so both handles stay independently draggable. */
+.zoom-range-slider {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.zoom-range-slider__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.zoom-range-slider__value {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  min-width: 16px;
+  text-align: center;
+}
+.zoom-range-slider__track-wrap {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  min-width: 60px;
+}
+.zoom-range-slider__fill {
+  position: absolute;
+  top: 6px;
+  height: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  pointer-events: none;
+}
+.zoom-range-slider__input {
+  -webkit-appearance: none; appearance: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+}
+.zoom-range-slider__input::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.zoom-range-slider__input::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--color-accent);
+  border: 1px solid var(--color-bg-primary);
+  cursor: pointer;
+  pointer-events: auto;
+  margin-top: -4px;
+}
+.zoom-range-slider__input::-moz-range-track {
+  height: 4px;
+  background: var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.zoom-range-slider__input::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--color-accent);
+  border: 1px solid var(--color-bg-primary);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.zoom-range-slider__input:disabled::-webkit-slider-thumb { cursor: not-allowed; opacity: 0.4; }
+.zoom-range-slider__input:disabled::-moz-range-thumb { cursor: not-allowed; opacity: 0.4; }
+.zoom-range-slider__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+/* The `.imagery-footprint-outline` rule (the retired ImageryLayer.tsx's footprint preview
+   outline) was removed in Phase 131 (ICUT). */
+
+/* VANTAGE bbox-search region indicator — accent stroke for the active region filter
+   (VantageBboxDrawModal.tsx). Also used, before its Phase 131 (ICUT) retirement, by the
+   legacy ATLAS/APEX imagery spatial filter, hence the name. */
+.imagery-spatial-filter-region {
+  stroke: var(--color-accent);
+  fill: var(--color-accent);
+}
+
+/* Landing card dock — hide native scrollbar; navigation is via the seek buttons + wheel/trackpad. */
+.card-dock-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.card-dock-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* VANTAGE row affordances (Phase 127.4 plan 03) — the hover/focus-within reveal for the shared
+   copy-value button used by the Image Summary grid and both metadata trees. This is CSS, not the
+   sibling tree rows' JS `hovered` state, on purpose: the affordance is a real `<button>` that must
+   stay independently Tab-reachable, and a JS-`hovered`-gated opacity would hide it from keyboard
+   focus entirely — `:focus-within` is what keeps it reachable without a mouse. Opacity-only, no
+   `display`/`visibility` toggle: compositor-safe per CLAUDE.md, and never removes the button from
+   the accessibility tree or tab order. */
+.vantage-affordance-row {
+  position: relative;
+}
+.vantage-affordance-row .vantage-copy-affordance {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.vantage-affordance-row:hover .vantage-copy-affordance,
+.vantage-affordance-row:focus-within .vantage-copy-affordance {
+  opacity: 1;
+}
+
+/* Button resets live in a class rule, not an inline `all: unset`: an inline declaration outranks
+   the :focus-visible rules below and would remove the focus ring. */
+.ui-data-table__sort,
+.ui-tabs__tab,
+.ui-stepper__step,
+.ui-disclosure__toggle {
+  all: unset;
+  box-sizing: border-box;
+}
+
+/* Disclosure — keyboard-only focus ring on the header button. */
+.ui-disclosure__toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* stareSDK DataTable (2026-09-25). Hover and keyboard focus for interactive rows and sortable
+   headers — an inline style cannot express :hover / :focus-visible, same reason as .ui-toggle.
+   Rows are only interactive when the table has an onRowClick; read-only tables get no hover. */
+.ui-data-table__row--interactive:hover > td {
+  background: var(--color-glass-bg);
+}
+.ui-data-table__row--interactive:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+.ui-data-table__sort:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* stareSDK Tabs (2026-09-25). Keyboard focus ring for tab buttons. */
+.ui-tabs__tab:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+.ui-tabs__tab:not([aria-selected='true']):not(:disabled):hover {
+  color: var(--color-text-primary);
+}
+
+/* stareSDK Stepper (2026-09-25). Focus ring for steps the caller lets the user jump back to. */
+.ui-stepper__step:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* stareSDK MapView (2026-09-25). MapLibre's hover popup, restyled compact with tokens (its
+   default is a white card). The tip arrow is hidden: the popup is a label, not a callout. */
+.ui-map-view__popup .maplibregl-popup-content {
+  padding: 2px 6px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--color-text-primary);
+  background: var(--surface-layer-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+.ui-map-view__popup .maplibregl-popup-tip {
+  display: none;
+}

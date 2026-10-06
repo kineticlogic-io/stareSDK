@@ -1,0 +1,172 @@
+{
+  "name": "staresdk",
+  "version": "0.2.0",
+  "description": "React UI components, theming and design tokens for mission and geospatial applications: the design system behind OpenStare and OpenTrack.",
+  "license": "MIT",
+  "author": "kineticlogic.io <parker@kineticlogic.io>",
+  "homepage": "https://github.com/kineticlogic-io/stareSDK#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kineticlogic-io/stareSDK.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kineticlogic-io/stareSDK/issues"
+  },
+  "keywords": [
+    "react",
+    "design-system",
+    "ui",
+    "components",
+    "maplibre",
+    "theme",
+    "gis"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./code-editor": {
+      "types": "./dist/code-editor.d.ts",
+      "import": "./dist/code-editor.js"
+    },
+    "./map-view": {
+      "types": "./dist/map-view.d.ts",
+      "import": "./dist/map-view.js"
+    },
+    "./graph-view": {
+      "types": "./dist/graph-view.d.ts",
+      "import": "./dist/graph-view.js"
+    },
+    "./chart": {
+      "types": "./dist/chart.d.ts",
+      "import": "./dist/chart.js"
+    },
+    "./eslint/colorLiteralGate.js": "./eslint/colorLiteralGate.js"
+  },
+  "files": [
+    "dist",
+    "eslint",
+    "README.md",
+    "DESIGN-CONTRACT.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-styles.mjs",
+    "check": "tsc -p tsconfig.json --noEmit && eslint src && vitest run --maxWorkers 2",
+    "lint": "eslint src",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.13",
+    "@dagrejs/dagre": "^3.1.1",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@lezer/highlight": "^1.2.4",
+    "@xyflow/react": "^12.12.0",
+    "framer-motion": "^12.38.0",
+    "maplibre-gl": "^6.11.2",
+    "mdast-util-find-and-replace": "^3.0.2",
+    "mermaid": "^11.17.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-icons": "^5.6.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "uplot": "^1.6.32"
+  },
+  "peerDependenciesMeta": {
+    "@codemirror/commands": {
+      "optional": true
+    },
+    "@codemirror/lang-json": {
+      "optional": true
+    },
+    "@codemirror/language": {
+      "optional": true
+    },
+    "@codemirror/lint": {
+      "optional": true
+    },
+    "@codemirror/state": {
+      "optional": true
+    },
+    "@codemirror/view": {
+      "optional": true
+    },
+    "@dagrejs/dagre": {
+      "optional": true
+    },
+    "@lezer/highlight": {
+      "optional": true
+    },
+    "@xyflow/react": {
+      "optional": true
+    },
+    "maplibre-gl": {
+      "optional": true
+    },
+    "mermaid": {
+      "optional": true
+    },
+    "uplot": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.13",
+    "@dagrejs/dagre": "^3.1.1",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@eslint/js": "^9.39.4",
+    "@lezer/highlight": "^1.2.4",
+    "@types/mdast": "^4.0.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@xyflow/react": "^12.12.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "framer-motion": "^12.38.0",
+    "globals": "^17.4.0",
+    "jsdom": "^29.1.1",
+    "maplibre-gl": "6.11.2",
+    "mdast-util-find-and-replace": "^3.0.2",
+    "mermaid": "^11.17.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-icons": "^5.6.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.0",
+    "unified": "^11.0.5",
+    "uplot": "^1.6.32",
+    "vitest": "^4.1.8"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
