@@ -1,4 +1,4 @@
-# staresdk
+# @kineticlogic/staresdk
 
 React UI components, theming and design tokens for mission and geospatial applications: the
 Elite Command Design System. It powers the interfaces of
@@ -12,7 +12,7 @@ Components take their data as props. Routing, data fetching and app state stay i
 ## Install
 
 ```sh
-npm install staresdk react react-dom react-icons framer-motion react-markdown remark-gfm \
+npm install @kineticlogic/staresdk react react-dom react-icons framer-motion react-markdown remark-gfm \
   mdast-util-find-and-replace @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 ```
 
@@ -20,10 +20,10 @@ The optional views need their own peer dependencies, installed only if you use t
 
 | Entry point | Install |
 |---|---|
-| `staresdk/map-view` | `maplibre-gl` |
-| `staresdk/graph-view` | `@xyflow/react @dagrejs/dagre` |
-| `staresdk/chart` | `uplot` |
-| `staresdk/code-editor` | `@codemirror/*` and `@lezer/highlight` |
+| `@kineticlogic/staresdk/map-view` | `maplibre-gl` |
+| `@kineticlogic/staresdk/graph-view` | `@xyflow/react @dagrejs/dagre` |
+| `@kineticlogic/staresdk/chart` | `uplot` |
+| `@kineticlogic/staresdk/code-editor` | `@codemirror/*` and `@lezer/highlight` |
 | Mermaid diagrams in `Markdown` | `mermaid` |
 
 ## Usage
@@ -32,8 +32,8 @@ Import the stylesheet once at your application's entry point, wrap your tree in 
 (and `ToastProvider` if you use `Toast`/`useToast`), then import components by name:
 
 ```tsx
-import 'staresdk/styles.css'
-import { ThemeProvider, ToastProvider, Button, Modal, useTheme } from 'staresdk'
+import '@kineticlogic/staresdk/styles.css'
+import { ThemeProvider, ToastProvider, Button, Modal, useTheme } from '@kineticlogic/staresdk'
 
 function App() {
   return (
@@ -99,18 +99,18 @@ peer dependencies:
 
 | Import | Component | Optional peers |
 |--------|-----------|----------------|
-| `staresdk/chart` | `TimeSeriesChart` — compact line chart over time (uPlot canvas); colours and fonts resolved from tokens and re-resolved on theme change, series pick a `tone`, legend shows values under the cursor | `uplot` (also import `uplot/dist/uPlot.min.css`) |
-| `staresdk/code-editor` | `CodeEditor` — CodeMirror 6 JSON/text editor, token-themed, with parse and caller-supplied diagnostics | `@codemirror/{state,view,commands,language,lang-json,lint}`, `@lezer/highlight` |
-| `staresdk/graph-view` | `GraphView` — directed graph (lineage, provenance, pipelines) in layers: React Flow rendering, dagre layout, token-styled nodes and edges, ended edges dashed, `animated` edges with moving dashes for flows | `@xyflow/react`, `@dagrejs/dagre` (also import `@xyflow/react/dist/base.css`) |
-| `staresdk/map-view` | `MapView` — MapLibre GL points-and-polylines map styled as the offline basemap (theme-aware), with selection, fit-to-points and parent-driven `fitTo` | `maplibre-gl` (also import `maplibre-gl/dist/maplibre-gl.css`) |
+| `@kineticlogic/staresdk/chart` | `TimeSeriesChart` — compact line chart over time (uPlot canvas); colours and fonts resolved from tokens and re-resolved on theme change, series pick a `tone`, legend shows values under the cursor | `uplot` (also import `uplot/dist/uPlot.min.css`) |
+| `@kineticlogic/staresdk/code-editor` | `CodeEditor` — CodeMirror 6 JSON/text editor, token-themed, with parse and caller-supplied diagnostics | `@codemirror/{state,view,commands,language,lang-json,lint}`, `@lezer/highlight` |
+| `@kineticlogic/staresdk/graph-view` | `GraphView` — directed graph (lineage, provenance, pipelines) in layers: React Flow rendering, dagre layout, token-styled nodes and edges, ended edges dashed, `animated` edges with moving dashes for flows | `@xyflow/react`, `@dagrejs/dagre` (also import `@xyflow/react/dist/base.css`) |
+| `@kineticlogic/staresdk/map-view` | `MapView` — MapLibre GL points-and-polylines map styled as the offline basemap (theme-aware), with selection, fit-to-points and parent-driven `fitTo` | `maplibre-gl` (also import `maplibre-gl/dist/maplibre-gl.css`) |
 
 ```tsx
-import { CodeEditor } from 'staresdk/code-editor'
-import { MapView } from 'staresdk/map-view'
+import { CodeEditor } from '@kineticlogic/staresdk/code-editor'
+import { MapView } from '@kineticlogic/staresdk/map-view'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { GraphView } from 'staresdk/graph-view'
+import { GraphView } from '@kineticlogic/staresdk/graph-view'
 import '@xyflow/react/dist/base.css'
-import { TimeSeriesChart } from 'staresdk/chart'
+import { TimeSeriesChart } from '@kineticlogic/staresdk/chart'
 import 'uplot/dist/uPlot.min.css'
 ```
 
