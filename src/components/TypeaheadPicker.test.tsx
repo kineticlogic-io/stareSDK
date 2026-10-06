@@ -17,9 +17,9 @@
 import { createRoot } from 'react-dom/client'
 import { act, useEffect, useState } from 'react'
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { TypeaheadPicker } from './TypeaheadPicker'
-import type { UseDebouncedQueryResult } from './TypeaheadPicker'
-import { useTypeaheadKeyboard, useDebouncedQuery } from './TypeaheadPicker.helpers'
+import { TypeaheadPicker } from './TypeaheadPicker.js'
+import type { UseDebouncedQueryResult } from './TypeaheadPicker.js'
+import { useTypeaheadKeyboard, useDebouncedQuery } from './TypeaheadPicker.helpers.js'
 
 interface Item {
   id: string

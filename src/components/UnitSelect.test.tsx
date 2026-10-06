@@ -2,7 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { UnitSelect } from './UnitSelect'
+import { UnitSelect } from './UnitSelect.js'
 
 describe('UnitSelect (#263)', () => {
   it('offers the family\'s options and reports the picked value', () => {

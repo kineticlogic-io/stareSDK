@@ -2,7 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { Stepper } from './Stepper'
+import { Stepper } from './Stepper.js'
 
 const cleanups: Array<() => void> = []
 afterEach(() => {

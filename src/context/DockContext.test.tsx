@@ -20,9 +20,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 // test (no @testing-library/react auto-setup — project convention, see ThemeContext.test.tsx).
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-import { DockProvider } from './DockContext'
-import { useDock } from './useDock'
-import type { DockContextValue } from './DockContext'
+import { DockProvider } from './DockContext.js'
+import { useDock } from './useDock.js'
+import type { DockContextValue } from './DockContext.js'
 
 // ---------------------------------------------------------------------------
 // Render harness

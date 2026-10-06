@@ -6,7 +6,7 @@
  * sibling module for the pattern this repeats across src/context/.
  */
 import { createContext, useContext } from 'react'
-import type { DockContextValue } from './DockContext'
+import type { DockContextValue } from './DockContext.js'
 
 export const DockCtx = createContext<DockContextValue | null>(null)
 

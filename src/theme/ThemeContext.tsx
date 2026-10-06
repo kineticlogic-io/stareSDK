@@ -28,9 +28,9 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { ThemeName } from '../styles/chromeTheme'
-import { themeFor } from '../styles/chromeTheme'
-import { ThemeCtx } from './useTheme'
+import type { ThemeName } from '../styles/chromeTheme.js'
+import { themeFor } from '../styles/chromeTheme.js'
+import { ThemeCtx } from './useTheme.js'
 
 const STORAGE_KEY = 'theme'
 

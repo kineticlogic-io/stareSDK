@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { navigationClickHandler } from '../internal/navigationLink'
+import { navigationClickHandler } from '../internal/navigationLink.js'
 
 /**
  * Landing-page app card (#31): icon, uppercase label, optional description, 180 × 160 glass tile

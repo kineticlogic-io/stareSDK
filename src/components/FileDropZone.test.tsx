@@ -11,8 +11,8 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { FileDropZone } from './FileDropZone'
-import type { FileDropZoneProps } from './FileDropZone'
+import { FileDropZone } from './FileDropZone.js'
+import type { FileDropZoneProps } from './FileDropZone.js'
 
 function makeFile(name: string, type = 'text/plain'): File {
   return new File(['content'], name, { type })

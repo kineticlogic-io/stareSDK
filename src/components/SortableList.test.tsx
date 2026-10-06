@@ -12,8 +12,8 @@ import { act } from 'react'
 import type { ComponentProps } from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import type { DragEndEvent } from '@dnd-kit/core'
-import { SortableList } from './SortableList'
-import { buildSortableReorder } from './SortableList.helpers'
+import { SortableList } from './SortableList.js'
+import { buildSortableReorder } from './SortableList.helpers.js'
 
 interface Thing {
   id: string

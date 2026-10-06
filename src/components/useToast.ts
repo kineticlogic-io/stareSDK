@@ -10,7 +10,7 @@
  * `useToast()`'s contract is unchanged: throws if called outside a `<ToastProvider>`.
  */
 import { createContext, useContext } from 'react'
-import type { ToastOptions, ConfirmOptions } from './Toast'
+import type { ToastOptions, ConfirmOptions } from './Toast.js'
 
 interface ToastContextValue {
   /** Raise a toast. Returns the toast id (existing id if `dedupeKey` matched). */

@@ -17,8 +17,8 @@
  * `.wiki-md li` uniformly, per 78-UAT round-3 guidance). Link color/underline is NOT set here —
  * it comes from the canonical `.wiki-md a` rule in `global.css` (single permanent reference).
  */
-import { DARK_THEME, LIGHT_THEME } from '../styles/chromeTheme'
-import { hexToRgb } from './color'
+import { DARK_THEME, LIGHT_THEME } from '../styles/chromeTheme.js'
+import { hexToRgb } from './color.js'
 
 /** Format a themed hex color plus a CSS alpha fraction (0-1) as an `rgba()` string
  *  (D-14 pattern, see notebook/CellOutput.tsx's severityRgba). Computed rather than

@@ -67,7 +67,7 @@ vi.mock('maplibre-gl', () => ({
   AttributionControl: class {},
 }))
 
-const { MapView } = await import('./MapView')
+const { MapView } = await import('./MapView.js')
 
 let cleanup: (() => void) | null = null
 afterEach(() => {

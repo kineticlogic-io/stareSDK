@@ -2,11 +2,11 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { AssistantButton } from './AssistantButton'
-import { HomeButton } from './HomeButton'
-import { AppCard } from './AppCard'
-import { ClassificationBanner, BANNER_HEIGHT_PX } from './ClassificationBanner'
-import { ClockBadges } from './ClockBadges'
+import { AssistantButton } from './AssistantButton.js'
+import { HomeButton } from './HomeButton.js'
+import { AppCard } from './AppCard.js'
+import { ClassificationBanner, BANNER_HEIGHT_PX } from './ClassificationBanner.js'
+import { ClockBadges } from './ClockBadges.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

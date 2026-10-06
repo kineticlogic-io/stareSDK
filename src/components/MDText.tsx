@@ -65,9 +65,9 @@ import type { PluggableList } from 'unified'
 // files in `src` importing from `'react-markdown'`.
 export type { Components } from 'react-markdown'
 import { TbAlertTriangle, TbLoader2 } from 'react-icons/tb'
-import { useTheme } from '../theme/useTheme'
-import { renderMermaid, type MermaidResult } from './mermaidRender'
-import { ensureWikiMdStyle } from '../internal/wikiMdStyle'
+import { useTheme } from '../theme/useTheme.js'
+import { renderMermaid, type MermaidResult } from './mermaidRender.js'
+import { ensureWikiMdStyle } from '../internal/wikiMdStyle.js'
 
 // Injects the shared `.wiki-md` scoped style tag once, idempotently (D-2). Safe to call even
 // when MDText is only ever used at `chat`/`tool` variants in a given bundle — the rule set only

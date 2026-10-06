@@ -9,8 +9,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type React from 'react'
-import { SEARCH_DEBOUNCE_MS } from './TypeaheadPicker'
-import type { UseTypeaheadKeyboardOptions, UseDebouncedQueryResult } from './TypeaheadPicker'
+import { SEARCH_DEBOUNCE_MS } from './TypeaheadPicker.js'
+import type { UseTypeaheadKeyboardOptions, UseDebouncedQueryResult } from './TypeaheadPicker.js'
 
 /** Deterministic DOM id for a row — shared between this component's own `id` attribute and a
  * consumer's `aria-activedescendant` wiring on the input/textarea it owns (the consumer already

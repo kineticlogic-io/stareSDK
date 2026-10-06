@@ -22,9 +22,9 @@
 import { createRoot } from 'react-dom/client'
 import { act, useEffect } from 'react'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { ThemeProvider } from './ThemeContext'
-import type { ThemeContextValue } from './ThemeContext'
-import { useTheme } from './useTheme'
+import { ThemeProvider } from './ThemeContext.js'
+import type { ThemeContextValue } from './ThemeContext.js'
+import { useTheme } from './useTheme.js'
 
 // Captured via a ref-like holder mutated inside an effect (not during render) so this test
 // consumer stays a pure component per react-hooks/globals — see Consumer below.

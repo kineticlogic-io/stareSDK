@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   UNIT_OPTIONS, distanceToMeters, elevationToMeters, orientationToCompassDegrees,
   ellipseScaleForConfidence, rescaleEllipseAxis,
-} from './units'
+} from './units.js'
 
 describe('units (#263)', () => {
   it('lists the approved options per family, default first', () => {

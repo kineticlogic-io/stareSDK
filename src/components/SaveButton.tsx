@@ -1,5 +1,5 @@
 import { TbDeviceFloppy } from 'react-icons/tb'
-import { Button, type ButtonSize } from './Button'
+import { Button, type ButtonSize } from './Button.js'
 
 interface SaveButtonProps {
   /** Whether the value differs from the last-saved baseline. The button is disabled until this is true. */

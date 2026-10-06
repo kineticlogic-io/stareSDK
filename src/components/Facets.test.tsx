@@ -18,8 +18,8 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { Facets } from './Facets'
-import type { FacetsProps, FacetOption } from './Facets'
+import { Facets } from './Facets.js'
+import type { FacetsProps, FacetOption } from './Facets.js'
 
 const OPTIONS: FacetOption[] = [
   { value: 'a', label: 'Alpha', count: 3 },

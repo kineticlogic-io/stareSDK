@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { DockCtx } from './useDock'
+import { DockCtx } from './useDock.js'
 
 /**
  * DockContext — coordinates side-docked panels (SideNav / ChatPanel) so they

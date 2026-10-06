@@ -2,8 +2,8 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach, beforeEach } from 'vitest'
-import { SideNav } from './SideNav'
-import { DockProvider } from '../context/DockContext'
+import { SideNav } from './SideNav.js'
+import { DockProvider } from '../context/DockContext.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

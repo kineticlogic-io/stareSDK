@@ -44,7 +44,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { TbBookmark, TbBookmarkFilled } from 'react-icons/tb'
-import { SEARCH_DEBOUNCE_MS } from './TypeaheadPicker'
+import { SEARCH_DEBOUNCE_MS } from './TypeaheadPicker.js'
 
 /** A single row in a `Flyout`. Data-only — `Flyout` owns all rendering. */
 export interface FlyoutItem {

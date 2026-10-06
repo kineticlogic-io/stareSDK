@@ -2,7 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach, beforeAll } from 'vitest'
-import { GraphView, fixedHandles, layoutGraph, toFlowEdges, type GraphViewEdge, type GraphViewNode } from './GraphView'
+import { GraphView, fixedHandles, layoutGraph, toFlowEdges, type GraphViewEdge, type GraphViewNode } from './GraphView.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

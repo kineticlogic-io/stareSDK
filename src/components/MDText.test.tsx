@@ -44,7 +44,7 @@ vi.mock('mermaid', () => ({
   },
 }))
 
-import { MDText } from './MDText'
+import { MDText } from './MDText.js'
 
 /** A trivial inline remark plugin, independent of the app's own `remarkWikilinks`, proving a
  *  caller-supplied plugin is applied on top of (not instead of) remarkGfm. Uses

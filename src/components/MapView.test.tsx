@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 // MapLibre needs WebGL, which jsdom lacks; the pure helpers are what is tested here.
 vi.mock('maplibre-gl', () => ({ Map: class {}, Popup: class {} }))
-const { coordinateBounds, linesToGeoJSON, pointBounds, pointsToGeoJSON } = await import('./MapView')
+const { coordinateBounds, linesToGeoJSON, pointBounds, pointsToGeoJSON } = await import('./MapView.js')
 
 describe('MapView helpers', () => {
   const points = [

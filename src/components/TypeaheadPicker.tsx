@@ -26,8 +26,8 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
-import { glass } from '../internal/styles'
-import { typeaheadOptionId } from './TypeaheadPicker.helpers'
+import { glass } from '../internal/styles.js'
+import { typeaheadOptionId } from './TypeaheadPicker.helpers.js'
 
 /** Default debounce, matching WikiSearchBar's original SEARCH_DEBOUNCE_MS exactly. */
 export const SEARCH_DEBOUNCE_MS = 300

@@ -20,7 +20,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { ContextMenu } from './ContextMenu'
+import { ContextMenu } from './ContextMenu.js'
 
 function renderMenu(onClose: () => void) {
   const container = document.createElement('div')

@@ -21,8 +21,8 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { TbColorPicker, TbCheck } from 'react-icons/tb'
-import { Button } from './Button'
-import { popoverContainer, popoverDivider, popoverLabel } from '../internal/layerRowStyles'
+import { Button } from './Button.js'
+import { popoverContainer, popoverDivider, popoverLabel } from '../internal/layerRowStyles.js'
 
 interface ColorPickerProps {
   /** Current value — always a resolved hex string (e.g. `#0faf73`), never a `var()` token. */

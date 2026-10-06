@@ -36,9 +36,9 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { BADGE_BG } from './badgeTokens'
-import { DARK_THEME, LIGHT_THEME } from '../styles/chromeTheme'
-import { contrastRatio } from '../internal/color'
+import { BADGE_BG } from './badgeTokens.js'
+import { DARK_THEME, LIGHT_THEME } from '../styles/chromeTheme.js'
+import { contrastRatio } from '../internal/color.js'
 
 describe('Badge BADGE_BG dark drift guard (D-03)', () => {
   it('grey is #64748B', () => {

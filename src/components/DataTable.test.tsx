@@ -7,7 +7,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { DataTable, sortRows, type DataTableColumn } from './DataTable'
+import { DataTable, sortRows, type DataTableColumn } from './DataTable.js'
 
 interface Row {
   id: string

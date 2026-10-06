@@ -13,7 +13,7 @@
  * the `.zoom-range-slider` class family in global.css (tokenized, compositor-safe).
  */
 import { TbCurrentLocation } from 'react-icons/tb'
-import { Button } from './Button'
+import { Button } from './Button.js'
 
 interface ZoomRangeSliderProps {
   /** Current minimum zoom (inclusive). Always <= maxValue after any onChange. */

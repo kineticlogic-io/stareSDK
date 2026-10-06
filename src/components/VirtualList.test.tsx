@@ -12,8 +12,8 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach } from 'vitest'
-import { VirtualList } from './VirtualList'
-import type { VirtualListProps } from './VirtualList'
+import { VirtualList } from './VirtualList.js'
+import type { VirtualListProps } from './VirtualList.js'
 
 interface Item {
   id: string

@@ -1,9 +1,9 @@
 /**
  * AdminModal — thin alias over the standard <Modal>. Retained for existing admin
- * call sites; new code should import Modal from './Modal' directly.
+ * call sites; new code should import Modal from './Modal.js' directly.
  */
 import type { ReactNode } from 'react'
-import { Modal } from './Modal'
+import { Modal } from './Modal.js'
 
 interface AdminModalProps {
   onClose: () => void

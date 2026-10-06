@@ -15,8 +15,8 @@
 import { createRoot } from 'react-dom/client'
 import { act, useState } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { Tree } from './Tree'
-import type { TreeNode, TreeSelectable } from './Tree'
+import { Tree } from './Tree.js'
+import type { TreeNode, TreeSelectable } from './Tree.js'
 
 const FIXTURE: TreeNode[] = [
   {

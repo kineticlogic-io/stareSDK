@@ -9,8 +9,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { act, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { Flyout } from './Flyout'
-import type { FlyoutItem } from './Flyout'
+import { Flyout } from './Flyout.js'
+import type { FlyoutItem } from './Flyout.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

@@ -1,5 +1,5 @@
-import type { BadgeColor } from './Badge'
-import { DARK_THEME, LIGHT_THEME } from '../styles/chromeTheme'
+import type { BadgeColor } from './Badge.js'
+import { DARK_THEME, LIGHT_THEME } from '../styles/chromeTheme.js'
 
 /**
  * Sibling pure-values module for Badge.tsx's BADGE_BG (87-10 Rule 3 deviation — the react-refresh

@@ -14,12 +14,12 @@
  */
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { Modal } from './Modal'
-import { Button } from './Button'
-import { ItemClassificationBar } from './ItemClassificationBar'
-import { Select } from './Select'
-import { MultiSelect } from './MultiSelect'
-import type { MultiSelectOption } from './MultiSelect'
+import { Modal } from './Modal.js'
+import { Button } from './Button.js'
+import { ItemClassificationBar } from './ItemClassificationBar.js'
+import { Select } from './Select.js'
+import { MultiSelect } from './MultiSelect.js'
+import type { MultiSelectOption } from './MultiSelect.js'
 
 /** The releasability entry meaning "no foreign nationals". */
 export const NOFORN_MARKING = 'NOFORN'

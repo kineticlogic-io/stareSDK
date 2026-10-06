@@ -1,8 +1,8 @@
 import type { CSSProperties } from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AttributionControl, type GeoJSONSource, type LineLayerSpecification, Map as MapLibreMap, Popup } from 'maplibre-gl'
-import { themeFor } from '../styles/chromeTheme'
-import { useTheme } from '../theme/useTheme'
+import { themeFor } from '../styles/chromeTheme.js'
+import { useTheme } from '../theme/useTheme.js'
 
 /**
  * MapView — a compact, self-contained MapLibre GL map for previews and pickers

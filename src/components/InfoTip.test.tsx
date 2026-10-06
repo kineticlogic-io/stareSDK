@@ -5,7 +5,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach } from 'vitest'
-import { InfoTip, infoTipPosition } from './InfoTip'
+import { InfoTip, infoTipPosition } from './InfoTip.js'
 
 let cleanup: (() => void) | null = null
 afterEach(() => {

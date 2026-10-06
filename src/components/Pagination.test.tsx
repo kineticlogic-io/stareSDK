@@ -22,8 +22,8 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { Pagination } from './Pagination'
-import type { PaginationProps } from './Pagination'
+import { Pagination } from './Pagination.js'
+import type { PaginationProps } from './Pagination.js'
 
 function renderPagination(props: Partial<PaginationProps> = {}) {
   const container = document.createElement('div')

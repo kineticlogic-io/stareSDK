@@ -5,7 +5,7 @@
 import { createRoot, type Root } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach } from 'vitest'
-import { ColorPicker } from './ColorPicker'
+import { ColorPicker } from './ColorPicker.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

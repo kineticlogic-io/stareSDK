@@ -15,7 +15,7 @@
  * `no-restricted-syntax`) is not allowlisted for this file and must not be. All theme colors
  * come from `chromeTheme.ts`'s `themeFor()` scalars.
  */
-import { themeFor, type ThemeName } from '../styles/chromeTheme'
+import { themeFor, type ThemeName } from '../styles/chromeTheme.js'
 
 export type MermaidResult = { ok: true; svg: string } | { ok: false; message: string }
 

@@ -52,9 +52,9 @@ import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { TbX, TbAlertCircle, TbAlertTriangle, TbCircleCheck, TbInfoCircle } from 'react-icons/tb'
-import { Button } from './Button'
-import { Modal } from './Modal'
-import { ToastCtx } from './useToast'
+import { Button } from './Button.js'
+import { Modal } from './Modal.js'
+import { ToastCtx } from './useToast.js'
 
 export type ToastVariant = 'error' | 'success' | 'info' | 'warning'
 

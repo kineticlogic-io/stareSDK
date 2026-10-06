@@ -20,7 +20,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { Toggle } from './Toggle'
+import { Toggle } from './Toggle.js'
 
 function renderToggle(props: Partial<React.ComponentProps<typeof Toggle>> & { 'aria-label'?: string } = {}) {
   const container = document.createElement('div')
