@@ -230,5 +230,5 @@ reached npm.
 ## License
 
 [MIT](LICENSE). © 2026 kineticlogic.io. For consulting or support, email
-[parker@kineticlogic.io](mailto:parker@kineticlogic.io).
+[admin@kineticlogic.io](mailto:admin@kineticlogic.io).
 
