@@ -92,6 +92,8 @@ and token rules:
   Since 0.2.5 it also takes `manualSort` (caller-ordered rows, e.g. sorted server-side), per-column
   `sortable` / `sortDisabledReason`, `pinFirstColumn`, resizable columns (`onColumnResize`) and
   `onRowDoubleClick`, for OpenStare's attribute table.
+- `MultiSelect` — a dropdown of checkboxes; since 0.2.6 optionally an `xs` icon button (`icon`)
+  whose list floats below it (`align`), for toolbars.
 - `Pagination` — offset/limit paging; since 0.2.5 optionally with First/Last buttons (`showEnds`),
   a page-size select (`pageSizes` + `onLimitChange`) and a "Page X of Y · N features" label
   (`label="page"`).

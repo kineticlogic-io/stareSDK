@@ -5,7 +5,7 @@ import { lazy, useMemo, useRef, useState, type ComponentType, type CSSProperties
 import {
   TbAlertTriangle, TbBell, TbBolt, TbChartLine, TbDatabase, TbDownload, TbFilter, TbFocus2, TbHome,
   TbInfoCircle, TbLayersSubtract, TbMap2, TbPencil, TbPhoto, TbPlus, TbPointer, TbPolygon, TbRadar2,
-  TbRefresh, TbRuler2, TbSearch, TbSettings, TbShare, TbTag, TbTool, TbTrash, TbUpload, TbUsers, TbX,
+  TbMenu2, TbRefresh, TbRuler2, TbSearch, TbSettings, TbShare, TbTag, TbTool, TbTrash, TbUpload, TbUsers, TbX,
 } from 'react-icons/tb'
 import {
   AdminModal, AppCard, AssistantButton, Avatar, Badge, Button, ButtonPalette, ClassificationBanner,
@@ -250,6 +250,21 @@ function MultiSelectDemo() {
           { value: 'admin', label: 'Administrator' },
         ]}
       />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-md)' }}>
+        <MultiSelect
+          ariaLabel="Columns"
+          icon={<TbMenu2 />}
+          align="right"
+          value={value}
+          onChange={setValue}
+          options={[
+            { value: 'viewer', label: 'Viewer', locked: true },
+            { value: 'operator', label: 'Operator' },
+            { value: 'analyst', label: 'Analyst' },
+            { value: 'admin', label: 'Administrator' },
+          ]}
+        />
+      </div>
     </div>
   )
 }
