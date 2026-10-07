@@ -101,4 +101,151 @@ describe('DataTable', () => {
     expect(rendered).toBeLessThan(40)
     expect(c.querySelector('table')!.getAttribute('aria-rowcount')).toBe('1001')
   })
+
+  it('manualSort reports header clicks but renders rows in the given order', () => {
+    const onSortChange = vi.fn()
+    const c = render(
+      <DataTable
+        aria-label="t"
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(r) => r.id}
+        manualSort
+        sort={null}
+        onSortChange={onSortChange}
+      />,
+    )
+    act(() => c.querySelectorAll('th')[1].querySelector('button')!.click())
+    expect(onSortChange).toHaveBeenLastCalledWith({ key: 'name', direction: 'asc' })
+    expect(cellText(c, 0)).toEqual(['a', 'b', 'c'])
+
+    // A controlled sort is shown on the header but still never reorders rows.
+    const sortedC = render(
+      <DataTable
+        aria-label="t"
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(r) => r.id}
+        manualSort
+        sort={{ key: 'name', direction: 'desc' }}
+        onSortChange={onSortChange}
+      />,
+    )
+    expect(sortedC.querySelectorAll('th')[1].getAttribute('aria-sort')).toBe('descending')
+    expect(cellText(sortedC, 0)).toEqual(['a', 'b', 'c'])
+    // Under manualSort a column without sortValue is sortable by default.
+    expect(sortedC.querySelectorAll('th')[0].querySelector('button')).not.toBeNull()
+  })
+
+  it('a non-sortable column shows no sort affordance, ignores clicks and explains why', () => {
+    const onSortChange = vi.fn()
+    const cols: DataTableColumn<Row>[] = [
+      ...COLUMNS.slice(0, 2),
+      { ...COLUMNS[2], sortable: false, sortDisabledReason: 'Speed is not indexed for sorting' },
+    ]
+    const c = render(
+      <DataTable aria-label="t" columns={cols} rows={ROWS} rowKey={(r) => r.id} onSortChange={onSortChange} />,
+    )
+    const th = c.querySelectorAll('th')[2]
+    expect(th.querySelector('button')).toBeNull()
+    expect(th.querySelector('svg')).toBeNull()
+    expect(th.getAttribute('title')).toBe('Speed is not indexed for sorting')
+    expect(th.getAttribute('aria-sort')).toBeNull()
+    act(() => th.click())
+    expect(onSortChange).not.toHaveBeenCalled()
+    expect(cellText(c, 0)).toEqual(['a', 'b', 'c'])
+    // Sortable headers carry no tooltip.
+    expect(c.querySelectorAll('th')[1].getAttribute('title')).toBeNull()
+  })
+
+  it('pinFirstColumn makes the first column sticky, opaque and above body cells; the table scrolls sideways', () => {
+    const c = render(
+      <DataTable aria-label="t" columns={COLUMNS.map((col) => ({ ...col, width: 300 }))} rows={ROWS} rowKey={(r) => r.id} pinFirstColumn selectedKey="b" onRowClick={() => {}} />,
+    )
+    const th = c.querySelectorAll('th')
+    expect(th[0].style.position).toBe('sticky')
+    expect(['0', '0px']).toContain(th[0].style.left)
+    expect(Number(th[0].style.zIndex)).toBeGreaterThan(Number(th[1].style.zIndex))
+    const firstCells = [...c.querySelectorAll<HTMLTableCellElement>('tbody tr')].map((tr) => tr.querySelectorAll('td')[0])
+    for (const td of firstCells) {
+      expect(td.style.position).toBe('sticky')
+      expect(['0', '0px']).toContain(td.style.left)
+      expect(td.style.backgroundColor).toBe('var(--color-bg-secondary)')
+      expect(Number(td.style.zIndex)).toBeGreaterThan(0)
+      expect(Number(td.style.zIndex)).toBeLessThan(Number(th[1].style.zIndex))
+    }
+    expect(firstCells[1].style.backgroundImage).toContain('var(--brand-subtle)')
+    const other = c.querySelector('tbody tr')!.querySelectorAll('td')[1] as HTMLTableCellElement
+    expect(other.style.position).toBe('')
+    expect(c.querySelector('table')!.style.minWidth).toBe('900px')
+    expect((c.firstElementChild as HTMLElement).style.overflow).toBe('auto')
+  })
+
+  it('without the new props the table neither pins nor forces a min width', () => {
+    const c = render(<DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} />)
+    expect(c.querySelector('table')!.style.minWidth).toBe('')
+    expect((c.querySelector('tbody td') as HTMLElement).style.position).toBe('')
+    expect(c.querySelector('[role="separator"]')).toBeNull()
+  })
+
+  it('resize handles report the final width on pointer-up only, clamped to 48px', () => {
+    const onColumnResize = vi.fn()
+    const cols = COLUMNS.map((col) => ({ ...col, width: 120 }))
+    const c = render(
+      <DataTable aria-label="t" columns={cols} rows={ROWS} rowKey={(r) => r.id} onColumnResize={onColumnResize} />,
+    )
+    const handle = c.querySelector<HTMLElement>('[role="separator"][aria-label="Resize Name"]')!
+    expect(handle.getAttribute('aria-orientation')).toBe('vertical')
+    const Ctor: typeof MouseEvent = typeof PointerEvent === 'function' ? PointerEvent : MouseEvent
+    const fire = (type: string, clientX: number) =>
+      act(() => {
+        handle.dispatchEvent(new Ctor(type, { bubbles: true, cancelable: true, clientX, button: 0 }))
+      })
+    fire('pointerdown', 100)
+    fire('pointermove', 150)
+    expect(onColumnResize).not.toHaveBeenCalled()
+    // The live width is shown while dragging.
+    expect((c.querySelectorAll('col')[1] as HTMLElement).style.width).toBe('170px')
+    fire('pointerup', 160)
+    expect(onColumnResize).toHaveBeenCalledTimes(1)
+    expect(onColumnResize).toHaveBeenCalledWith('name', 180)
+
+    fire('pointerdown', 200)
+    fire('pointerup', 0)
+    expect(onColumnResize).toHaveBeenLastCalledWith('name', 48)
+  })
+
+  it('onRowDoubleClick fires with the row', () => {
+    const onRowDoubleClick = vi.fn()
+    const c = render(
+      <DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} onRowDoubleClick={onRowDoubleClick} />,
+    )
+    const rows = c.querySelectorAll('tbody tr')
+    act(() => {
+      rows[2].dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+    })
+    expect(onRowDoubleClick).toHaveBeenCalledWith(ROWS[2])
+  })
+
+  it('virtualises a 1,000-row page with pinning, resizing and manual sort on', () => {
+    const many: Row[] = Array.from({ length: 1000 }, (_, i) => ({ id: `r${i}`, name: `n${i}`, speed: i }))
+    const c = render(
+      <DataTable
+        aria-label="t"
+        columns={COLUMNS}
+        rows={many}
+        rowKey={(r) => r.id}
+        maxHeight={280}
+        manualSort
+        sort={{ key: 'speed', direction: 'desc' }}
+        pinFirstColumn
+        onColumnResize={() => {}}
+        onRowDoubleClick={() => {}}
+      />,
+    )
+    const rendered = c.querySelectorAll('tbody tr[data-row-index]')
+    expect(rendered.length).toBeGreaterThan(0)
+    expect(rendered.length).toBeLessThan(40)
+    expect(rendered[0].querySelector('td')!.textContent).toBe('r0')
+  })
 })

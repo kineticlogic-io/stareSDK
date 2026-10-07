@@ -17,6 +17,10 @@
  *   (h) loading disables both buttons regardless of offset/total
  *   (i) a single-item page (limit=1, itemCount=1) collapses the label to "N of Z" / "N"
  *       (quick-260828-mab: map popup multi-hit "1 of N" stepper)
+ *   (j) showEnds: First/Last offsets, boundary / unknown-total / loading disabled states,
+ *       and the maxOffset ceiling on Last (OpenStare#64)
+ *   (k) pageSizes + onLimitChange: a "Page size" select showing the current limit
+ *   (l) label="page": "Page X of Y · N features" / "Page X" / custom noun
  */
 
 import { createRoot } from 'react-dom/client'
@@ -178,5 +182,101 @@ describe('Pagination', () => {
     unmountFns.push(middle.unmount)
     expect(middle.prevButton().disabled).toBe(false)
     expect(middle.nextButton().disabled).toBe(false)
+  })
+
+  it('showEnds: First goes to 0 and Last to the final page offset', () => {
+    const r = renderPagination({ offset: 30, limit: 30, itemCount: 30, total: 100, showEnds: true })
+    unmountFns.push(r.unmount)
+    const firstBtn = r.container.querySelector('button[aria-label="First page"]') as HTMLButtonElement
+    const lastBtn = r.container.querySelector('button[aria-label="Last page"]') as HTMLButtonElement
+    expect(firstBtn.disabled).toBe(false)
+    expect(lastBtn.disabled).toBe(false)
+    click(firstBtn)
+    expect(r.onOffsetChange).toHaveBeenLastCalledWith(0)
+    click(lastBtn)
+    expect(r.onOffsetChange).toHaveBeenLastCalledWith(90)
+  })
+
+  it('showEnds: last offset is exact when total is a multiple of limit', () => {
+    const r = renderPagination({ offset: 0, limit: 25, itemCount: 25, total: 100, showEnds: true })
+    unmountFns.push(r.unmount)
+    click(r.container.querySelector('button[aria-label="Last page"]') as HTMLButtonElement)
+    expect(r.onOffsetChange).toHaveBeenLastCalledWith(75)
+  })
+
+  it('showEnds: First disabled on the first page, Last disabled on the last page', () => {
+    const atStart = renderPagination({ offset: 0, limit: 30, itemCount: 30, total: 100, showEnds: true })
+    unmountFns.push(atStart.unmount)
+    expect((atStart.container.querySelector('button[aria-label="First page"]') as HTMLButtonElement).disabled).toBe(true)
+
+    const atEnd = renderPagination({ offset: 90, limit: 30, itemCount: 10, total: 100, showEnds: true })
+    unmountFns.push(atEnd.unmount)
+    expect((atEnd.container.querySelector('button[aria-label="Last page"]') as HTMLButtonElement).disabled).toBe(true)
+    expect((atEnd.container.querySelector('button[aria-label="First page"]') as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('showEnds: Last disabled for an unknown total; both disabled while loading', () => {
+    const unknown = renderPagination({ offset: 30, limit: 30, itemCount: 30, total: null, showEnds: true })
+    unmountFns.push(unknown.unmount)
+    expect((unknown.container.querySelector('button[aria-label="Last page"]') as HTMLButtonElement).disabled).toBe(true)
+
+    const loading = renderPagination({ offset: 30, limit: 30, itemCount: 30, total: 100, showEnds: true, loading: true })
+    unmountFns.push(loading.unmount)
+    expect((loading.container.querySelector('button[aria-label="First page"]') as HTMLButtonElement).disabled).toBe(true)
+    expect((loading.container.querySelector('button[aria-label="Last page"]') as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('showEnds: Last stays under maxOffset', () => {
+    const r = renderPagination({ offset: 0, limit: 30, itemCount: 30, total: 5000, maxOffset: 1000, showEnds: true })
+    unmountFns.push(r.unmount)
+    click(r.container.querySelector('button[aria-label="Last page"]') as HTMLButtonElement)
+    expect(r.onOffsetChange).toHaveBeenLastCalledWith(990)
+  })
+
+  it('no First/Last buttons or page-size select by default', () => {
+    const r = renderPagination()
+    unmountFns.push(r.unmount)
+    expect(r.container.querySelector('button[aria-label="First page"]')).toBeNull()
+    expect(r.container.querySelector('button[aria-label="Last page"]')).toBeNull()
+    expect(r.container.querySelector('select')).toBeNull()
+  })
+
+  it('pageSizes + onLimitChange: a "Page size" select showing the current limit reports changes', () => {
+    const onLimitChange = vi.fn()
+    const r = renderPagination({ limit: 100, pageSizes: [50, 100, 250], onLimitChange })
+    unmountFns.push(r.unmount)
+    const select = r.container.querySelector('select[aria-label="Page size"]') as HTMLSelectElement
+    expect(select).not.toBeNull()
+    expect(select.value).toBe('100')
+    expect([...select.options].map(o => o.value)).toEqual(['50', '100', '250'])
+    act(() => {
+      select.value = '250'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(onLimitChange).toHaveBeenCalledWith(250)
+  })
+
+  it('pageSizes: the current limit is offered even when not listed', () => {
+    const r = renderPagination({ limit: 30, pageSizes: [50, 100], onLimitChange: vi.fn() })
+    unmountFns.push(r.unmount)
+    const select = r.container.querySelector('select[aria-label="Page size"]') as HTMLSelectElement
+    expect([...select.options].map(o => o.value)).toEqual(['30', '50', '100'])
+    expect(select.value).toBe('30')
+  })
+
+  it('label="page" renders "Page X of Y · N features" with thousands separators', () => {
+    const r = renderPagination({ offset: 200, limit: 100, itemCount: 100, total: 12345, label: 'page' })
+    unmountFns.push(r.unmount)
+    expect(r.container.textContent).toContain(`Page 3 of 124 · ${(12345).toLocaleString()} features`)
+  })
+
+  it('label="page" renders "Page X" for an unknown total and honours noun', () => {
+    const unknown = renderPagination({ offset: 100, limit: 50, itemCount: 50, total: null, label: 'page' })
+    unmountFns.push(unknown.unmount)
+    expect(unknown.container.textContent).toBe('Page 3')
+
+    const noun = renderPagination({ offset: 0, limit: 50, itemCount: 7, total: 7, label: 'page', noun: 'tracks' })
+    unmountFns.push(noun.unmount)
+    expect(noun.container.textContent).toContain('Page 1 of 1 · 7 tracks')
   })
 })

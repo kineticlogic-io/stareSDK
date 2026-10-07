@@ -89,6 +89,12 @@ and token rules:
 - `DataTable` — sortable columns (stable, nulls last), optional row selection with keyboard
   activation, sticky header and row virtualisation when `maxHeight` is set. Header chrome follows
   the neutral-table rule (weight, uppercase, letter-spacing, bottom border; no fill, no colour).
+  Since 0.2.5 it also takes `manualSort` (caller-ordered rows, e.g. sorted server-side), per-column
+  `sortable` / `sortDisabledReason`, `pinFirstColumn`, resizable columns (`onColumnResize`) and
+  `onRowDoubleClick`, for OpenStare's attribute table.
+- `Pagination` — offset/limit paging; since 0.2.5 optionally with First/Last buttons (`showEnds`),
+  a page-size select (`pageSizes` + `onLimitChange`) and a "Page X of Y · N features" label
+  (`label="page"`).
 - `Tabs` / `TabPanel` — WAI-ARIA tabs with automatic activation and arrow-key navigation.
 - `Stepper` — compact wizard step header; completed or failed steps can be revisited, upcoming
   ones cannot.
