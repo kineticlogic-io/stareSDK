@@ -188,6 +188,17 @@ describe('DataTable', () => {
     expect(c.querySelector('[role="separator"]')).toBeNull()
   })
 
+  it('headerDividers draws a line between header cells only, none after the last and none in the body', () => {
+    const c = render(<DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} headerDividers />)
+    const ths = Array.from(c.querySelectorAll('th')) as HTMLElement[]
+    expect(ths.length).toBeGreaterThan(1)
+    ths.slice(0, -1).forEach((th) => expect(th.style.borderRight).toContain('1px solid'))
+    expect(ths[ths.length - 1].style.borderRight).toBe('')
+    expect((c.querySelector('tbody td') as HTMLElement).style.borderRight).toBe('')
+    const plain = render(<DataTable aria-label="u" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} />)
+    expect((plain.querySelector('th') as HTMLElement).style.borderRight).toBe('')
+  })
+
   it('resize handles report the final width on pointer-up only, clamped to 48px', () => {
     const onColumnResize = vi.fn()
     const cols = COLUMNS.map((col) => ({ ...col, width: 120 }))

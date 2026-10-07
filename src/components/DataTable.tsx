@@ -44,6 +44,7 @@ import { TbArrowDown, TbArrowUp, TbSelector } from 'react-icons/tb'
  * With `pinFirstColumn` or `onColumnResize` the table is at least as wide as its columns
  * (numeric widths, 120px for a column without one) and scrolls horizontally instead of squeezing.
  * A single highlighted row is `selectedKey`; there is deliberately no second highlight style.
+ *   - `headerDividers` (0.2.7): a faint `--color-glass-border` line between header cells only.
  */
 
 export type SortDirection = 'asc' | 'desc'
@@ -104,6 +105,8 @@ export interface DataTableProps<T> {
   onColumnResize?: (key: string, width: number) => void
   /** Called when a row is double-clicked. */
   onRowDoubleClick?: (row: T) => void
+  /** A faint line between header cells (headers only), for wide tables whose headings run together. */
+  headerDividers?: boolean
   'aria-label': string
   style?: CSSProperties
 }
@@ -213,6 +216,7 @@ export function DataTable<T>({
   pinFirstColumn = false,
   onColumnResize,
   onRowDoubleClick,
+  headerDividers = false,
   'aria-label': ariaLabel,
   style,
 }: DataTableProps<T>) {
@@ -366,6 +370,9 @@ export function DataTable<T>({
                   style={{
                     ...TH_STYLE,
                     textAlign: c.align ?? 'left',
+                    ...(headerDividers && ci < columns.length - 1
+                      ? { borderRight: '1px solid var(--color-glass-border)' }
+                      : null),
                     ...(pinned
                       ? { left: 0, zIndex: 3, borderRight: '1px solid var(--color-glass-border)' }
                       : null),
