@@ -675,6 +675,22 @@ body {
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
+/* Pinned first column (pinFirstColumn, 0.2.5): its cells carry an opaque inline background so
+   sideways-scrolled cells pass under them, which would hide the row hover above; layer the hover
+   wash over that background instead. */
+.ui-data-table__row--interactive:hover > td.ui-data-table__pinned {
+  background-image: linear-gradient(var(--color-glass-bg), var(--color-glass-bg));
+}
+/* Column resize handle (onColumnResize, 0.2.5): a neutral line on hover/drag, accent ring on
+   keyboard focus. */
+.ui-data-table__resize:hover,
+.ui-data-table__resize--active {
+  background: var(--border-strong);
+}
+.ui-data-table__resize:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
 
 /* stareSDK Tabs (2026-09-25). Keyboard focus ring for tab buttons. */
 .ui-tabs__tab:focus-visible {

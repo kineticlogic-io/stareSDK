@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { useState } from 'react'
-import { TbChevronLeft, TbChevronRight } from 'react-icons/tb'
+import { TbChevronLeft, TbChevronRight, TbChevronsLeft, TbChevronsRight } from 'react-icons/tb'
+import { Select } from './Select.js'
 
 /**
  * Pagination — shared prev/next result-page control (extracted 97-03 addendum, operator
@@ -29,6 +30,18 @@ import { TbChevronLeft, TbChevronRight } from 'react-icons/tb'
  * number ("3 of 7") instead of the degenerate "3-3 of 7" — this lets the primitive double as a
  * plain "1 of N" stepper (e.g. the map popup multi-hit candidate footer) without any caller
  * forking the label logic.
+ *
+ * Optional extras (added 0.2.5 for OpenStare's attribute table, kineticlogic-io/OpenStare#64);
+ * every one is off by default so existing callers render exactly as before:
+ *   - `showEnds` adds First/Last buttons around prev/next. Last jumps to the offset of the final
+ *     page (`floor((total - 1) / limit) * limit`, held under `maxOffset`), so it needs a known
+ *     `total` and is disabled while `total` is `null`.
+ *   - `pageSizes` + `onLimitChange` add a compact page-size `Select` after the buttons. The current
+ *     `limit` is always offered, even when it is not in `pageSizes`, so the control never shows a
+ *     value it cannot represent. The caller owns `limit` and decides how `offset` follows it.
+ *   - `label="page"` replaces the "X-Y of Z" range with "Page X of Y · N <noun>" (noun defaults to
+ *     "features"), or "Page X" while `total` is `null`. `noun` applies to page mode only; the range
+ *     label keeps its original wording.
  */
 
 export type PaginationSize = 'sm' | 'md' | 'lg'
@@ -51,7 +64,21 @@ export interface PaginationProps {
   loading?: boolean
   ariaLabel?: string
   style?: CSSProperties
+  /** Adds First / Last page buttons around prev/next. Last needs a known `total`. */
+  showEnds?: boolean
+  /** Page sizes offered by the page-size select; rendered only together with `onLimitChange`. */
+  pageSizes?: number[]
+  /** Called with the page size picked in the page-size select. The caller owns `limit`. */
+  onLimitChange?: (limit: number) => void
+  /** `'range'` (default) shows "X-Y of Z"; `'page'` shows "Page X of Y · N <noun>". */
+  label?: PaginationLabel
+  /** Plural noun counted by the `'page'` label (default "features"). Ignored by `'range'`. */
+  noun?: string
 }
+
+export type PaginationLabel = 'range' | 'page'
+
+type PaginationButton = 'first' | 'prev' | 'next' | 'last'
 
 interface SizeStyle {
   button: number
@@ -78,6 +105,13 @@ function formatRangeLabel(offset: number, itemCount: number, total: number | nul
   return total === null ? `${start}-${end}` : `${start}-${end} of ${total}`
 }
 
+function formatPageLabel(offset: number, limit: number, total: number | null, noun: string): string {
+  const page = Math.floor(offset / Math.max(1, limit)) + 1
+  if (total === null) return `Page ${page.toLocaleString()}`
+  const pages = Math.max(1, Math.ceil(total / Math.max(1, limit)))
+  return `Page ${page.toLocaleString()} of ${pages.toLocaleString()} · ${total.toLocaleString()} ${noun}`
+}
+
 export function Pagination({
   offset,
   limit,
@@ -89,8 +123,13 @@ export function Pagination({
   loading = false,
   ariaLabel = 'Pagination',
   style,
+  showEnds = false,
+  pageSizes,
+  onLimitChange,
+  label = 'range',
+  noun = 'features',
 }: PaginationProps) {
-  const [hoveredButton, setHoveredButton] = useState<'prev' | 'next' | null>(null)
+  const [hoveredButton, setHoveredButton] = useState<PaginationButton | null>(null)
   const s = SIZE_STYLES[size]
 
   const ceiling = maxOffset ?? Infinity
@@ -100,8 +139,26 @@ export function Pagination({
   const reachedKnownEnd = total !== null ? nextOffset >= total : itemCount < limit
   const canGoPrev = !loading && offset > 0
   const canGoNext = !loading && !reachedKnownEnd && nextOffset <= ceiling
+  // Last page's offset, page-aligned and held at or under the backend ceiling.
+  const lastOffset =
+    total === null || limit <= 0
+      ? null
+      : Math.min(
+          Math.max(0, Math.floor((total - 1) / limit) * limit),
+          Number.isFinite(ceiling) ? Math.max(0, Math.floor(ceiling / limit) * limit) : Infinity,
+        )
+  const canGoFirst = canGoPrev
+  const canGoLast = !loading && lastOffset !== null && offset < lastOffset
 
-  const buttonStyle = (kind: 'prev' | 'next', enabled: boolean): CSSProperties => ({
+  const sizeOptions =
+    pageSizes && onLimitChange
+      ? [...new Set([...pageSizes, limit])]
+          .filter(n => Number.isFinite(n) && n > 0)
+          .sort((a, b) => a - b)
+          .map(n => ({ value: String(n), label: String(n) }))
+      : null
+
+  const buttonStyle = (kind: PaginationButton, enabled: boolean): CSSProperties => ({
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -138,8 +195,21 @@ export function Pagination({
         aria-live="polite"
         style={{ fontSize: s.labelFontSize, color: 'var(--color-text-secondary)' }}
       >
-        {formatRangeLabel(offset, itemCount, total)}
+        {label === 'page' ? formatPageLabel(offset, limit, total, noun) : formatRangeLabel(offset, itemCount, total)}
       </span>
+      {showEnds && (
+        <button
+          type="button"
+          aria-label="First page"
+          disabled={!canGoFirst}
+          onMouseEnter={() => setHoveredButton('first')}
+          onMouseLeave={() => setHoveredButton(prev => (prev === 'first' ? null : prev))}
+          onClick={() => canGoFirst && onOffsetChange(0)}
+          style={buttonStyle('first', canGoFirst)}
+        >
+          <TbChevronsLeft />
+        </button>
+      )}
       <button
         type="button"
         aria-label="Previous page"
@@ -162,6 +232,38 @@ export function Pagination({
       >
         <TbChevronRight />
       </button>
+      {showEnds && (
+        <button
+          type="button"
+          aria-label="Last page"
+          disabled={!canGoLast}
+          onMouseEnter={() => setHoveredButton('last')}
+          onMouseLeave={() => setHoveredButton(prev => (prev === 'last' ? null : prev))}
+          onClick={() => canGoLast && lastOffset !== null && onOffsetChange(lastOffset)}
+          style={buttonStyle('last', canGoLast)}
+        >
+          <TbChevronsRight />
+        </button>
+      )}
+      {sizeOptions && onLimitChange && (
+        <Select
+          ariaLabel="Page size"
+          options={sizeOptions}
+          value={String(limit)}
+          disabled={loading}
+          onChange={v => {
+            const next = Number(v)
+            if (Number.isFinite(next) && next > 0 && next !== limit) onLimitChange(next)
+          }}
+          style={{
+            width: 'auto',
+            height: s.button,
+            padding: '0 4px',
+            fontSize: s.labelFontSize,
+            borderRadius: 'var(--radius-sm)',
+          }}
+        />
+      )}
     </nav>
   )
 }
