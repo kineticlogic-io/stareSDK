@@ -7,10 +7,16 @@
  * directly below the button, in flow rather than floating, so it is never clipped by a scrolling
  * modal body; Escape or a click outside closes it. A `locked` option is shown checked and cannot be
  * changed (a value the user may keep but not add or remove).
+ *
+ * With `icon` (added 0.2.6 for OpenStare's attribute table column chooser, kineticlogic-io/OpenStare#64)
+ * the closed control is instead an `xs` icon `Button` (its `ariaLabel` is the button's label and
+ * tooltip), and the list floats below it — aligned to the button's `align` edge — so it can sit in a
+ * toolbar without pushing the row open.
  */
 import { useEffect, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { TbChevronDown } from 'react-icons/tb'
+import { Button } from './Button.js'
 
 export interface MultiSelectOption {
   value: string
@@ -27,6 +33,10 @@ export interface MultiSelectProps {
   /** Summary text when nothing is chosen (default "None"). */
   placeholder?: string
   disabled?: boolean
+  /** Show the control as an `xs` icon button with this glyph, the list floating below it. */
+  icon?: ReactNode
+  /** Icon mode: which edge of the button the floating list lines up with (default `left`). */
+  align?: 'left' | 'right'
 }
 
 /** Beyond this many chosen labels the summary becomes a count. */
@@ -61,6 +71,17 @@ const panelStyle: CSSProperties = {
   padding: 'var(--space-xs) 0',
 }
 
+/** Icon mode: the list floats over what is below, above neighbouring chrome. */
+const floatingPanelStyle: CSSProperties = {
+  position: 'absolute',
+  top: '100%',
+  zIndex: 10,
+  minWidth: 200,
+  maxWidth: 320,
+  background: 'var(--color-bg-secondary)',
+  boxShadow: 'var(--shadow-standard)',
+}
+
 const rowStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -73,7 +94,7 @@ const rowStyle: CSSProperties = {
   cursor: 'pointer',
 }
 
-export function MultiSelect({ options, value, onChange, ariaLabel, placeholder = 'None', disabled }: MultiSelectProps) {
+export function MultiSelect({ options, value, onChange, ariaLabel, placeholder = 'None', disabled, icon, align = 'left' }: MultiSelectProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
 
@@ -109,6 +130,47 @@ export function MultiSelect({ options, value, onChange, ariaLabel, placeholder =
   const toggle = (v: string) =>
     onChange(value.includes(v) ? value.filter(x => x !== v) : [...value, v])
 
+  const list = open && (
+    <div
+      role="listbox"
+      aria-multiselectable="true"
+      aria-label={ariaLabel}
+      style={icon ? { ...panelStyle, ...floatingPanelStyle, [align]: 0 } : panelStyle}
+    >
+      {options.map(o => (
+        <label key={o.value} style={{ ...rowStyle, cursor: o.locked ? 'default' : 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={o.locked || value.includes(o.value)}
+            disabled={o.locked}
+            onChange={() => toggle(o.value)}
+          />
+          {o.label}
+        </label>
+      ))}
+    </div>
+  )
+
+  if (icon) {
+    return (
+      <div ref={rootRef} style={{ position: 'relative', display: 'inline-flex' }}>
+        <Button
+          size="xs"
+          variant="ghost"
+          icon={icon}
+          active={open}
+          aria-label={ariaLabel}
+          title={ariaLabel}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          disabled={disabled}
+          onClick={() => setOpen(o => !o)}
+        />
+        {list}
+      </div>
+    )
+  }
+
   return (
     <div ref={rootRef}>
       <button
@@ -132,21 +194,7 @@ export function MultiSelect({ options, value, onChange, ariaLabel, placeholder =
         </span>
         <TbChevronDown size={12} aria-hidden />
       </button>
-      {open && (
-        <div role="listbox" aria-multiselectable="true" aria-label={ariaLabel} style={panelStyle}>
-          {options.map(o => (
-            <label key={o.value} style={{ ...rowStyle, cursor: o.locked ? 'default' : 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={o.locked || value.includes(o.value)}
-                disabled={o.locked}
-                onChange={() => toggle(o.value)}
-              />
-              {o.label}
-            </label>
-          ))}
-        </div>
-      )}
+      {list}
     </div>
   )
 }
