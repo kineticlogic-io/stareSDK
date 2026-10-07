@@ -1,4 +1,4 @@
-import type { CSSProperties, KeyboardEvent, PointerEvent, ReactNode } from 'react'
+import type { CSSProperties, DragEvent, KeyboardEvent, PointerEvent, ReactNode } from 'react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { TbArrowDown, TbArrowUp, TbSelector } from 'react-icons/tb'
 
@@ -45,6 +45,11 @@ import { TbArrowDown, TbArrowUp, TbSelector } from 'react-icons/tb'
  * (numeric widths, 120px for a column without one) and scrolls horizontally instead of squeezing.
  * A single highlighted row is `selectedKey`; there is deliberately no second highlight style.
  *   - `headerDividers` (0.2.7): a faint `--color-glass-border` line between header cells only.
+ *   - `onColumnReorder` (0.2.8): headers can be dragged onto another header to move a column
+ *     (a line marks the drop side), or moved one place with Alt+Shift+Left/Right on a focused
+ *     header. Reports `(key, toIndex)` once per move; the caller reorders `columns`. A pinned
+ *     first column and any column with `reorderable: false` stay put, and nothing lands before a
+ *     pinned column.
  */
 
 export type SortDirection = 'asc' | 'desc'
@@ -75,6 +80,8 @@ export interface DataTableColumn<T> {
   sortable?: boolean
   /** Tooltip (`title`) on a non-sortable header explaining why it cannot be sorted. */
   sortDisabledReason?: string
+  /** With `onColumnReorder`: whether this column can be moved (default `true`). */
+  reorderable?: boolean
 }
 
 export interface DataTableProps<T> {
@@ -107,6 +114,8 @@ export interface DataTableProps<T> {
   onRowDoubleClick?: (row: T) => void
   /** A faint line between header cells (headers only), for wide tables whose headings run together. */
   headerDividers?: boolean
+  /** Enables moving columns by dragging headers; called with the column and its new index. */
+  onColumnReorder?: (key: string, toIndex: number) => void
   'aria-label': string
   style?: CSSProperties
 }
@@ -217,6 +226,7 @@ export function DataTable<T>({
   onColumnResize,
   onRowDoubleClick,
   headerDividers = false,
+  onColumnReorder,
   'aria-label': ariaLabel,
   style,
 }: DataTableProps<T>) {
@@ -297,6 +307,36 @@ export function DataTable<T>({
     onColumnResize?.(c.key, Math.max(DATA_TABLE_MIN_COLUMN_WIDTH, Math.round(current + step)))
   }
 
+  // Column reordering: the header being dragged, and where it would land.
+  const [moving, setMoving] = useState<string | null>(null)
+  const [dropAt, setDropAt] = useState<{ key: string; side: 'before' | 'after' } | null>(null)
+  const firstMovable = pinFirstColumn ? 1 : 0
+  const canMove = (c: DataTableColumn<T>, ci: number) =>
+    !!onColumnReorder && ci >= firstMovable && c.reorderable !== false
+
+  /** Report a move of `key` to land before (`side: before`) or after the column at `targetIndex`. */
+  const moveColumn = (key: string, targetIndex: number, side: 'before' | 'after') => {
+    const from = columns.findIndex((c) => c.key === key)
+    if (from < 0) return
+    let to = side === 'after' ? targetIndex + 1 : targetIndex
+    if (from < to) to -= 1
+    to = Math.max(firstMovable, Math.min(columns.length - 1, to))
+    if (to !== from) onColumnReorder?.(key, to)
+  }
+
+  const dropSide = (e: DragEvent<HTMLTableCellElement>): 'before' | 'after' => {
+    const r = e.currentTarget.getBoundingClientRect()
+    return e.clientX < r.left + r.width / 2 ? 'before' : 'after'
+  }
+
+  const keyMove = (e: KeyboardEvent<HTMLTableCellElement>, c: DataTableColumn<T>, ci: number) => {
+    if (!e.altKey || !e.shiftKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || !canMove(c, ci)) return
+    e.preventDefault()
+    const to = ci + (e.key === 'ArrowRight' ? 1 : -1)
+    if (to < firstMovable || to >= columns.length) return
+    onColumnReorder?.(c.key, to)
+  }
+
   const viewport = typeof maxHeight === 'number' ? maxHeight : 600
   const virtual = maxHeight !== undefined && sorted.length > virtualizeAbove
   const first = virtual ? Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN) : 0
@@ -361,12 +401,54 @@ export function DataTable<T>({
               const sortable = canSort(c)
               const pinned = pinFirstColumn && ci === 0
               const width = widthOf(c)
+              const movable = canMove(c, ci)
+              const marked = dropAt?.key === c.key && moving !== null && moving !== c.key ? dropAt.side : null
               return (
                 <th
                   key={c.key}
                   scope="col"
                   aria-sort={sortable ? ariaSort : undefined}
                   title={!sortable && c.sortDisabledReason ? c.sortDisabledReason : undefined}
+                  draggable={movable || undefined}
+                  tabIndex={movable && !sortable ? 0 : undefined}
+                  onDragStart={
+                    movable
+                      ? (e) => {
+                          e.dataTransfer.effectAllowed = 'move'
+                          e.dataTransfer.setData('text/plain', c.key)
+                          setMoving(c.key)
+                        }
+                      : undefined
+                  }
+                  onDragOver={
+                    moving !== null && ci >= firstMovable
+                      ? (e) => {
+                          e.preventDefault()
+                          e.dataTransfer.dropEffect = 'move'
+                          const side = dropSide(e)
+                          if (dropAt?.key !== c.key || dropAt.side !== side) setDropAt({ key: c.key, side })
+                        }
+                      : undefined
+                  }
+                  onDrop={
+                    moving !== null && ci >= firstMovable
+                      ? (e) => {
+                          e.preventDefault()
+                          moveColumn(moving, ci, dropSide(e))
+                          setMoving(null)
+                          setDropAt(null)
+                        }
+                      : undefined
+                  }
+                  onDragEnd={
+                    movable
+                      ? () => {
+                          setMoving(null)
+                          setDropAt(null)
+                        }
+                      : undefined
+                  }
+                  onKeyDown={onColumnReorder ? (e) => keyMove(e, c, ci) : undefined}
                   style={{
                     ...TH_STYLE,
                     textAlign: c.align ?? 'left',
@@ -375,6 +457,11 @@ export function DataTable<T>({
                       : null),
                     ...(pinned
                       ? { left: 0, zIndex: 3, borderRight: '1px solid var(--color-glass-border)' }
+                      : null),
+                    ...(movable ? { cursor: 'grab' } : null),
+                    ...(moving === c.key ? { opacity: 0.5 } : null),
+                    ...(marked
+                      ? { boxShadow: `inset ${marked === 'before' ? 2 : -2}px 0 0 var(--color-accent)` }
                       : null),
                   }}
                 >
@@ -415,7 +502,15 @@ export function DataTable<T>({
                       onPointerUp={(e) => endResize(e, c.key)}
                       onPointerCancel={() => setDrag(null)}
                       onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => keyResize(e, c)}
+                      draggable={false}
+                      onDragStart={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                      }}
+                      onKeyDown={(e) => {
+                        e.stopPropagation()
+                        keyResize(e, c)
+                      }}
                       style={RESIZE_HANDLE_STYLE}
                     />
                   )}
