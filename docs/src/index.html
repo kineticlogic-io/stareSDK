@@ -613,13 +613,33 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
     { key: 'speed', header: 'Speed (kn)', align: 'right', mono: true, sortValue: t =&gt; t.speed },
   ]} /&gt;</code></pre>
     </div>
+    <p>For a server-paged attribute table: <code>manualSort</code> leaves row order to the caller (header clicks only
+      report the next <code>sort</code>), a column with <code>sortable: false</code> loses its sort affordance and shows
+      <code>sortDisabledReason</code> as its tooltip, <code>pinFirstColumn</code> keeps the first column in place while
+      the table scrolls sideways, <code>onColumnResize</code> adds a drag handle to each header edge (reported once, on
+      release; widths stay controlled through each column's <code>width</code>), and <code>onRowDoubleClick</code> opens a
+      row. The single highlighted row is <code>selectedKey</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>DataTable</code> as an attribute table</div>
+      <div class="demo" data-demo="attributetable"></div>
+<pre><code>&lt;DataTable aria-label="Track attributes" rows={page} rowKey={t =&gt; t.id} maxHeight={220}
+  manualSort sort={sort} onSortChange={setSort} pinFirstColumn
+  onColumnResize={(key, width) =&gt; setWidths(w =&gt; ({ ...w, [key]: width }))}
+  onRowDoubleClick={t =&gt; open(t.id)}
+  columns={fields.map(f =&gt; ({ key: f.name, header: f.name, width: widths[f.name] ?? 160,
+    sortable: f.sortable, sortDisabledReason: f.sortable ? undefined : 'Text fields cannot be sorted' }))} /&gt;</code></pre>
+    </div>
 
     <h3>Pagination</h3>
-    <p>Offset/limit paging that matches <code>?offset=</code> and <code>?limit=</code>. It handles an unknown total and a backend offset ceiling.</p>
+    <p>Offset/limit paging that matches <code>?offset=</code> and <code>?limit=</code>. It handles an unknown total and a backend offset ceiling.
+      Optionally, <code>showEnds</code> adds First/Last buttons, <code>pageSizes</code> with <code>onLimitChange</code> adds a page-size
+      select, and <code>label="page"</code> reads "Page X of Y · N features" (<code>noun</code> changes the last word).</p>
     <div class="example">
       <div class="example-label">Example <code>Pagination</code></div>
       <div class="demo" data-demo="pagination"></div>
-<pre><code>&lt;Pagination offset={offset} limit={50} total={1284} itemCount={rows.length} onOffsetChange={setOffset} /&gt;</code></pre>
+<pre><code>&lt;Pagination offset={offset} limit={50} total={1284} itemCount={rows.length} onOffsetChange={setOffset} /&gt;
+&lt;Pagination offset={offset} limit={limit} total={1284} itemCount={rows.length} onOffsetChange={setOffset}
+  showEnds label="page" pageSizes={[50, 100, 250]} onLimitChange={l =&gt; { setLimit(l); setOffset(0) }} /&gt;</code></pre>
     </div>
 
     <h3>Tree</h3>

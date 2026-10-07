@@ -1,7 +1,7 @@
 // The guide's live examples, keyed by the `data-demo` slot they render into. Each one uses the real
 // component from `src/` with sample data. The optional views (map, graph, chart, code editor) load
 // lazily so their peer dependencies only download when the reader reaches them.
-import { lazy, useRef, useState, type ComponentType, type CSSProperties } from 'react'
+import { lazy, useMemo, useRef, useState, type ComponentType, type CSSProperties } from 'react'
 import {
   TbAlertTriangle, TbBell, TbBolt, TbChartLine, TbDatabase, TbDownload, TbFilter, TbFocus2, TbHome,
   TbInfoCircle, TbLayersSubtract, TbMap2, TbPencil, TbPhoto, TbPlus, TbPointer, TbPolygon, TbRadar2,
@@ -14,8 +14,9 @@ import {
   Input, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader,
   Pagination, PopoverMenuButton, ProfileChart, RampPicker, SaveButton, Select, SideNav, Slider,
   SortableList, Stepper, TabPanel, Tabs, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
-  VirtualList, ZoomRangeSlider, distanceToMeters, useTheme, useToast, useTypeaheadKeyboard,
+  VirtualList, ZoomRangeSlider, distanceToMeters, sortRows, useTheme, useToast, useTypeaheadKeyboard,
   type BadgeColor, type ClassificationMarking, type ClassifyOptions, type DataTableColumn,
+  type DataTableSort,
   type DistanceUnit, type FlyoutItem, type StepItem, type TreeNode,
 } from '../../src/index'
 import {
@@ -805,10 +806,61 @@ function PaginationDemo() {
   const [offset, setOffset] = useState(0)
   const total = 1284
   const limit = 50
+  const [pageOffset, setPageOffset] = useState(0)
+  const [pageLimit, setPageLimit] = useState(100)
   return (
     <div className="stack" style={{ gap: 'var(--space-sm)' }}>
       <Pagination offset={offset} limit={limit} total={total} itemCount={Math.min(limit, total - offset)} onOffsetChange={setOffset} />
       <Pagination offset={0} limit={25} total={null} itemCount={25} onOffsetChange={() => {}} size="sm" />
+      <Pagination
+        offset={pageOffset}
+        limit={pageLimit}
+        total={total}
+        itemCount={Math.min(pageLimit, total - pageOffset)}
+        onOffsetChange={setPageOffset}
+        showEnds
+        label="page"
+        pageSizes={[50, 100, 250]}
+        onLimitChange={l => { setPageLimit(l); setPageOffset(0) }}
+      />
+    </div>
+  )
+}
+
+function AttributeTableDemo() {
+  const [sort, setSort] = useState<DataTableSort | null>({ key: 'speed', direction: 'desc' })
+  const [widths, setWidths] = useState<Record<string, number>>({})
+  const [opened, setOpened] = useState<string | null>(null)
+  // The caller sorts (here locally, standing in for a server-side sort).
+  const rows = useMemo(() => {
+    const col = TRACK_COLUMNS.find(c => c.key === sort?.key)
+    return sort && col?.sortValue ? sortRows(TRACKS, col.sortValue, sort.direction) : TRACKS
+  }, [sort])
+  const columns = useMemo(
+    () => TRACK_COLUMNS.map(c => ({
+      ...c,
+      width: widths[c.key] ?? (typeof c.width === 'number' ? c.width : 180),
+      ...(c.key === 'status' ? { sortable: false, sortDisabledReason: 'Status cannot be sorted' } : null),
+    })),
+    [widths],
+  )
+  return (
+    <div className="stack" style={{ gap: 'var(--space-sm)' }}>
+      <DataTable
+        aria-label="Track attributes"
+        rows={rows}
+        rowKey={t => t.id}
+        columns={columns}
+        maxHeight={220}
+        manualSort
+        sort={sort}
+        onSortChange={setSort}
+        pinFirstColumn
+        onColumnResize={(key, width) => setWidths(w => ({ ...w, [key]: width }))}
+        onRowDoubleClick={t => setOpened(t.id)}
+        style={{ maxWidth: 520 }}
+      />
+      <span className="caption">manualSort · pinned first column · drag a header edge to resize · double-click a row{opened ? ` · opened ${opened}` : ''}</span>
     </div>
   )
 }
@@ -1134,6 +1186,7 @@ export const DEMOS: Record<string, ComponentType> = {
   appcard: AppCardDemo,
   datatable: DataTableDemo,
   pagination: PaginationDemo,
+  attributetable: AttributeTableDemo,
   tree: TreeDemo,
   facets: FacetsDemo,
   sortablelist: SortableListDemo,

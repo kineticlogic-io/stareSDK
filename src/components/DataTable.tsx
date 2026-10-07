@@ -1,4 +1,4 @@
-import type { CSSProperties, KeyboardEvent, ReactNode } from 'react'
+import type { CSSProperties, KeyboardEvent, PointerEvent, ReactNode } from 'react'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { TbArrowDown, TbArrowUp, TbSelector } from 'react-icons/tb'
 
@@ -27,6 +27,23 @@ import { TbArrowDown, TbArrowUp, TbSelector } from 'react-icons/tb'
  * Rows become interactive (focusable, Enter/Space activates, arrow keys move) only when
  * `onRowClick` is given; otherwise they are plain rows with no hover affordance, so a read-only
  * table never pretends to be clickable.
+ *
+ * Attribute-table extras (added 0.2.5 for OpenStare's attribute table,
+ * kineticlogic-io/OpenStare#64); every one is optional and off by default:
+ *   - `manualSort`: the caller sorts (e.g. server-side). Header clicks still cycle the controlled
+ *     `sort` through `onSortChange`, but rows render in the order given, never re-sorted here.
+ *     In this mode every column is sortable by default, with or without `sortValue`.
+ *   - Column `sortable` / `sortDisabledReason`: `sortable: false` removes a column's sort
+ *     affordance and click; the reason (e.g. "Text fields cannot be sorted") becomes the header's
+ *     `title` tooltip.
+ *   - `pinFirstColumn`: the first column stays put while the table scrolls sideways.
+ *   - `onColumnResize`: each header gets a drag handle on its right edge (pointer drag, or arrow
+ *     keys on the focused handle; minimum 48px). Widths stay controlled through each column's
+ *     `width`: the live width is shown while dragging and reported once, on pointer-up.
+ *   - `onRowDoubleClick`: a double-click on a row.
+ * With `pinFirstColumn` or `onColumnResize` the table is at least as wide as its columns
+ * (numeric widths, 120px for a column without one) and scrolls horizontally instead of squeezing.
+ * A single highlighted row is `selectedKey`; there is deliberately no second highlight style.
  */
 
 export type SortDirection = 'asc' | 'desc'
@@ -50,6 +67,13 @@ export interface DataTableColumn<T> {
   align?: 'left' | 'right' | 'center'
   /** Render cell text in `--font-mono` (ids, coordinates, codes). */
   mono?: boolean
+  /**
+   * Whether the header sorts on click. Defaults to `true` when the column has a `sortValue` or the
+   * table is `manualSort`, `false` otherwise.
+   */
+  sortable?: boolean
+  /** Tooltip (`title`) on a non-sortable header explaining why it cannot be sorted. */
+  sortDisabledReason?: string
 }
 
 export interface DataTableProps<T> {
@@ -72,17 +96,34 @@ export interface DataTableProps<T> {
   density?: 'compact' | 'comfortable'
   /** Row count above which rendering is virtualised (needs `maxHeight`). */
   virtualizeAbove?: number
+  /** Rows are already in display order (e.g. sorted server-side); header clicks only report. */
+  manualSort?: boolean
+  /** Keep the first column fixed while the table scrolls horizontally. */
+  pinFirstColumn?: boolean
+  /** Enables column resize handles; called with the final px width on pointer-up. */
+  onColumnResize?: (key: string, width: number) => void
+  /** Called when a row is double-clicked. */
+  onRowDoubleClick?: (row: T) => void
   'aria-label': string
   style?: CSSProperties
 }
 
 const ROW_HEIGHT = { compact: 28, comfortable: 34 } as const
 const OVERSCAN = 8
+/** Narrowest a resized column may become. */
+export const DATA_TABLE_MIN_COLUMN_WIDTH = 48
+/** Width assumed for a column without a numeric `width` when sizing a horizontally scrolling table. */
+const FALLBACK_COLUMN_WIDTH = 120
+/** Arrow-key step on a focused resize handle. */
+const RESIZE_KEY_STEP = 16
 
+// Stacking: body cells 0, the pinned body column 1, header cells 2, the pinned header cell 3 —
+// so the sticky header covers everything that scrolls under it, and the pinned column covers
+// the cells that scroll sideways under it.
 const TH_STYLE: CSSProperties = {
   position: 'sticky',
   top: 0,
-  zIndex: 1,
+  zIndex: 2,
   background: 'var(--color-bg-secondary)',
   borderBottom: '1px solid var(--color-glass-border)',
   padding: '0 var(--space-sm)',
@@ -138,6 +179,23 @@ function defaultCell<T>(row: T, key: string): ReactNode {
   return ''
 }
 
+const RESIZE_HANDLE_STYLE: CSSProperties = {
+  position: 'absolute',
+  top: 0,
+  right: 0,
+  width: 6,
+  height: '100%',
+  cursor: 'col-resize',
+  touchAction: 'none',
+}
+
+interface ResizeDrag {
+  key: string
+  startX: number
+  startWidth: number
+  width: number
+}
+
 export function DataTable<T>({
   columns,
   rows,
@@ -151,6 +209,10 @@ export function DataTable<T>({
   maxHeight,
   density = 'compact',
   virtualizeAbove = 200,
+  manualSort = false,
+  pinFirstColumn = false,
+  onColumnResize,
+  onRowDoubleClick,
   'aria-label': ariaLabel,
   style,
 }: DataTableProps<T>) {
@@ -159,12 +221,19 @@ export function DataTable<T>({
   const [scrollTop, setScrollTop] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const rowHeight = ROW_HEIGHT[density]
+  // Live width of the column being dragged; the committed width comes back through `columns`.
+  const [drag, setDrag] = useState<ResizeDrag | null>(null)
+
+  const canSort = useCallback(
+    (c: DataTableColumn<T>) => c.sortable ?? (manualSort || !!c.sortValue),
+    [manualSort],
+  )
 
   const sorted = useMemo(() => {
-    if (!sort) return rows
+    if (!sort || manualSort) return rows
     const col = columns.find((c) => c.key === sort.key)
     return col?.sortValue ? sortRows(rows, col.sortValue, sort.direction) : rows
-  }, [rows, columns, sort])
+  }, [rows, columns, sort, manualSort])
 
   const toggleSort = useCallback(
     (key: string) => {
@@ -179,6 +248,50 @@ export function DataTable<T>({
     },
     [sort, controlledSort, onSortChange],
   )
+
+  const resizable = !!onColumnResize
+  const horizontal = pinFirstColumn || resizable
+  const widthOf = (c: DataTableColumn<T>) => (drag?.key === c.key ? drag.width : c.width)
+  const minTableWidth = horizontal
+    ? columns.reduce((sum, c) => {
+        const w = widthOf(c)
+        return sum + (typeof w === 'number' ? w : FALLBACK_COLUMN_WIDTH)
+      }, 0)
+    : undefined
+
+  const startResize = (e: PointerEvent<HTMLDivElement>, c: DataTableColumn<T>) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    e.stopPropagation()
+    const th = e.currentTarget.parentElement
+    const measured = th ? th.getBoundingClientRect().width : 0
+    const startWidth = typeof c.width === 'number' ? c.width : measured || FALLBACK_COLUMN_WIDTH
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    setDrag({ key: c.key, startX: e.clientX, startWidth, width: startWidth })
+  }
+
+  const moveResize = (e: PointerEvent<HTMLDivElement>, key: string) => {
+    if (!drag || drag.key !== key) return
+    const width = Math.max(DATA_TABLE_MIN_COLUMN_WIDTH, Math.round(drag.startWidth + e.clientX - drag.startX))
+    if (width !== drag.width) setDrag({ ...drag, width })
+  }
+
+  const endResize = (e: PointerEvent<HTMLDivElement>, key: string) => {
+    if (!drag || drag.key !== key) return
+    e.currentTarget.releasePointerCapture?.(e.pointerId)
+    const width = Math.max(DATA_TABLE_MIN_COLUMN_WIDTH, Math.round(drag.startWidth + e.clientX - drag.startX))
+    setDrag(null)
+    onColumnResize?.(key, width)
+  }
+
+  const keyResize = (e: KeyboardEvent<HTMLDivElement>, c: DataTableColumn<T>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+    e.preventDefault()
+    const th = e.currentTarget.parentElement
+    const current = typeof c.width === 'number' ? c.width : (th?.getBoundingClientRect().width || FALLBACK_COLUMN_WIDTH)
+    const step = e.key === 'ArrowRight' ? RESIZE_KEY_STEP : -RESIZE_KEY_STEP
+    onColumnResize?.(c.key, Math.max(DATA_TABLE_MIN_COLUMN_WIDTH, Math.round(current + step)))
+  }
 
   const viewport = typeof maxHeight === 'number' ? maxHeight : 600
   const virtual = maxHeight !== undefined && sorted.length > virtualizeAbove
@@ -213,7 +326,7 @@ export function DataTable<T>({
       onScroll={virtual ? (e) => setScrollTop(e.currentTarget.scrollTop) : undefined}
       style={{
         maxHeight,
-        overflow: maxHeight !== undefined ? 'auto' : undefined,
+        overflow: maxHeight !== undefined || horizontal ? 'auto' : undefined,
         border: '1px solid var(--color-glass-border)',
         borderRadius: 'var(--radius-md)',
         background: 'var(--color-bg-secondary)',
@@ -223,26 +336,42 @@ export function DataTable<T>({
       <table
         aria-label={ariaLabel}
         aria-rowcount={sorted.length + 1}
-        style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}
+        style={{
+          width: '100%',
+          minWidth: minTableWidth,
+          borderCollapse: 'separate',
+          borderSpacing: 0,
+          tableLayout: 'fixed',
+        }}
       >
         <colgroup>
           {columns.map((c) => (
-            <col key={c.key} style={{ width: c.width }} />
+            <col key={c.key} style={{ width: widthOf(c) }} />
           ))}
         </colgroup>
         <thead>
           <tr>
-            {columns.map((c) => {
+            {columns.map((c, ci) => {
               const active = sort?.key === c.key
               const ariaSort = active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'
+              const sortable = canSort(c)
+              const pinned = pinFirstColumn && ci === 0
+              const width = widthOf(c)
               return (
                 <th
                   key={c.key}
                   scope="col"
-                  aria-sort={c.sortValue ? ariaSort : undefined}
-                  style={{ ...TH_STYLE, textAlign: c.align ?? 'left' }}
+                  aria-sort={sortable ? ariaSort : undefined}
+                  title={!sortable && c.sortDisabledReason ? c.sortDisabledReason : undefined}
+                  style={{
+                    ...TH_STYLE,
+                    textAlign: c.align ?? 'left',
+                    ...(pinned
+                      ? { left: 0, zIndex: 3, borderRight: '1px solid var(--color-glass-border)' }
+                      : null),
+                  }}
                 >
-                  {c.sortValue ? (
+                  {sortable ? (
                     <button
                       type="button"
                       className="ui-data-table__sort"
@@ -264,6 +393,24 @@ export function DataTable<T>({
                     </button>
                   ) : (
                     c.header
+                  )}
+                  {resizable && (
+                    <div
+                      role="separator"
+                      aria-orientation="vertical"
+                      aria-label={`Resize ${c.header}`}
+                      aria-valuemin={DATA_TABLE_MIN_COLUMN_WIDTH}
+                      aria-valuenow={typeof width === 'number' ? width : undefined}
+                      tabIndex={0}
+                      className={`ui-data-table__resize${drag?.key === c.key ? ' ui-data-table__resize--active' : ''}`}
+                      onPointerDown={(e) => startResize(e, c)}
+                      onPointerMove={(e) => moveResize(e, c.key)}
+                      onPointerUp={(e) => endResize(e, c.key)}
+                      onPointerCancel={() => setDrag(null)}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => keyResize(e, c)}
+                      style={RESIZE_HANDLE_STYLE}
+                    />
                   )}
                 </th>
               )
@@ -301,6 +448,7 @@ export function DataTable<T>({
                     tabIndex={interactive ? 0 : undefined}
                     className={interactive ? 'ui-data-table__row--interactive' : undefined}
                     onClick={interactive ? () => onRowClick(row) : undefined}
+                    onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
                     onKeyDown={interactive ? (e) => onRowKey(e, row, index) : undefined}
                     style={{
                       height: rowHeight,
@@ -308,13 +456,28 @@ export function DataTable<T>({
                       background: selected ? 'var(--brand-subtle)' : undefined,
                     }}
                   >
-                    {columns.map((c) => (
+                    {columns.map((c, ci) => (
                       <td
                         key={c.key}
+                        className={pinFirstColumn && ci === 0 ? 'ui-data-table__pinned' : undefined}
                         style={{
                           ...TD_STYLE,
                           textAlign: c.align ?? 'left',
                           fontFamily: c.mono ? 'var(--font-mono)' : undefined,
+                          ...(pinFirstColumn && ci === 0
+                            ? {
+                                position: 'sticky' as const,
+                                left: 0,
+                                zIndex: 1,
+                                // Opaque so sideways-scrolled cells pass under it; the selected
+                                // row's wash is layered on top so selection still reads.
+                                backgroundColor: 'var(--color-bg-secondary)',
+                                backgroundImage: selected
+                                  ? 'linear-gradient(var(--brand-subtle), var(--brand-subtle))'
+                                  : undefined,
+                                borderRight: '1px solid var(--color-glass-border)',
+                              }
+                            : null),
                         }}
                       >
                         {c.render ? c.render(row) : defaultCell(row, c.key)}

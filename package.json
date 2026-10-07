@@ -1,6 +1,6 @@
 {
   "name": "@kineticlogic/staresdk",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "React UI components, theming and design tokens for mission and geospatial applications: the design system behind OpenStare and OpenTrack.",
   "license": "MIT",
   "author": "kineticlogic.io <admin@kineticlogic.io>",
