@@ -18,11 +18,25 @@
  * bottom of the stage. This is an additive, backwards-compatible option on the existing shared
  * component, not a new primitive: `RampPicker`, `StyleEditor`, `SketchToolbar` and
  * `MarkStylePopover` all pass nothing and keep today's downward behaviour unchanged.
+ *
+ * **Portaled (0.2.4).** The popover renders into `document.body`, `position: fixed`, placed from
+ * the trigger's live `getBoundingClientRect()` and kept there while anything scrolls or the window
+ * resizes — like the layer-row kebab popover (`layerRowStyles.ts`). Nested in the trigger's own
+ * box it was clipped by any `overflow` ancestor (OpenStare's Style pane: a categorized class's
+ * colour opened behind the map). It sits on the floating-popover tier (z 4500): above the map and
+ * panels, below `Modal` (5000) and the classification banner (9999). It still opens below the
+ * trigger, right edges aligned (or above it with `placement="top"`), and stays inside the window.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { TbColorPicker, TbCheck } from 'react-icons/tb'
 import { Button } from './Button.js'
 import { popoverContainer, popoverDivider, popoverLabel } from '../internal/layerRowStyles.js'
+
+/** The floating-popover tier (see the module doc), the popover's width, and its window margin. */
+const POPOVER_Z = 4500
+const POPOVER_WIDTH = 200
+const EDGE = 4
 
 interface ColorPickerProps {
   /** Current value — always a resolved hex string (e.g. `#0faf73`), never a `var()` token. */
@@ -90,6 +104,19 @@ export function ColorPicker({
   const [customOpen, setCustomOpen] = useState(false)
   const [hexInput, setHexInput] = useState(value)
   const containerRef = useRef<HTMLDivElement>(null)
+  // Where the trigger is on screen while the popover is open (see the module doc).
+  const [anchor, setAnchor] = useState<DOMRect | null>(null)
+  useLayoutEffect(() => {
+    if (!open) return
+    const place = () => setAnchor(containerRef.current?.getBoundingClientRect() ?? null)
+    place()
+    window.addEventListener('scroll', place, true)
+    window.addEventListener('resize', place)
+    return () => {
+      window.removeEventListener('scroll', place, true)
+      window.removeEventListener('resize', place)
+    }
+  }, [open])
 
   // Keep the free-text field in sync when the controlled value changes externally
   // (e.g. Reset-to-default in the parent StyleEditor).
@@ -136,18 +163,25 @@ export function ColorPicker({
         style={{ background: validValue, border: '1px solid var(--color-glass-border)' }}
       />
 
-      {open && !disabled && (
+      {open && !disabled && anchor && createPortal(
         <>
           <div
-            style={{ position: 'fixed', inset: 0, zIndex: 1099 }}
+            style={{ position: 'fixed', inset: 0, zIndex: POPOVER_Z - 1 }}
             onClick={() => setOpen(false)}
           />
           <div
+            data-color-picker-popover=""
             style={{
               ...popoverContainer,
+              position: 'fixed',
+              zIndex: POPOVER_Z,
               padding: 'var(--space-sm)',
-              width: 200,
-              ...(placement === 'top' ? { top: 'auto', bottom: 'calc(100% + 2px)' } : {}),
+              width: POPOVER_WIDTH,
+              left: Math.max(EDGE, Math.min(anchor.right - POPOVER_WIDTH, window.innerWidth - POPOVER_WIDTH - EDGE)),
+              right: 'auto',
+              ...(placement === 'top'
+                ? { top: 'auto', bottom: window.innerHeight - anchor.top + 2 }
+                : { top: anchor.bottom + 2 }),
             }}
           >
             <div style={popoverLabel}>Swatches</div>
@@ -247,7 +281,8 @@ export function ColorPicker({
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   )
