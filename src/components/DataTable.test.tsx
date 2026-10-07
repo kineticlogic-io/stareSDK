@@ -188,6 +188,64 @@ describe('DataTable', () => {
     expect(c.querySelector('[role="separator"]')).toBeNull()
   })
 
+  /** A native drag event jsdom can carry: a stub DataTransfer and a pointer x. */
+  function drag(type: string, target: Element, clientX = 0) {
+    const ev = new Event(type, { bubbles: true, cancelable: true })
+    Object.defineProperty(ev, 'dataTransfer', {
+      value: { setData: () => {}, getData: () => '', effectAllowed: '', dropEffect: '' },
+    })
+    Object.defineProperty(ev, 'clientX', { value: clientX })
+    act(() => {
+      target.dispatchEvent(ev)
+    })
+  }
+
+  it('onColumnReorder: dragging a header onto another reports the column and its new index', () => {
+    const onColumnReorder = vi.fn()
+    const c = render(<DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} onColumnReorder={onColumnReorder} />)
+    const ths = () => Array.from(c.querySelectorAll('th')) as HTMLElement[]
+    expect(ths().every((th) => th.getAttribute('draggable') === 'true')).toBe(true)
+    // jsdom lays nothing out (every rect is 0 wide), so any x at or past the left edge drops "after".
+    drag('dragstart', ths()[0])
+    expect(ths()[0].style.opacity).toBe('0.5')
+    drag('dragover', ths()[2], 10)
+    expect(ths()[2].style.boxShadow).toContain('-2px')
+    drag('drop', ths()[2], 10)
+    expect(onColumnReorder).toHaveBeenCalledWith('id', 2)
+    expect(ths()[0].style.opacity).toBe('')
+  })
+
+  it('onColumnReorder: a pinned first column stays put and nothing lands before it', () => {
+    const onColumnReorder = vi.fn()
+    const c = render(
+      <DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} pinFirstColumn onColumnReorder={onColumnReorder} />,
+    )
+    const ths = () => Array.from(c.querySelectorAll('th')) as HTMLElement[]
+    expect(ths()[0].getAttribute('draggable')).toBeNull()
+    drag('dragstart', ths()[2])
+    drag('drop', ths()[0], -10)
+    expect(onColumnReorder).not.toHaveBeenCalled()
+    drag('dragstart', ths()[2])
+    drag('drop', ths()[1], -10)
+    expect(onColumnReorder).toHaveBeenCalledWith('speed', 1)
+  })
+
+  it('onColumnReorder: Alt+Shift+Arrow moves a focused header one place; without the prop nothing drags', () => {
+    const onColumnReorder = vi.fn()
+    const c = render(<DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} onColumnReorder={onColumnReorder} />)
+    const name = c.querySelectorAll('th')[1].querySelector('button') as HTMLElement
+    act(() => {
+      name.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, shiftKey: true, bubbles: true }))
+    })
+    expect(onColumnReorder).toHaveBeenCalledWith('name', 2)
+    act(() => {
+      name.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    })
+    expect(onColumnReorder).toHaveBeenCalledTimes(1)
+    const plain = render(<DataTable aria-label="u" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} />)
+    expect(plain.querySelector('th')!.getAttribute('draggable')).toBeNull()
+  })
+
   it('headerDividers draws a line between header cells only, none after the last and none in the body', () => {
     const c = render(<DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} headerDividers />)
     const ths = Array.from(c.querySelectorAll('th')) as HTMLElement[]
