@@ -83,11 +83,11 @@ describe('DataTable', () => {
     expect(rows[2].getAttribute('aria-selected')).toBe('true')
     expect(rows[2].style.background).toBe('var(--brand-subtle)')
     act(() => rows[0].click())
-    expect(onRowClick).toHaveBeenLastCalledWith(ROWS[0])
+    expect(onRowClick).toHaveBeenLastCalledWith(ROWS[0], { shiftKey: false, ctrlKey: false, metaKey: false })
     act(() => {
       rows[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     })
-    expect(onRowClick).toHaveBeenLastCalledWith(ROWS[1])
+    expect(onRowClick).toHaveBeenLastCalledWith(ROWS[1], { shiftKey: false, ctrlKey: false, metaKey: false })
   })
 
   it('shows the empty message and virtualises large lists', () => {
