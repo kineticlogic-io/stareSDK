@@ -94,6 +94,8 @@ and token rules:
   `onRowDoubleClick`, for OpenStare's attribute table.
   Since 0.2.7, `headerDividers` draws a faint line between header cells.
   Since 0.2.8, `onColumnReorder` lets users drag headers (or Alt+Shift+Arrow) to move columns.
+  Since 0.2.9, `selection` adds a fixed checkbox column (row boxes + a header all/none/some box)
+  for a caller-owned selection, and `onRowClick` receives the modifier keys held.
 - `MultiSelect` — a dropdown of checkboxes; since 0.2.6 optionally an `xs` icon button (`icon`)
   whose list floats below it (`align`), for toolbars.
 - `Pagination` — offset/limit paging; since 0.2.5 optionally with First/Last buttons (`showEnds`),

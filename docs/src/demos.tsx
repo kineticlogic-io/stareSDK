@@ -846,6 +846,7 @@ function AttributeTableDemo() {
   const [sort, setSort] = useState<DataTableSort | null>({ key: 'speed', direction: 'desc' })
   const [widths, setWidths] = useState<Record<string, number>>({})
   const [opened, setOpened] = useState<string | null>(null)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
   // The caller sorts (here locally, standing in for a server-side sort).
   const rows = useMemo(() => {
     const col = TRACK_COLUMNS.find(c => c.key === sort?.key)
@@ -873,9 +874,15 @@ function AttributeTableDemo() {
         pinFirstColumn
         onColumnResize={(key, width) => setWidths(w => ({ ...w, [key]: width }))}
         onRowDoubleClick={t => setOpened(t.id)}
+        selection={{
+          isSelected: t => picked.has(t.id),
+          onToggle: t => setPicked(p => { const n = new Set(p); if (n.has(t.id)) n.delete(t.id); else n.add(t.id); return n }),
+          header: picked.size === 0 ? 'none' : picked.size === TRACKS.length ? 'all' : 'some',
+          onToggleAll: () => setPicked(p => (p.size === TRACKS.length ? new Set() : new Set(TRACKS.map(t => t.id)))),
+        }}
         style={{ maxWidth: 520 }}
       />
-      <span className="caption">manualSort · pinned first column · drag a header edge to resize · double-click a row{opened ? ` · opened ${opened}` : ''}</span>
+      <span className="caption">manualSort · pinned first column · drag a header edge to resize · double-click a row · {picked.size} selected{opened ? ` · opened ${opened}` : ''}</span>
     </div>
   )
 }
