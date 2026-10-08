@@ -1,5 +1,5 @@
-import type { CSSProperties, DragEvent, KeyboardEvent, PointerEvent, ReactNode } from 'react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, DragEvent, KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TbArrowDown, TbArrowUp, TbSelector } from 'react-icons/tb'
 
 /**
@@ -50,6 +50,13 @@ import { TbArrowDown, TbArrowUp, TbSelector } from 'react-icons/tb'
  *     header. Reports `(key, toIndex)` once per move; the caller reorders `columns`. A pinned
  *     first column and any column with `reorderable: false` stay put, and nothing lands before a
  *     pinned column.
+ *   - `selection` (0.2.9): a checkbox column fixed at the far left (before a pinned first column,
+ *     never moved or resized) whose boxes toggle a row in or out of the caller's selection, and a
+ *     header box whose state the caller gives (`all` / `none` / `some`, shown checked / unchecked /
+ *     indeterminate) and whose click asks the caller to select or clear every row. The caller owns
+ *     the selection — the table only reports clicks, with the modifier keys held. Rows the caller
+ *     reports as selected get the same `--brand-subtle` wash as `selectedKey`. `onRowClick` also
+ *     receives the modifier keys (Shift / Ctrl / Meta), so a caller can do range and toggle clicks.
  */
 
 export type SortDirection = 'asc' | 'desc'
@@ -58,6 +65,37 @@ export interface DataTableSort {
   key: string
   direction: SortDirection
 }
+
+/** Modifier keys held during a row or checkbox click. */
+export interface DataTableClickModifiers {
+  shiftKey: boolean
+  ctrlKey: boolean
+  metaKey: boolean
+}
+
+/** The header checkbox's state: every row, none, or some of them selected. */
+export type DataTableHeaderSelection = 'all' | 'none' | 'some'
+
+/** A caller-owned row selection rendered as a fixed checkbox column (see the component doc). */
+export interface DataTableRowSelection<T> {
+  /** Whether `row` is in the selection. */
+  isSelected: (row: T) => boolean
+  /** A row's checkbox was clicked (Space on a focused box counts as a click). */
+  onToggle: (row: T, modifiers: DataTableClickModifiers) => void
+  /** The header checkbox's state. */
+  header: DataTableHeaderSelection
+  /** The header checkbox was clicked. */
+  onToggleAll: () => void
+  /** Accessible label of a row's checkbox (default "Select row"). */
+  rowLabel?: (row: T) => string
+  /** Accessible label of the header checkbox (default "Select all rows"). */
+  headerLabel?: string
+  /** Disables every checkbox (e.g. while a change is in flight). */
+  disabled?: boolean
+}
+
+/** Width of the selection checkbox column, in px. */
+export const DATA_TABLE_SELECTION_COLUMN_WIDTH = 32
 
 export interface DataTableColumn<T> {
   /** Stable column id; also the sort key. */
@@ -88,8 +126,8 @@ export interface DataTableProps<T> {
   columns: DataTableColumn<T>[]
   rows: T[]
   rowKey: (row: T) => string
-  /** Makes rows interactive. */
-  onRowClick?: (row: T) => void
+  /** Makes rows interactive; receives the modifier keys held (Shift / Ctrl / Meta). */
+  onRowClick?: (row: T, modifiers: DataTableClickModifiers) => void
   /** Key of the selected row (highlighted). */
   selectedKey?: string | null
   /** Controlled sort; pair with `onSortChange`. */
@@ -116,6 +154,8 @@ export interface DataTableProps<T> {
   headerDividers?: boolean
   /** Enables moving columns by dragging headers; called with the column and its new index. */
   onColumnReorder?: (key: string, toIndex: number) => void
+  /** A caller-owned row selection, shown as a fixed checkbox column at the far left. */
+  selection?: DataTableRowSelection<T>
   'aria-label': string
   style?: CSSProperties
 }
@@ -227,6 +267,7 @@ export function DataTable<T>({
   onRowDoubleClick,
   headerDividers = false,
   onColumnReorder,
+  selection,
   'aria-label': ariaLabel,
   style,
 }: DataTableProps<T>) {
@@ -266,12 +307,21 @@ export function DataTable<T>({
   const resizable = !!onColumnResize
   const horizontal = pinFirstColumn || resizable
   const widthOf = (c: DataTableColumn<T>) => (drag?.key === c.key ? drag.width : c.width)
+  // The selection column sits left of everything, so a pinned first column starts after it.
+  const selectionWidth = selection ? DATA_TABLE_SELECTION_COLUMN_WIDTH : 0
+  const totalColumns = columns.length + (selection ? 1 : 0)
   const minTableWidth = horizontal
     ? columns.reduce((sum, c) => {
         const w = widthOf(c)
         return sum + (typeof w === 'number' ? w : FALLBACK_COLUMN_WIDTH)
-      }, 0)
+      }, selectionWidth)
     : undefined
+
+  // The header checkbox's indeterminate state can only be set on the element.
+  const headerBoxRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (headerBoxRef.current) headerBoxRef.current.indeterminate = selection?.header === 'some'
+  }, [selection?.header])
 
   const startResize = (e: PointerEvent<HTMLDivElement>, c: DataTableColumn<T>) => {
     if (e.button !== 0) return
@@ -350,10 +400,17 @@ export function DataTable<T>({
     el?.focus()
   }
 
+  const modifiersOf = (e: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }): DataTableClickModifiers => ({
+    shiftKey: e.shiftKey,
+    ctrlKey: e.ctrlKey,
+    metaKey: e.metaKey,
+  })
+
   const onRowKey = (e: KeyboardEvent<HTMLTableRowElement>, row: T, index: number) => {
+    if (e.target !== e.currentTarget) return
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      onRowClick?.(row)
+      onRowClick?.(row, modifiersOf(e))
     } else if (e.key === 'ArrowDown' && index + 1 < sorted.length) {
       e.preventDefault()
       focusRow(index + 1)
@@ -389,12 +446,41 @@ export function DataTable<T>({
         }}
       >
         <colgroup>
+          {selection && <col style={{ width: DATA_TABLE_SELECTION_COLUMN_WIDTH }} />}
           {columns.map((c) => (
             <col key={c.key} style={{ width: widthOf(c) }} />
           ))}
         </colgroup>
         <thead>
           <tr>
+            {selection && (
+              <th
+                scope="col"
+                style={{
+                  ...TH_STYLE,
+                  left: 0,
+                  zIndex: 4,
+                  padding: 0,
+                  textAlign: 'center',
+                  width: DATA_TABLE_SELECTION_COLUMN_WIDTH,
+                }}
+              >
+                <input
+                  ref={headerBoxRef}
+                  type="checkbox"
+                  className="ui-data-table__select"
+                  aria-label={selection.headerLabel ?? 'Select all rows'}
+                  aria-checked={selection.header === 'some' ? 'mixed' : selection.header === 'all'}
+                  checked={selection.header === 'all'}
+                  disabled={selection.disabled}
+                  readOnly
+                  onClick={(e: MouseEvent<HTMLInputElement>) => {
+                    e.preventDefault()
+                    selection.onToggleAll()
+                  }}
+                />
+              </th>
+            )}
             {columns.map((c, ci) => {
               const active = sort?.key === c.key
               const ariaSort = active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'
@@ -456,7 +542,7 @@ export function DataTable<T>({
                       ? { borderRight: '1px solid var(--color-glass-border)' }
                       : null),
                     ...(pinned
-                      ? { left: 0, zIndex: 3, borderRight: '1px solid var(--color-glass-border)' }
+                      ? { left: selectionWidth, zIndex: 3, borderRight: '1px solid var(--color-glass-border)' }
                       : null),
                     ...(movable ? { cursor: 'grab' } : null),
                     ...(moving === c.key ? { opacity: 0.5 } : null),
@@ -523,7 +609,7 @@ export function DataTable<T>({
           {sorted.length === 0 ? (
             <tr>
               <td
-                colSpan={columns.length}
+                colSpan={totalColumns}
                 style={{ ...TD_STYLE, maxWidth: undefined, height: 56, textAlign: 'center', color: 'var(--color-text-secondary)', borderBottom: 'none' }}
               >
                 {empty}
@@ -533,13 +619,14 @@ export function DataTable<T>({
             <>
               {virtual && first > 0 && (
                 <tr aria-hidden style={{ height: first * rowHeight }}>
-                  <td colSpan={columns.length} style={{ padding: 0, border: 'none' }} />
+                  <td colSpan={totalColumns} style={{ padding: 0, border: 'none' }} />
                 </tr>
               )}
               {visible.map((row, i) => {
                 const index = first + i
                 const key = rowKey(row)
-                const selected = selectedKey != null && key === selectedKey
+                const inSelection = selection ? selection.isSelected(row) : false
+                const selected = (selectedKey != null && key === selectedKey) || inSelection
                 const interactive = !!onRowClick
                 return (
                   <tr
@@ -549,7 +636,7 @@ export function DataTable<T>({
                     aria-selected={interactive ? selected : undefined}
                     tabIndex={interactive ? 0 : undefined}
                     className={interactive ? 'ui-data-table__row--interactive' : undefined}
-                    onClick={interactive ? () => onRowClick(row) : undefined}
+                    onClick={interactive ? (e) => onRowClick(row, modifiersOf(e)) : undefined}
                     onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
                     onKeyDown={interactive ? (e) => onRowKey(e, row, index) : undefined}
                     style={{
@@ -558,6 +645,41 @@ export function DataTable<T>({
                       background: selected ? 'var(--brand-subtle)' : undefined,
                     }}
                   >
+                    {selection && (
+                      <td
+                        className="ui-data-table__pinned"
+                        style={{
+                          ...TD_STYLE,
+                          maxWidth: undefined,
+                          padding: 0,
+                          textAlign: 'center',
+                          position: 'sticky',
+                          left: 0,
+                          zIndex: 1,
+                          backgroundColor: 'var(--color-bg-secondary)',
+                          backgroundImage: selected
+                            ? 'linear-gradient(var(--brand-subtle), var(--brand-subtle))'
+                            : undefined,
+                        }}
+                        // A box click toggles the selection only — never the row's own click.
+                        onClick={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          className="ui-data-table__select"
+                          aria-label={selection.rowLabel ? selection.rowLabel(row) : 'Select row'}
+                          checked={inSelection}
+                          disabled={selection.disabled}
+                          readOnly
+                          onClick={(e: MouseEvent<HTMLInputElement>) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            selection.onToggle(row, modifiersOf(e))
+                          }}
+                        />
+                      </td>
+                    )}
                     {columns.map((c, ci) => (
                       <td
                         key={c.key}
@@ -569,7 +691,7 @@ export function DataTable<T>({
                           ...(pinFirstColumn && ci === 0
                             ? {
                                 position: 'sticky' as const,
-                                left: 0,
+                                left: selectionWidth,
                                 zIndex: 1,
                                 // Opaque so sideways-scrolled cells pass under it; the selected
                                 // row's wash is layered on top so selection still reads.
@@ -590,7 +712,7 @@ export function DataTable<T>({
               })}
               {virtual && last < sorted.length && (
                 <tr aria-hidden style={{ height: (sorted.length - last) * rowHeight }}>
-                  <td colSpan={columns.length} style={{ padding: 0, border: 'none' }} />
+                  <td colSpan={totalColumns} style={{ padding: 0, border: 'none' }} />
                 </tr>
               )}
             </>
