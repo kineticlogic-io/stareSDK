@@ -691,6 +691,21 @@ body {
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;
 }
+/* Row selection checkboxes (selection, 0.2.9): the brand colour is the checked affordance, with
+   the same accent ring as every other keyboard focus in the table. */
+.ui-data-table__select {
+  accent-color: var(--color-accent);
+  cursor: pointer;
+  margin: 0;
+  vertical-align: middle;
+}
+.ui-data-table__select:disabled {
+  cursor: default;
+}
+.ui-data-table__select:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
 
 /* stareSDK Tabs (2026-09-25). Keyboard focus ring for tab buttons. */
 .ui-tabs__tab:focus-visible {

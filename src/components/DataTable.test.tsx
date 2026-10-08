@@ -246,6 +246,108 @@ describe('DataTable', () => {
     expect(plain.querySelector('th')!.getAttribute('draggable')).toBeNull()
   })
 
+  it('selection: a fixed checkbox column toggles rows with the modifier keys, without clicking the row', () => {
+    const onToggle = vi.fn()
+    const onRowClick = vi.fn()
+    const c = render(
+      <DataTable
+        aria-label="t"
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(r) => r.id}
+        onRowClick={onRowClick}
+        selection={{ isSelected: (r) => r.id === 'b', onToggle, header: 'some', onToggleAll: () => {}, rowLabel: (r) => `Select ${r.name}` }}
+      />,
+    )
+    const boxes = Array.from(c.querySelectorAll('tbody input[type="checkbox"]')) as HTMLInputElement[]
+    expect(boxes).toHaveLength(3)
+    expect(boxes.map((b) => b.checked)).toEqual([false, true, false])
+    expect(boxes[0].getAttribute('aria-label')).toBe('Select Charlie')
+    // The selected row carries the selection wash and aria-selected.
+    const trs = Array.from(c.querySelectorAll('tbody tr')) as HTMLElement[]
+    expect(trs[1].getAttribute('aria-selected')).toBe('true')
+    expect(trs[0].getAttribute('aria-selected')).toBe('false')
+    act(() => {
+      boxes[2].dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }))
+    })
+    expect(onToggle).toHaveBeenCalledWith(ROWS[2], { shiftKey: true, ctrlKey: false, metaKey: false })
+    expect(onRowClick).not.toHaveBeenCalled()
+    // The box column is first, sticky at the left edge, and every row cell spans one more column.
+    const firstTd = trs[0].querySelector('td') as HTMLElement
+    expect(firstTd.style.position).toBe('sticky')
+    expect(firstTd.style.left).toBe('0px')
+  })
+
+  it('selection: the header box shows all / none / some and asks for every row', () => {
+    const onToggleAll = vi.fn()
+    const make = (header: 'all' | 'none' | 'some') =>
+      render(
+        <DataTable
+          aria-label={`t-${header}`}
+          columns={COLUMNS}
+          rows={ROWS}
+          rowKey={(r) => r.id}
+          selection={{ isSelected: () => false, onToggle: () => {}, header, onToggleAll }}
+        />,
+      ).querySelector('thead input[type="checkbox"]') as HTMLInputElement
+    const all = make('all')
+    expect([all.checked, all.indeterminate, all.getAttribute('aria-checked')]).toEqual([true, false, 'true'])
+    const none = make('none')
+    expect([none.checked, none.indeterminate, none.getAttribute('aria-checked')]).toEqual([false, false, 'false'])
+    const some = make('some')
+    expect([some.checked, some.indeterminate, some.getAttribute('aria-checked')]).toEqual([false, true, 'mixed'])
+    expect(some.getAttribute('aria-label')).toBe('Select all rows')
+    act(() => some.click())
+    expect(onToggleAll).toHaveBeenCalledTimes(1)
+  })
+
+  it('selection: a pinned first column starts after the box column, which never drags', () => {
+    const c = render(
+      <DataTable
+        aria-label="t"
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(r) => r.id}
+        pinFirstColumn
+        onColumnReorder={() => {}}
+        onColumnResize={() => {}}
+        selection={{ isSelected: () => false, onToggle: () => {}, header: 'none', onToggleAll: () => {} }}
+      />,
+    )
+    const ths = Array.from(c.querySelectorAll('th')) as HTMLElement[]
+    expect(ths[0].getAttribute('draggable')).toBeNull()
+    expect(ths[0].querySelector('[role="separator"]')).toBeNull()
+    expect(ths[1].style.left).toBe('32px')
+    const tds = Array.from(c.querySelectorAll('tbody tr')[0].querySelectorAll('td')) as HTMLElement[]
+    expect(tds[1].style.left).toBe('32px')
+    // The min width counts the box column.
+    expect(c.querySelector('table')!.style.minWidth).toBe(`${32 + 3 * 120}px`)
+  })
+
+  it('onRowClick receives the modifier keys; a key press inside a cell is not a row activation', () => {
+    const onRowClick = vi.fn()
+    const c = render(
+      <DataTable
+        aria-label="t"
+        columns={COLUMNS}
+        rows={ROWS}
+        rowKey={(r) => r.id}
+        onRowClick={onRowClick}
+        selection={{ isSelected: () => false, onToggle: () => {}, header: 'none', onToggleAll: () => {} }}
+      />,
+    )
+    const tr = c.querySelector('tbody tr') as HTMLElement
+    act(() => {
+      tr.dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true }))
+    })
+    expect(onRowClick).toHaveBeenLastCalledWith(ROWS[0], { shiftKey: false, ctrlKey: true, metaKey: false })
+    const box = tr.querySelector('input') as HTMLInputElement
+    act(() => {
+      box.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
+    })
+    expect(onRowClick).toHaveBeenCalledTimes(1)
+  })
+
   it('headerDividers draws a line between header cells only, none after the last and none in the body', () => {
     const c = render(<DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} headerDividers />)
     const ths = Array.from(c.querySelectorAll('th')) as HTMLElement[]
