@@ -86,6 +86,8 @@ Added 2026-09-25 from OpenStare's own shell (first consumer: OpenTrack):
 Added 2026-09-25 (first consumer: OpenTrack), compact by default and neutral per OpenStare's table
 and token rules:
 
+- `ContextMenu` / `ContextMenuItem` — right-click menu shell; since 0.2.11 keyboard-operable
+  (focus on open, arrows/Home/End, Enter/Space, Escape/Tab close, focus returns to the opener).
 - `DataTable` — sortable columns (stable, nulls last), optional row selection with keyboard
   activation, sticky header and row virtualisation when `maxHeight` is set. Header chrome follows
   the neutral-table rule (weight, uppercase, letter-spacing, bottom border; no fill, no colour).
@@ -94,6 +96,7 @@ and token rules:
   `onRowDoubleClick`, for OpenStare's attribute table.
   Since 0.2.7, `headerDividers` draws a faint line between header cells.
   Since 0.2.8, `onColumnReorder` lets users drag headers (or Alt+Shift+Arrow) to move columns.
+  Since 0.2.11, `onRowContextMenu` reports a row's right-click, Shift+F10 or ContextMenu key.
   Since 0.2.9, `selection` adds a fixed checkbox column (row boxes + a header all/none/some box)
   for a caller-owned selection, and `onRowClick` receives the modifier keys held.
 - `MultiSelect` — a dropdown of checkboxes; since 0.2.6 optionally an `xs` icon button (`icon`)

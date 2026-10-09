@@ -41,6 +41,9 @@ import { TbArrowDown, TbArrowUp, TbSelector } from 'react-icons/tb'
  *     keys on the focused handle; minimum 48px). Widths stay controlled through each column's
  *     `width`: the live width is shown while dragging and reported once, on pointer-up.
  *   - `onRowDoubleClick`: a double-click on a row.
+ *   - `onRowContextMenu` (0.2.11): a right-click on a row, or Shift+F10 / the ContextMenu key on a
+ *     focused row (rows become focusable). The browser's own menu is suppressed only when this is
+ *     given. Reports where to open a menu: the pointer, or the row's lower-left for the keyboard.
  * With `pinFirstColumn` or `onColumnResize` the table is at least as wide as its columns
  * (numeric widths, 120px for a column without one) and scrolls horizontally instead of squeezing.
  * A single highlighted row is `selectedKey`; there is deliberately no second highlight style.
@@ -67,6 +70,14 @@ export interface DataTableSort {
 }
 
 /** Modifier keys held during a row or checkbox click. */
+/** Where a row's context menu should open, and how it was asked for. */
+export interface DataTableRowContextMenuEvent {
+  /** Viewport x/y for the menu: the pointer, or just inside the row's lower-left for the keyboard. */
+  x: number
+  y: number
+  source: 'pointer' | 'keyboard'
+}
+
 export interface DataTableClickModifiers {
   shiftKey: boolean
   ctrlKey: boolean
@@ -150,6 +161,8 @@ export interface DataTableProps<T> {
   onColumnResize?: (key: string, width: number) => void
   /** Called when a row is double-clicked. */
   onRowDoubleClick?: (row: T) => void
+  /** A row's context menu was asked for (right-click, Shift+F10 or the ContextMenu key). */
+  onRowContextMenu?: (row: T, event: DataTableRowContextMenuEvent) => void
   /** A faint line between header cells (headers only), for wide tables whose headings run together. */
   headerDividers?: boolean
   /** Enables moving columns by dragging headers; called with the column and its new index. */
@@ -265,6 +278,7 @@ export function DataTable<T>({
   pinFirstColumn = false,
   onColumnResize,
   onRowDoubleClick,
+  onRowContextMenu,
   headerDividers = false,
   onColumnReorder,
   selection,
@@ -408,6 +422,12 @@ export function DataTable<T>({
 
   const onRowKey = (e: KeyboardEvent<HTMLTableRowElement>, row: T, index: number) => {
     if (e.target !== e.currentTarget) return
+    if (onRowContextMenu && (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey))) {
+      e.preventDefault()
+      const r = e.currentTarget.getBoundingClientRect()
+      onRowContextMenu(row, { x: r.left + 16, y: r.bottom, source: 'keyboard' })
+      return
+    }
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       onRowClick?.(row, modifiersOf(e))
@@ -628,17 +648,26 @@ export function DataTable<T>({
                 const inSelection = selection ? selection.isSelected(row) : false
                 const selected = (selectedKey != null && key === selectedKey) || inSelection
                 const interactive = !!onRowClick
+                const focusable = interactive || !!onRowContextMenu
                 return (
                   <tr
                     key={key}
                     data-row-index={index}
                     aria-rowindex={index + 2}
                     aria-selected={interactive ? selected : undefined}
-                    tabIndex={interactive ? 0 : undefined}
+                    tabIndex={focusable ? 0 : undefined}
                     className={interactive ? 'ui-data-table__row--interactive' : undefined}
                     onClick={interactive ? (e) => onRowClick(row, modifiersOf(e)) : undefined}
                     onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
-                    onKeyDown={interactive ? (e) => onRowKey(e, row, index) : undefined}
+                    onKeyDown={focusable ? (e) => onRowKey(e, row, index) : undefined}
+                    onContextMenu={
+                      onRowContextMenu
+                        ? (e) => {
+                            e.preventDefault()
+                            onRowContextMenu(row, { x: e.clientX, y: e.clientY, source: 'pointer' })
+                          }
+                        : undefined
+                    }
                     style={{
                       height: rowHeight,
                       cursor: interactive ? 'pointer' : undefined,
