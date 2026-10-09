@@ -4,7 +4,7 @@ import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import { CodeEditor, toDiagnostics } from './CodeEditor.js'
+import { CodeEditor, toCompletionResult, toDiagnostics } from './CodeEditor.js'
 
 const cleanups: Array<() => void> = []
 afterEach(() => {
@@ -12,6 +12,37 @@ afterEach(() => {
 })
 
 describe('CodeEditor', () => {
+  it('adapts a completion source: span start clamped to the cursor, apply defaults to the label', () => {
+    const source = vi.fn(({ text, pos }: { text: string; pos: number }) => {
+      const open = text.lastIndexOf('{', pos - 1)
+      return open < 0 ? null : { from: open + 1, options: [{ label: 'name', detail: 'keyword' }, { label: 'speed', apply: 'speed}' }] }
+    })
+    const r = toCompletionResult(source, '<p>{na', 6)!
+    expect(source).toHaveBeenCalledWith({ text: '<p>{na', pos: 6 })
+    expect(r.from).toBe(4)
+    expect(r.options).toEqual([
+      { label: 'name', detail: 'keyword', apply: 'name' },
+      { label: 'speed', detail: undefined, apply: 'speed}' },
+    ])
+    expect(toCompletionResult(source, '<p>', 3)).toBeNull()
+    expect(toCompletionResult(undefined, '{', 1)).toBeNull()
+    expect(toCompletionResult(() => ({ from: 99, options: [{ label: 'x' }] }), 'ab', 2)!.from).toBe(2)
+    expect(toCompletionResult(() => ({ from: 0, options: [] }), 'ab', 2)).toBeNull()
+  })
+
+  it('renders HTML with highlighting and keeps a typed template exactly as written', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    act(() => root.render(<CodeEditor aria-label="Template" language="html" value={'<b>{name}</b>'} completions={() => null} />))
+    cleanups.push(() => {
+      act(() => root.unmount())
+      container.remove()
+    })
+    expect(container.querySelector('.cm-content')!.textContent).toBe('<b>{name}</b>')
+    expect(container.querySelector('.cm-content span')).not.toBeNull()
+  })
+
   it('maps line and offset diagnostics, dropping out-of-range lines', () => {
     const state = EditorState.create({ doc: '{\n  "a": 1\n}' })
     const d = toDiagnostics(state, [
