@@ -116,7 +116,7 @@ peer dependencies:
 | Import | Component | Optional peers |
 |--------|-----------|----------------|
 | `@kineticlogic/staresdk/chart` | `TimeSeriesChart` — compact line chart over time (uPlot canvas); colours and fonts resolved from tokens and re-resolved on theme change, series pick a `tone`, legend shows values under the cursor | `uplot` (also import `uplot/dist/uPlot.min.css`) |
-| `@kineticlogic/staresdk/code-editor` | `CodeEditor` — CodeMirror 6 JSON/text editor, token-themed, with parse and caller-supplied diagnostics | `@codemirror/{state,view,commands,language,lang-json,lint}`, `@lezer/highlight` |
+| `@kineticlogic/staresdk/code-editor` | `CodeEditor` — CodeMirror 6 JSON/HTML/text editor, token-themed, with parse and caller-supplied diagnostics and (since 0.2.10) caller-supplied completions | `@codemirror/{state,view,commands,language,lang-json,lang-html,lint,autocomplete}`, `@lezer/highlight` |
 | `@kineticlogic/staresdk/graph-view` | `GraphView` — directed graph (lineage, provenance, pipelines) in layers: React Flow rendering, dagre layout, token-styled nodes and edges, ended edges dashed, `animated` edges with moving dashes for flows | `@xyflow/react`, `@dagrejs/dagre` (also import `@xyflow/react/dist/base.css`) |
 | `@kineticlogic/staresdk/map-view` | `MapView` — MapLibre GL points-and-polylines map styled as the offline basemap (theme-aware), with selection, fit-to-points and parent-driven `fitTo` | `maplibre-gl` (also import `maplibre-gl/dist/maplibre-gl.css`) |
 
