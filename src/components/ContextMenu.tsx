@@ -1,18 +1,25 @@
 import { useEffect, useRef } from 'react'
-import type { ReactNode } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 
 /**
  * ContextMenu — shared presentational shell for right-click menus.
  *
  * Provides: fixed-position placement with viewport edge-flip math, the App.tsx
  * left-dock offset correction, glass design tokens, an optional uppercase
- * section header, and close-on-Escape / close-on-outside-click. Purely
+ * section header, close-on-Escape / close-on-outside-click, and keyboard navigation. Purely
  * presentational — callers own their own menu-item content and click
  * semantics; compose items with {@link ContextMenuItem}.
  *
  * Extracted (Phase 91, operator direction) from a since-retired command-dispatch
  * menu so a second right-click menu would not hand-roll a second copy of this
  * shell — CLAUDE.md's shared `ui/*` HARD RULE.
+ *
+ * Keyboard (0.2.11, for OpenStare's attribute-table row menu, kineticlogic-io/OpenStare#318):
+ * the first enabled item takes focus when the menu opens; ArrowDown/ArrowUp move between enabled
+ * items (wrapping), Home/End jump to the first/last; Enter or Space activates the focused item;
+ * Escape and Tab close the menu. When the menu closes while focus is in it (or nowhere), focus
+ * returns to the element that had it when the menu opened — never when an item has moved focus
+ * elsewhere on purpose (e.g. into a dialog it opened). Disabled items are skipped.
  */
 export interface ContextMenuProps {
   /** Viewport-relative click x (e.g. `MouseEvent.clientX`). */
@@ -43,10 +50,25 @@ export function ContextMenu({
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
+  // Focus the first enabled item on open; give focus back to the opener on close.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const menu = menuRef.current
+    enabledItems(menu)[0]?.focus()
+    return () => {
+      const active = document.activeElement
+      const focusWasInMenu = !active || active === document.body || (menu?.contains(active) ?? false)
+      if (focusWasInMenu && opener && opener.isConnected) opener.focus()
+    }
+  }, [])
+
   // Close on Escape or outside click
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' || (e.key === 'Tab' && menuRef.current?.contains(document.activeElement))) {
+        if (e.key === 'Tab') e.preventDefault()
+        onClose()
+      }
     }
     function onMouseDown(e: MouseEvent) {
       if (menuRef.current && menuRef.current.contains(e.target as Node)) return
@@ -75,11 +97,33 @@ export function ContextMenu({
   const left = x + width > vpW ? x - width : x
   const top = y + estimatedHeight > vpH ? y - estimatedHeight : y
 
+  const onMenuKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const items = enabledItems(menuRef.current)
+    if (items.length === 0) return
+    const at = items.indexOf(document.activeElement as HTMLElement)
+    let next: HTMLElement | undefined
+    if (e.key === 'ArrowDown') next = items[(at + 1) % items.length]
+    else if (e.key === 'ArrowUp') next = items[(at - 1 + items.length) % items.length]
+    else if (e.key === 'Home') next = items[0]
+    else if (e.key === 'End') next = items[items.length - 1]
+    else if ((e.key === 'Enter' || e.key === ' ') && at >= 0) {
+      e.preventDefault()
+      items[at].click()
+      return
+    }
+    if (next) {
+      e.preventDefault()
+      next.focus()
+    }
+  }
+
   return (
     <div
       ref={menuRef}
       role="menu"
       aria-label={ariaLabel}
+      aria-orientation="vertical"
+      onKeyDown={onMenuKeyDown}
       style={{
         position: 'fixed',
         // Rendered inside App.tsx's collapse container (transform: translateZ(0)),
@@ -123,6 +167,14 @@ export function ContextMenu({
   )
 }
 
+/** The menu's enabled `role="menuitem"` elements, in order. */
+function enabledItems(menu: HTMLElement | null): HTMLElement[] {
+  if (!menu) return []
+  return Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]')).filter(
+    (el) => !(el as HTMLButtonElement).disabled && el.getAttribute('aria-disabled') !== 'true',
+  )
+}
+
 export interface ContextMenuItemProps {
   onClick: () => void
   ariaLabel?: string
@@ -134,9 +186,16 @@ export interface ContextMenuItemProps {
 
 /** A single `role="menuitem"` row for {@link ContextMenu}. */
 export function ContextMenuItem({ onClick, ariaLabel, disabled = false, danger = false, children }: ContextMenuItemProps) {
+  const highlight = (el: HTMLButtonElement, on: boolean) => {
+    if (disabled && on) return
+    el.style.background = on ? 'var(--brand-subtle)' : 'transparent'
+    el.style.borderLeftColor = on ? (danger ? 'var(--color-destructive)' : 'var(--color-accent)') : 'transparent'
+  }
   return (
     <button
+      type="button"
       role="menuitem"
+      tabIndex={-1}
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
@@ -155,18 +214,13 @@ export function ContextMenuItem({ onClick, ariaLabel, disabled = false, danger =
         opacity: disabled ? 0.6 : 1,
         minHeight: 36,
         position: 'relative',
+        outline: 'none',
       }}
-      onMouseEnter={e => {
-        if (disabled) return
-        const el = e.currentTarget
-        el.style.background = 'var(--brand-subtle)'
-        el.style.borderLeftColor = danger ? 'var(--color-destructive)' : 'var(--color-accent)'
-      }}
-      onMouseLeave={e => {
-        const el = e.currentTarget
-        el.style.background = 'transparent'
-        el.style.borderLeftColor = 'transparent'
-      }}
+      // Hover and keyboard focus look the same (focus outline replaced by the accent rail).
+      onMouseEnter={e => highlight(e.currentTarget, true)}
+      onMouseLeave={e => highlight(e.currentTarget, false)}
+      onFocus={e => highlight(e.currentTarget, true)}
+      onBlur={e => highlight(e.currentTarget, false)}
     >
       {children}
     </button>
