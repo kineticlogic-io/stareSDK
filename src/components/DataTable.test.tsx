@@ -348,6 +348,47 @@ describe('DataTable', () => {
     expect(onRowClick).toHaveBeenCalledTimes(1)
   })
 
+  it('onRowContextMenu: right-click reports the row and pointer, suppressing the browser menu only when given', () => {
+    const onRowContextMenu = vi.fn()
+    const c = render(<DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} onRowContextMenu={onRowContextMenu} />)
+    const row = c.querySelector('tbody tr') as HTMLElement
+    expect(row.getAttribute('tabindex')).toBe('0')
+    const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 40, clientY: 50 })
+    act(() => {
+      row.dispatchEvent(ev)
+    })
+    expect(ev.defaultPrevented).toBe(true)
+    expect(onRowContextMenu).toHaveBeenCalledWith(ROWS[0], { x: 40, y: 50, source: 'pointer' })
+
+    const plain = render(<DataTable aria-label="u" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} />)
+    const plainEv = new MouseEvent('contextmenu', { bubbles: true, cancelable: true })
+    act(() => {
+      ;(plain.querySelector('tbody tr') as HTMLElement).dispatchEvent(plainEv)
+    })
+    expect(plainEv.defaultPrevented).toBe(false)
+  })
+
+  it('onRowContextMenu: Shift+F10 and the ContextMenu key on a focused row report a keyboard request', () => {
+    const onRowContextMenu = vi.fn()
+    const onRowClick = vi.fn()
+    const c = render(
+      <DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} onRowClick={onRowClick} onRowContextMenu={onRowContextMenu} />,
+    )
+    const rows = c.querySelectorAll('tbody tr')
+    const key = (el: Element, init: KeyboardEventInit) =>
+      act(() => {
+        el.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }))
+      })
+    key(rows[1], { key: 'F10', shiftKey: true })
+    expect(onRowContextMenu).toHaveBeenLastCalledWith(ROWS[1], expect.objectContaining({ source: 'keyboard' }))
+    key(rows[2], { key: 'ContextMenu' })
+    expect(onRowContextMenu).toHaveBeenLastCalledWith(ROWS[2], expect.objectContaining({ source: 'keyboard' }))
+    // F10 without Shift is not a context-menu request, and neither opens the row.
+    key(rows[0], { key: 'F10' })
+    expect(onRowContextMenu).toHaveBeenCalledTimes(2)
+    expect(onRowClick).not.toHaveBeenCalled()
+  })
+
   it('headerDividers draws a line between header cells only, none after the last and none in the body', () => {
     const c = render(<DataTable aria-label="t" columns={COLUMNS} rows={ROWS} rowKey={(r) => r.id} headerDividers />)
     const ths = Array.from(c.querySelectorAll('th')) as HTMLElement[]
