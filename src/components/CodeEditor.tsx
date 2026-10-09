@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react'
 import { useEffect, useRef } from 'react'
+import { autocompletion, completionKeymap, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
+import { html } from '@codemirror/lang-html'
 import { json, jsonParseLinter } from '@codemirror/lang-json'
 import { HighlightStyle, bracketMatching, foldGutter, indentOnInput, syntaxHighlighting } from '@codemirror/language'
 import { type Diagnostic, forceLinting, linter, lintGutter } from '@codemirror/lint'
@@ -20,6 +22,11 @@ import { tags } from '@lezer/highlight'
  * `minHeight` and `maxHeight` (then scrolls) so an editor never balloons a panel.
  *
  * `language="json"` adds JSON highlighting and a parse linter (inline marker + gutter).
+ * `language="html"` (0.2.10) adds HTML highlighting (no auto-closing of tags, so typed templates
+ * stay exactly as written).
+ * `completions` (0.2.10) offers caller-supplied completions as the user types (e.g. field tokens
+ * after `{`): the function gets the text and cursor offset and returns where the replaced span
+ * starts and the options, or `null` for none. Uses `@codemirror/autocomplete` (optional peer).
  * `diagnostics` adds caller-supplied markers (e.g. server-side validation errors), addressed by
  * 1-based line or by character offsets.
  *
@@ -39,14 +46,44 @@ export interface CodeEditorDiagnostic {
 export interface CodeEditorProps {
   value: string
   onChange?: (value: string) => void
-  language?: 'json' | 'text'
+  language?: 'json' | 'text' | 'html'
   readOnly?: boolean
   diagnostics?: CodeEditorDiagnostic[]
   minHeight?: number
   maxHeight?: number
   placeholder?: string
+  /** Completions as the user types; see the component doc. */
+  completions?: CodeEditorCompletionSource
   'aria-label': string
   style?: CSSProperties
+}
+
+export interface CodeEditorCompletionOption {
+  /** Shown in the list and, without `apply`, inserted. */
+  label: string
+  /** Quiet text beside the label (e.g. a field type). */
+  detail?: string
+  /** Text inserted instead of `label`. */
+  apply?: string
+}
+
+export type CodeEditorCompletionSource = (context: { text: string; pos: number }) =>
+  | { from: number; options: CodeEditorCompletionOption[] }
+  | null
+
+/** Adapt a caller completion source to CodeMirror's. Exported for tests. */
+export function toCompletionResult(
+  source: CodeEditorCompletionSource | undefined,
+  text: string,
+  pos: number,
+): CompletionResult | null {
+  const result = source?.({ text, pos })
+  if (!result || result.options.length === 0) return null
+  return {
+    from: Math.max(0, Math.min(result.from, pos)),
+    options: result.options.map((o) => ({ label: o.label, detail: o.detail, apply: o.apply ?? o.label })),
+    validFor: /^[^\s{}|]*$/,
+  }
 }
 
 const theme = EditorView.theme({
@@ -89,6 +126,11 @@ const theme = EditorView.theme({
   '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--color-destructive)' },
   '.cm-lintRange-warning': { backgroundImage: 'none', textDecoration: 'underline wavy var(--status-warning)' },
   '.cm-foldGutter .cm-gutterElement': { padding: '0 4px', cursor: 'pointer' },
+  '.cm-tooltip-autocomplete ul li[aria-selected]': {
+    backgroundColor: 'var(--color-glass-bg)',
+    color: 'var(--color-text-primary)',
+  },
+  '.cm-completionDetail': { color: 'var(--text-muted)', fontStyle: 'normal', marginLeft: '8px' },
 })
 
 /**
@@ -102,6 +144,11 @@ const highlight = HighlightStyle.define([
   { tag: [tags.number, tags.bool, tags.null], color: 'var(--intel-purple)' },
   { tag: [tags.punctuation, tags.separator, tags.bracket], color: 'var(--color-text-secondary)' },
   { tag: tags.invalid, color: 'var(--color-destructive)' },
+  // HTML (0.2.10): tag names cyan, attribute names purple, attribute values plain.
+  { tag: tags.tagName, color: 'var(--intel-cyan)' },
+  { tag: tags.attributeName, color: 'var(--intel-purple)' },
+  { tag: tags.attributeValue, color: 'var(--color-text-primary)' },
+  { tag: [tags.angleBracket, tags.comment], color: 'var(--color-text-secondary)' },
 ])
 
 /** Convert caller diagnostics to CodeMirror's offsets. Exported for tests. */
@@ -131,6 +178,7 @@ export function CodeEditor({
   minHeight = 80,
   maxHeight = 320,
   placeholder,
+  completions,
   'aria-label': ariaLabel,
   style,
 }: CodeEditorProps) {
@@ -141,6 +189,8 @@ export function CodeEditor({
   const readOnlyConf = useRef(new Compartment())
   const diagnosticsRef = useRef(diagnostics)
   diagnosticsRef.current = diagnostics
+  const completionsRef = useRef(completions)
+  completionsRef.current = completions
 
   // Create once; props below are applied through effects.
   useEffect(() => {
@@ -152,7 +202,16 @@ export function CodeEditor({
       indentOnInput(),
       bracketMatching(),
       highlightActiveLine(),
-      keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+      keymap.of([...completionKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
+      autocompletion({
+        // Only the caller's source (read through a ref, so a new list never recreates the editor).
+        override: [
+          (ctx: CompletionContext) =>
+            completionsRef.current ? toCompletionResult(completionsRef.current, ctx.state.doc.toString(), ctx.pos) : null,
+        ],
+        activateOnTyping: true,
+        icons: false,
+      }),
       syntaxHighlighting(highlight),
       theme,
       EditorView.theme({
@@ -175,6 +234,7 @@ export function CodeEditor({
       }),
     )
     if (language === 'json') extensions.push(json())
+    if (language === 'html') extensions.push(html({ autoCloseTags: false }))
     if (placeholder) extensions.push(placeholderExt(placeholder))
     const v = new EditorView({ state: EditorState.create({ doc: value, extensions }), parent: host.current })
     view.current = v
