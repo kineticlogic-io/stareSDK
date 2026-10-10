@@ -1,0 +1,313 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { CSSProperties, ReactNode, SyntheticEvent } from 'react'
+import { BANNER_HEIGHT_PX } from './ClassificationBanner.js'
+
+/**
+ * ButtonPalettePopover — the flyout a `ButtonPalette` button opens beside its toolbar (0.2.15, for
+ * OpenStare's map and VANTAGE toolbars, kineticlogic-io/OpenStare#340). Separate from `Popover`
+ * (menus and pickers hung below a control) on purpose: a toolbar flyout opens to the SIDE of a
+ * vertical palette (or above/below a horizontal one), may stay open while the user works on the
+ * map, and lives inside the toolbar rather than in a portal.
+ *
+ * - **In place, not portaled:** it renders the trigger and the panel inside one
+ *   `position: relative` wrapper, the panel absolutely positioned against it. So it moves with
+ *   the toolbar (a docked panel resizing the map never strands it), keeps the theme of the area
+ *   it sits in (a stage pinned to the dark theme stays dark), and works under transformed
+ *   ancestors.
+ * - **Side:** `right` (default — a left-docked vertical palette), `left` (a right-docked one),
+ *   `bottom`/`top` (a horizontal palette). It flips to the opposite side when the panel would leave
+ *   the viewport and there is room there.
+ * - **Aligned** to the trigger along the other axis (`align`: start / center / end), then shifted
+ *   to stay on screen and clear of the classification banners (`BANNER_HEIGHT_PX`); content taller
+ *   than the room between them scrolls inside it (only then — otherwise nothing is clipped).
+ * - **Closing:** Escape and a press outside the trigger and panel call `onClose`, each optional —
+ *   `closeOnOutsideClick={false}` keeps a drawing flyout open while the user clicks the map. A
+ *   press inside something its children portal elsewhere (a colour picker's panel) or inside a
+ *   `data-portal-overlay` counts as inside.
+ * - **Focus:** `autoFocus` moves focus to the first control when it opens; closing with Escape
+ *   returns focus to the trigger.
+ * - **Pointer isolation** (`isolatePointer`, default true): pointer events inside the panel stop
+ *   there, so a click in a flyout never reaches a canvas or stage underneath (mouse events still
+ *   propagate, so outside-press listeners inside the flyout — a colour picker's — keep working).
+ * - Glass surface matching `ButtonPalette` (`surface={false}` when the content is itself a
+ *   surfaced palette); a short compositor-safe entrance (opacity + transform).
+ */
+export type PaletteSide = 'right' | 'left' | 'top' | 'bottom'
+
+export interface ButtonPalettePopoverProps {
+  /** Whether the flyout is shown. */
+  open: boolean
+  /** Called when it should close (Escape, outside press). */
+  onClose: () => void
+  /** The palette button that opens it, rendered in place. */
+  trigger: ReactNode
+  /** Accessible name of the flyout. */
+  ariaLabel: string
+  /** Which side of the trigger it opens on. Default `right`. */
+  side?: PaletteSide
+  /** How it lines up with the trigger along the other axis. Default `start`. */
+  align?: 'start' | 'center' | 'end'
+  /** Gap between the trigger and the flyout, in px. Default 8. */
+  gap?: number
+  /** Optional heading at the top of the flyout (quiet uppercase label). */
+  title?: ReactNode
+  /** Width of the flyout (px or CSS length). Default: fits its content. */
+  width?: number | string
+  /** Draw the glass surface. Default true; false when the content is a surfaced palette. */
+  surface?: boolean
+  /** Close on a press outside the trigger and the flyout. Default true. */
+  closeOnOutsideClick?: boolean
+  /** Close on Escape. Default true. */
+  closeOnEscape?: boolean
+  /** Move focus into the flyout when it opens. Default false (a tool flyout keeps focus where it is). */
+  autoFocus?: boolean
+  /** `dialog` (default) for a panel of controls, `menu` for a list of actions, `group` for a tool palette. */
+  role?: 'dialog' | 'menu' | 'group'
+  /** Stop pointer events inside the flyout from reaching what is underneath. Default true. */
+  isolatePointer?: boolean
+  /** Default 4500 (above in-page controls, below the stareSDK Modal and the banners). */
+  zIndex?: number
+  /** Extra style for the flyout panel (merged last). */
+  style?: CSSProperties
+  children: ReactNode
+}
+
+/** Room kept clear of the viewport edges, in px. */
+const MARGIN = 8
+
+export interface PalettePlacement {
+  side: PaletteSide
+  /** Offset of the panel's top (side right/left) or left (side top/bottom) from the trigger's. */
+  offset: number
+  /** The most height (side right/left) or width (top/bottom) the panel may take before scrolling. */
+  max: number
+}
+
+const OPPOSITE: Record<PaletteSide, PaletteSide> = { right: 'left', left: 'right', top: 'bottom', bottom: 'top' }
+
+/** Where a `panel`-sized flyout goes beside a trigger at `rect` (pure — tested). */
+export function placePalettePopover(
+  rect: { top: number; bottom: number; left: number; right: number },
+  panel: { width: number; height: number },
+  viewport: { width: number; height: number },
+  opts: { side: PaletteSide; align: 'start' | 'center' | 'end'; gap: number },
+): PalettePlacement {
+  const clear = BANNER_HEIGHT_PX + MARGIN
+  const fits = (s: PaletteSide) => {
+    switch (s) {
+      case 'right':
+        return rect.right + opts.gap + panel.width <= viewport.width - MARGIN
+      case 'left':
+        return rect.left - opts.gap - panel.width >= MARGIN
+      case 'bottom':
+        return rect.bottom + opts.gap + panel.height <= viewport.height - clear
+      case 'top':
+        return rect.top - opts.gap - panel.height >= clear
+    }
+  }
+  const side = !fits(opts.side) && fits(OPPOSITE[opts.side]) ? OPPOSITE[opts.side] : opts.side
+  const vertical = side === 'right' || side === 'left'
+  // Along the other axis: the trigger's start, centre or end, then kept on screen.
+  const triggerStart = vertical ? rect.top : rect.left
+  const triggerSize = vertical ? rect.bottom - rect.top : rect.right - rect.left
+  const panelSize = vertical ? panel.height : panel.width
+  const lo = vertical ? clear : MARGIN
+  const hi = vertical ? viewport.height - clear : viewport.width - MARGIN
+  const want =
+    opts.align === 'end'
+      ? triggerStart + triggerSize - panelSize
+      : opts.align === 'center'
+        ? triggerStart + (triggerSize - panelSize) / 2
+        : triggerStart
+  const start = Math.max(lo, Math.min(want, hi - panelSize))
+  return { side, offset: start - triggerStart, max: Math.max(0, hi - lo) }
+}
+
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+const stop = (e: SyntheticEvent) => e.stopPropagation()
+
+export function ButtonPalettePopover({
+  open,
+  onClose,
+  trigger,
+  ariaLabel,
+  side = 'right',
+  align = 'start',
+  gap = 8,
+  title,
+  width,
+  surface = true,
+  closeOnOutsideClick = true,
+  closeOnEscape = true,
+  autoFocus = false,
+  role = 'dialog',
+  isolatePointer = true,
+  zIndex = 4500,
+  style,
+  children,
+}: ButtonPalettePopoverProps) {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [placement, setPlacement] = useState<PalettePlacement | null>(null)
+  const [entered, setEntered] = useState(false)
+  // Only a flyout taller (wider) than its room scrolls — an overflow on every flyout would clip
+  // anything its content positions outside it.
+  const [scrolls, setScrolls] = useState(false)
+  const pressInsideRef = useRef(false)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  // Measure and place (again on viewport resize). The first pass renders it invisible.
+  useLayoutEffect(() => {
+    if (!open) {
+      setPlacement(null)
+      setEntered(false)
+      return
+    }
+    function place() {
+      const wrap = wrapRef.current
+      const panel = panelRef.current
+      if (!wrap || !panel) return
+      const r = panel.getBoundingClientRect()
+      const next = placePalettePopover(
+        wrap.getBoundingClientRect(),
+        { width: r.width, height: r.height },
+        { width: window.innerWidth, height: window.innerHeight },
+        { side, align, gap },
+      )
+      const vertical = next.side === 'right' || next.side === 'left'
+      setScrolls((vertical ? panel.scrollHeight : panel.scrollWidth) > next.max)
+      setPlacement(prev =>
+        prev && prev.side === next.side && prev.offset === next.offset && prev.max === next.max ? prev : next,
+      )
+    }
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [open, side, align, gap])
+
+  // Entrance once placed (opacity + transform only).
+  useEffect(() => {
+    if (!open || !placement || entered) return
+    const raf = requestAnimationFrame(() => setEntered(true))
+    return () => cancelAnimationFrame(raf)
+  }, [open, placement, entered])
+
+  // Escape and outside press.
+  useEffect(() => {
+    if (!open) return
+    function onKeyDown(e: KeyboardEvent) {
+      if (!closeOnEscape || e.key !== 'Escape') return
+      const focusInside = wrapRef.current?.contains(document.activeElement) ?? false
+      onCloseRef.current()
+      if (focusInside) wrapRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus()
+    }
+    function onMouseDown(e: MouseEvent) {
+      const pressedInside = pressInsideRef.current
+      pressInsideRef.current = false
+      if (!closeOnOutsideClick) return
+      const target = e.target as Node | null
+      if (!target || pressedInside || wrapRef.current?.contains(target)) return
+      const el = target instanceof Element ? target : target.parentElement
+      if (el?.closest?.('[data-portal-overlay]')) return
+      onCloseRef.current()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('mousedown', onMouseDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('mousedown', onMouseDown)
+    }
+  }, [open, closeOnEscape, closeOnOutsideClick])
+
+  // Focus in once placed, when asked.
+  useEffect(() => {
+    if (open && placement && autoFocus) panelRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus()
+    // Only when it first becomes visible.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, placement === null])
+
+  const vertical = (placement?.side ?? side) === 'right' || (placement?.side ?? side) === 'left'
+  const currentSide = placement?.side ?? side
+  const away = `calc(100% + ${gap}px)`
+  const offsetPx = placement?.offset ?? 0
+  // A short slide from the trigger's side (compositor-safe).
+  const slide = currentSide === 'right' ? 'translateX(-4px)' : currentSide === 'left' ? 'translateX(4px)' : currentSide === 'bottom' ? 'translateY(-4px)' : 'translateY(4px)'
+
+  const panelStyle: CSSProperties = {
+    position: 'absolute',
+    ...(currentSide === 'right' ? { left: away } : currentSide === 'left' ? { right: away } : currentSide === 'bottom' ? { top: away } : { bottom: away }),
+    ...(vertical ? { top: offsetPx } : { left: offsetPx }),
+    ...(vertical ? { maxHeight: placement?.max } : { maxWidth: placement?.max }),
+    overflowY: scrolls && vertical ? 'auto' : undefined,
+    overflowX: scrolls && !vertical ? 'auto' : undefined,
+    width,
+    zIndex,
+    pointerEvents: 'auto',
+    boxSizing: 'border-box',
+    fontFamily: 'var(--font-sans)',
+    ...(surface
+      ? {
+          background: 'var(--color-glass-bg)',
+          border: '1px solid var(--color-glass-border)',
+          borderRadius: 6,
+          boxShadow: 'var(--shadow-standard)',
+          padding: 'var(--space-xs)',
+        }
+      : null),
+    visibility: placement ? 'visible' : 'hidden',
+    opacity: entered ? 1 : 0,
+    transform: entered ? 'none' : slide,
+    transition: 'opacity 150ms ease-out, transform 150ms ease-out',
+    ...style,
+  }
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-flex' }}>
+      {trigger}
+      {open && (
+        <div
+          ref={panelRef}
+          role={role}
+          aria-label={ariaLabel}
+          aria-orientation={role === 'menu' ? 'vertical' : undefined}
+          className="ui-palette-popover"
+          data-side={currentSide}
+          onMouseDown={() => {
+            pressInsideRef.current = true
+          }}
+          onPointerDown={isolatePointer ? stop : undefined}
+          onPointerMove={isolatePointer ? stop : undefined}
+          onPointerUp={isolatePointer ? stop : undefined}
+          onPointerCancel={isolatePointer ? stop : undefined}
+          onDoubleClick={isolatePointer ? stop : undefined}
+          onContextMenu={isolatePointer ? stop : undefined}
+          onWheel={isolatePointer ? stop : undefined}
+          style={panelStyle}
+        >
+          {title != null && (
+            <div
+              style={{
+                padding: 'var(--space-xs) var(--space-sm)',
+                marginBottom: 'var(--space-xs)',
+                borderBottom: '1px solid var(--color-glass-border)',
+                color: 'var(--color-text-secondary)',
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+            >
+              {title}
+            </div>
+          )}
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
