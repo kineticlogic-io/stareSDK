@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { CSSProperties, ReactNode, SyntheticEvent } from 'react'
+import type { CSSProperties, ReactNode, Ref, RefObject, SyntheticEvent } from 'react'
 import { BANNER_HEIGHT_PX } from './ClassificationBanner.js'
 
 /**
@@ -15,11 +15,13 @@ import { BANNER_HEIGHT_PX } from './ClassificationBanner.js'
  *   it sits in (a stage pinned to the dark theme stays dark), and works under transformed
  *   ancestors.
  * - **Side:** `right` (default — a left-docked vertical palette), `left` (a right-docked one),
- *   `bottom`/`top` (a horizontal palette). It flips to the opposite side when the panel would leave
- *   the viewport and there is room there.
- * - **Aligned** to the trigger along the other axis (`align`: start / center / end), then shifted
- *   to stay on screen and clear of the classification banners (`BANNER_HEIGHT_PX`); content taller
- *   than the room between them scrolls inside it (only then — otherwise nothing is clipped).
+ *   `bottom`/`top` (a horizontal palette). It flips to the opposite side when the panel would not
+ *   fit and there is room there.
+ * - **Aligned** to the trigger along the other axis (`align`: start / center / end; `alignTo` lines
+ *   it up with another element instead, such as the whole palette), then shifted
+ *   to stay on screen, clear of the classification banners (`BANNER_HEIGHT_PX`) and inside any
+ *   ancestor that clips its overflow (`paletteBounds`); content taller than that room scrolls
+ *   inside it (only then — otherwise nothing is clipped).
  * - **Closing:** Escape and a press outside the trigger and panel call `onClose`, each optional —
  *   `closeOnOutsideClick={false}` keeps a drawing flyout open while the user clicks the map. A
  *   press inside something its children portal elsewhere (a colour picker's panel) or inside a
@@ -47,9 +49,15 @@ export interface ButtonPalettePopoverProps {
   side?: PaletteSide
   /** How it lines up with the trigger along the other axis. Default `start`. */
   align?: 'start' | 'center' | 'end'
+  /**
+   * Line the flyout up with this element instead of the trigger (along the axis `align` works
+   * on) — e.g. the whole palette, so a flyout from a lower button still starts at the palette's
+   * top edge. The side it opens on is still decided from the trigger.
+   */
+  alignTo?: RefObject<HTMLElement | null>
   /** Gap between the trigger and the flyout, in px. Default 8. */
   gap?: number
-  /** Optional heading at the top of the flyout (quiet uppercase label). */
+  /** Optional heading at the top of the flyout (uppercase, accent — the map toolbars' flyout header). */
   title?: ReactNode
   /** Width of the flyout (px or CSS length). Default: fits its content. */
   width?: number | string
@@ -67,6 +75,8 @@ export interface ButtonPalettePopoverProps {
   isolatePointer?: boolean
   /** Default 4500 (above in-page controls, below the stareSDK Modal and the banners). */
   zIndex?: number
+  /** The flyout panel's element, for a caller that measures it. */
+  panelRef?: Ref<HTMLDivElement>
   /** Extra style for the flyout panel (merged last). */
   style?: CSSProperties
   children: ReactNode
@@ -85,40 +95,81 @@ export interface PalettePlacement {
 
 const OPPOSITE: Record<PaletteSide, PaletteSide> = { right: 'left', left: 'right', top: 'bottom', bottom: 'top' }
 
-/** Where a `panel`-sized flyout goes beside a trigger at `rect` (pure — tested). */
+/** A box in viewport px. */
+export interface PaletteBounds {
+  top: number
+  bottom: number
+  left: number
+  right: number
+}
+
+/**
+ * The room a flyout may use: the viewport less the classification banners, cut down to every
+ * ancestor of `el` that clips its overflow (an `overflow: hidden` layout row would otherwise hide
+ * the part of the flyout outside it), with a small margin.
+ */
+export function paletteBounds(el: Element): PaletteBounds {
+  const b = {
+    top: BANNER_HEIGHT_PX + MARGIN,
+    bottom: window.innerHeight - BANNER_HEIGHT_PX - MARGIN,
+    left: MARGIN,
+    right: window.innerWidth - MARGIN,
+  }
+  for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+    const cs = getComputedStyle(node)
+    if (!/hidden|auto|scroll|clip/.test(`${cs.overflow} ${cs.overflowX} ${cs.overflowY}`)) continue
+    const r = node.getBoundingClientRect()
+    // A clipping ancestor with no size yet (not laid out) says nothing useful.
+    if (r.width === 0 || r.height === 0) continue
+    b.top = Math.max(b.top, r.top + MARGIN)
+    b.bottom = Math.min(b.bottom, r.bottom - MARGIN)
+    b.left = Math.max(b.left, r.left + MARGIN)
+    b.right = Math.min(b.right, r.right - MARGIN)
+  }
+  return b
+}
+
+/** Where a `panel`-sized flyout goes beside a trigger at `rect`, inside `bounds` (pure — tested). */
 export function placePalettePopover(
   rect: { top: number; bottom: number; left: number; right: number },
   panel: { width: number; height: number },
-  viewport: { width: number; height: number },
-  opts: { side: PaletteSide; align: 'start' | 'center' | 'end'; gap: number },
+  bounds: PaletteBounds,
+  opts: {
+    side: PaletteSide
+    align: 'start' | 'center' | 'end'
+    gap: number
+    /** Line up with this box instead of the trigger (along the other axis). */
+    alignRect?: { top: number; bottom: number; left: number; right: number }
+  },
 ): PalettePlacement {
-  const clear = BANNER_HEIGHT_PX + MARGIN
   const fits = (s: PaletteSide) => {
     switch (s) {
       case 'right':
-        return rect.right + opts.gap + panel.width <= viewport.width - MARGIN
+        return rect.right + opts.gap + panel.width <= bounds.right
       case 'left':
-        return rect.left - opts.gap - panel.width >= MARGIN
+        return rect.left - opts.gap - panel.width >= bounds.left
       case 'bottom':
-        return rect.bottom + opts.gap + panel.height <= viewport.height - clear
+        return rect.bottom + opts.gap + panel.height <= bounds.bottom
       case 'top':
-        return rect.top - opts.gap - panel.height >= clear
+        return rect.top - opts.gap - panel.height >= bounds.top
     }
   }
   const side = !fits(opts.side) && fits(OPPOSITE[opts.side]) ? OPPOSITE[opts.side] : opts.side
   const vertical = side === 'right' || side === 'left'
-  // Along the other axis: the trigger's start, centre or end, then kept on screen.
+  // Along the other axis: the trigger's start, centre or end, then kept inside the bounds.
   const triggerStart = vertical ? rect.top : rect.left
-  const triggerSize = vertical ? rect.bottom - rect.top : rect.right - rect.left
+  const a = opts.alignRect ?? rect
+  const alignStart = vertical ? a.top : a.left
+  const alignSize = vertical ? a.bottom - a.top : a.right - a.left
   const panelSize = vertical ? panel.height : panel.width
-  const lo = vertical ? clear : MARGIN
-  const hi = vertical ? viewport.height - clear : viewport.width - MARGIN
+  const lo = vertical ? bounds.top : bounds.left
+  const hi = vertical ? bounds.bottom : bounds.right
   const want =
     opts.align === 'end'
-      ? triggerStart + triggerSize - panelSize
+      ? alignStart + alignSize - panelSize
       : opts.align === 'center'
-        ? triggerStart + (triggerSize - panelSize) / 2
-        : triggerStart
+        ? alignStart + (alignSize - panelSize) / 2
+        : alignStart
   const start = Math.max(lo, Math.min(want, hi - panelSize))
   return { side, offset: start - triggerStart, max: Math.max(0, hi - lo) }
 }
@@ -135,6 +186,7 @@ export function ButtonPalettePopover({
   ariaLabel,
   side = 'right',
   align = 'start',
+  alignTo,
   gap = 8,
   title,
   width,
@@ -145,6 +197,7 @@ export function ButtonPalettePopover({
   role = 'dialog',
   isolatePointer = false,
   zIndex = 4500,
+  panelRef: panelRefProp,
   style,
   children,
 }: ButtonPalettePopoverProps) {
@@ -175,12 +228,14 @@ export function ButtonPalettePopover({
       const panel = panelRef.current
       if (!wrap || !panel) return
       const r = panel.getBoundingClientRect()
-      const next = placePalettePopover(
-        wrap.getBoundingClientRect(),
-        { width: r.width, height: r.height },
-        { width: window.innerWidth, height: window.innerHeight },
-        { side, align, gap },
-      )
+      // Its natural size, not the size a previous placement capped it to.
+      const natural = { width: Math.max(r.width, panel.scrollWidth), height: Math.max(r.height, panel.scrollHeight) }
+      const next = placePalettePopover(wrap.getBoundingClientRect(), natural, paletteBounds(wrap), {
+        side,
+        align,
+        gap,
+        alignRect: alignTo?.current?.getBoundingClientRect(),
+      })
       const vertical = next.side === 'right' || next.side === 'left'
       setScrolls((vertical ? panel.scrollHeight : panel.scrollWidth) > next.max)
       setPlacement(prev =>
@@ -190,7 +245,7 @@ export function ButtonPalettePopover({
     place()
     window.addEventListener('resize', place)
     return () => window.removeEventListener('resize', place)
-  }, [open, side, align, gap])
+  }, [open, side, align, gap, alignTo])
 
   // Entrance once placed (opacity + transform only).
   useEffect(() => {
@@ -281,7 +336,11 @@ export function ButtonPalettePopover({
       {trigger}
       {open && (
         <div
-          ref={panelRef}
+          ref={el => {
+            panelRef.current = el
+            if (typeof panelRefProp === 'function') panelRefProp(el)
+            else if (panelRefProp) panelRefProp.current = el
+          }}
           role={role}
           aria-label={ariaLabel}
           aria-orientation={role === 'menu' ? 'vertical' : undefined}
@@ -311,8 +370,8 @@ export function ButtonPalettePopover({
                 padding: 'var(--space-xs) var(--space-sm)',
                 marginBottom: 'var(--space-xs)',
                 borderBottom: '1px solid var(--color-glass-border)',
-                color: 'var(--color-text-secondary)',
-                fontSize: 11,
+                color: 'var(--color-accent)',
+                fontSize: 12,
                 fontWeight: 600,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',

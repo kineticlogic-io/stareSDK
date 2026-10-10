@@ -5,7 +5,7 @@
 import { createRoot } from 'react-dom/client'
 import { act, useState } from 'react'
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { ButtonPalettePopover, placePalettePopover } from './ButtonPalettePopover.js'
+import { ButtonPalettePopover, paletteBounds, placePalettePopover } from './ButtonPalettePopover.js'
 import type { ButtonPalettePopoverProps } from './ButtonPalettePopover.js'
 import { BANNER_HEIGHT_PX } from './ClassificationBanner.js'
 
@@ -60,14 +60,16 @@ const button = (c: HTMLElement, name: string) =>
   Array.from(c.querySelectorAll('button')).find((b) => b.textContent === name) as HTMLButtonElement
 
 describe('placePalettePopover', () => {
-  const vp = { width: 1000, height: 800 }
+  const clear = BANNER_HEIGHT_PX + 8
+  // A 1000×800 viewport less the banners and an 8px margin.
+  const vp = { top: clear, bottom: 800 - clear, left: 8, right: 992 }
   const trigger = { top: 200, bottom: 232, left: 10, right: 42 }
   const base = { side: 'right' as const, align: 'start' as const, gap: 8 }
   it('opens beside the trigger, lined up with its top', () => {
     expect(placePalettePopover(trigger, { width: 200, height: 150 }, vp, base)).toEqual({
       side: 'right',
       offset: 0,
-      max: 800 - 2 * (BANNER_HEIGHT_PX + 8),
+      max: 800 - 2 * clear,
     })
   })
   it('flips to the other side when there is no room, and not when neither side fits', () => {
@@ -84,16 +86,51 @@ describe('placePalettePopover', () => {
   it('shifts up to stay clear of the bottom banner, and down clear of the top one', () => {
     const low = { top: 750, bottom: 782, left: 10, right: 42 }
     const p = placePalettePopover(low, { width: 200, height: 150 }, vp, base)
-    expect(750 + p.offset + 150).toBe(800 - BANNER_HEIGHT_PX - 8)
+    expect(750 + p.offset + 150).toBe(800 - clear)
     const high = { top: 5, bottom: 37, left: 10, right: 42 }
-    expect(5 + placePalettePopover(high, { width: 200, height: 150 }, vp, base).offset).toBe(BANNER_HEIGHT_PX + 8)
+    expect(5 + placePalettePopover(high, { width: 200, height: 150 }, vp, base).offset).toBe(clear)
   })
-  it('a horizontal palette lines it up along x and clamps to the viewport width', () => {
+  it('lines up with another element (alignRect) while the offset stays relative to the trigger', () => {
+    const palette = { top: 120, bottom: 400, left: 10, right: 42 }
+    const p = placePalettePopover(trigger, { width: 200, height: 150 }, vp, { ...base, alignRect: palette })
+    expect(p.side).toBe('right')
+    expect(trigger.top + p.offset).toBe(120)
+  })
+  it('stays inside tighter bounds (a clipping ancestor) and caps its room to them', () => {
+    const row = { top: 100, bottom: 500, left: 0, right: 600 }
+    const p = placePalettePopover({ top: 420, bottom: 452, left: 10, right: 42 }, { width: 200, height: 150 }, row, base)
+    expect(420 + p.offset + 150).toBe(500)
+    expect(p.max).toBe(400)
+  })
+  it('a horizontal palette lines it up along x and clamps to the bounds', () => {
     const t = { top: 100, bottom: 132, left: 900, right: 932 }
     const p = placePalettePopover(t, { width: 200, height: 100 }, vp, { ...base, side: 'bottom' })
     expect(p.side).toBe('bottom')
-    expect(900 + p.offset).toBe(1000 - 8 - 200)
-    expect(p.max).toBe(1000 - 16)
+    expect(900 + p.offset).toBe(992 - 200)
+    expect(p.max).toBe(984)
+  })
+})
+
+describe('paletteBounds', () => {
+  it('is the viewport less the banners, cut to an ancestor that clips its overflow', () => {
+    const outer = document.createElement('div')
+    outer.style.overflow = 'hidden'
+    const inner = document.createElement('span')
+    outer.appendChild(inner)
+    document.body.appendChild(outer)
+    const spy = vi.spyOn(outer, 'getBoundingClientRect').mockReturnValue({
+      top: 100, bottom: 400, left: 50, right: 450, width: 400, height: 300, x: 50, y: 100, toJSON: () => ({}),
+    } as DOMRect)
+    expect(paletteBounds(inner)).toEqual({ top: 108, bottom: 392, left: 58, right: 442 })
+    spy.mockRestore()
+    outer.style.overflow = 'visible'
+    expect(paletteBounds(inner)).toEqual({
+      top: BANNER_HEIGHT_PX + 8,
+      bottom: window.innerHeight - BANNER_HEIGHT_PX - 8,
+      left: 8,
+      right: window.innerWidth - 8,
+    })
+    outer.remove()
   })
 })
 
@@ -245,6 +282,12 @@ describe('ButtonPalettePopover', () => {
     act(() => button(d, 'Elsewhere').click())
     expect(panel(d)).toBeNull()
     expect(document.activeElement).toBe(button(d, 'Elsewhere'))
+  })
+
+  it('hands its panel element to panelRef', () => {
+    const ref = { current: null as HTMLDivElement | null }
+    const c = render(<Host panelRef={ref} />)
+    expect(ref.current).toBe(panel(c))
   })
 
   it('takes a role, width and zIndex', () => {

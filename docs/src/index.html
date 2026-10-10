@@ -271,7 +271,8 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
     <h3>ButtonPalettePopover <span class="since">Available in 0.2.15+</span></h3>
     <p>The flyout a palette button opens: rendered in place beside its trigger (to the <code>right</code> of a vertical
       palette by default, <code>left</code>, or <code>top</code>/<code>bottom</code> of a horizontal one), flipped to the
-      other side when there is no room, lined up with the trigger, and kept clear of the classification banners. It wears
+      other side when there is no room, lined up with the trigger (or, with <code>alignTo</code>, with the whole
+      palette), and kept clear of the classification banners and inside any container that clips its overflow. It wears
       the palette's glass surface and closes on Escape or a press outside. A drawing tool passes
       <code>closeOnOutsideClick={false}</code> so it stays open while the user works on the map. <code>isolatePointer</code> stops
       pointer events at the flyout when it sits over a canvas that listens above it. Use <code>Popover</code> for menus hung below a control.</p>
