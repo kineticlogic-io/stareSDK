@@ -92,6 +92,15 @@ and token rules:
   screen; `align="end"` lines up with the anchor's right edge) and a press inside anything its
   children portal (e.g. a colour picker) does not close it.
 - `Checkbox` (0.2.12) — a themed real checkbox with label, indeterminate and disabled states.
+- `RadioGroup` (0.2.15) — one choice from a short visible list: real radios in a `radiogroup` (one
+  tab stop, arrow keys move and choose), options with `description`/`disabled`, vertical or
+  horizontal, accent-tinted, tokens only.
+- `ButtonPalettePopover` (0.2.15) — the flyout a `ButtonPalette` button opens: rendered in place
+  beside its trigger (`side` right/left/top/bottom, flips when there is no room; `align`
+  start/center/end), clear of the classification banners, glass surface, closes on Escape and
+  outside press (`closeOnOutsideClick={false}` keeps a drawing tool open), optional `title`,
+  `autoFocus`, pointer isolation from canvases underneath. Separate from `Popover`, which hangs
+  menus and pickers below a control.
 - `ContextMenu` / `ContextMenuItem` — right-click menu shell; since 0.2.11 keyboard-operable
   (focus on open, arrows/Home/End, Enter/Space, Escape/Tab close, focus returns to the opener).
 - `DataTable` — sortable columns (stable, nulls last), optional row selection with keyboard
