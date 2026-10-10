@@ -86,6 +86,9 @@ Added 2026-09-25 from OpenStare's own shell (first consumer: OpenTrack):
 Added 2026-09-25 (first consumer: OpenTrack), compact by default and neutral per OpenStare's table
 and token rules:
 
+- `Popover` (0.2.12) — an anchored, portaled floating panel (kebab menus, pickers): flips and clamps to the
+  viewport, stays clear of the classification banners, closes on Escape / outside press / anchor scroll.
+- `Checkbox` (0.2.12) — a themed real checkbox with label, indeterminate and disabled states.
 - `ContextMenu` / `ContextMenuItem` — right-click menu shell; since 0.2.11 keyboard-operable
   (focus on open, arrows/Home/End, Enter/Space, Escape/Tab close, focus returns to the opener).
 - `DataTable` — sortable columns (stable, nulls last), optional row selection with keyboard

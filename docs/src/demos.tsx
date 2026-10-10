@@ -9,10 +9,10 @@ import {
 } from 'react-icons/tb'
 import {
   AdminModal, AppCard, AssistantButton, Avatar, Badge, Button, ButtonPalette, ClassificationBanner,
-  ClassifyModal, ClockBadges, CollapsiblePanel, ColorPicker, ContextMenu, ContextMenuItem, DataTable,
+  Checkbox, ClassifyModal, ClockBadges, CollapsiblePanel, ColorPicker, ContextMenu, ContextMenuItem, DataTable,
   Disclosure, DraggablePopup, Facets, FieldSelect, FileDropZone, Flyout, HomeButton, InfoTip,
   Input, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader,
-  Pagination, PopoverMenuButton, ProfileChart, RampPicker, SaveButton, Select, SideNav, Slider,
+  Pagination, Popover, PopoverMenuButton, ProfileChart, RampPicker, SaveButton, Select, SideNav, Slider,
   SortableList, Stepper, TabPanel, Tabs, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
   VirtualList, ZoomRangeSlider, distanceToMeters, sortRows, useTheme, useToast, useTypeaheadKeyboard,
   type BadgeColor, type ClassificationMarking, type ClassifyOptions, type DataTableColumn,
@@ -986,6 +986,34 @@ function VirtualListDemo() {
 
 // ---------------------------------------------------------------- menus & feedback
 
+function PopoverDemo() {
+  const anchor = useRef<HTMLSpanElement>(null)
+  const [open, setOpen] = useState(false)
+  const [labels, setLabels] = useState(true)
+  return (
+    <div>
+      <span ref={anchor} style={{ display: 'inline-block' }}>
+        <Button size="sm" variant="secondary" onClick={() => setOpen(o => !o)}>Layer options</Button>
+      </span>
+      <Popover open={open} onClose={() => setOpen(false)} anchorRef={anchor} ariaLabel="Layer options" minWidth={200} style={{ padding: 'var(--space-sm)' }}>
+        <Checkbox label="Show labels" checked={labels} onChange={setLabels} />
+      </Popover>
+    </div>
+  )
+}
+
+function CheckboxDemo() {
+  const [a, setA] = useState(true)
+  const [b, setB] = useState(false)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+      <Checkbox label="Show empty fields" checked={a} onChange={setA} />
+      <Checkbox label="Some rows selected" checked={false} indeterminate onChange={() => {}} />
+      <Checkbox label="Locked" checked={b} disabled onChange={setB} />
+    </div>
+  )
+}
+
 function ContextMenuDemo() {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const { toast } = useToast()
@@ -1214,6 +1242,8 @@ export const DEMOS: Record<string, ComponentType> = {
   sortablelist: SortableListDemo,
   virtuallist: VirtualListDemo,
   contextmenu: ContextMenuDemo,
+  popover: PopoverDemo,
+  checkbox: CheckboxDemo,
   flyout: FlyoutDemo,
   toast: ToastDemo,
   mdtext: MDTextDemo,
