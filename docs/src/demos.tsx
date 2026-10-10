@@ -4,15 +4,15 @@
 import { lazy, useMemo, useRef, useState, type ComponentType, type CSSProperties } from 'react'
 import {
   TbAlertTriangle, TbBell, TbBolt, TbChartLine, TbDatabase, TbDownload, TbFilter, TbFocus2, TbHome,
-  TbInfoCircle, TbLayersSubtract, TbMap2, TbPencil, TbPhoto, TbPlus, TbPointer, TbPolygon, TbRadar2,
+  TbGridDots, TbInfoCircle, TbLayersSubtract, TbMap2, TbPencil, TbPhoto, TbPlus, TbPointer, TbPolygon, TbRadar2,
   TbMenu2, TbRefresh, TbRuler2, TbSearch, TbSettings, TbShare, TbTag, TbTool, TbTrash, TbUpload, TbUsers, TbX,
 } from 'react-icons/tb'
 import {
-  AdminModal, AppCard, AssistantButton, Avatar, Badge, Button, ButtonPalette, ClassificationBanner,
+  AdminModal, AppCard, AssistantButton, Avatar, Badge, Button, ButtonPalette, ButtonPalettePopover, ClassificationBanner,
   Checkbox, ClassifyModal, ClockBadges, CollapsiblePanel, ColorPicker, ContextMenu, ContextMenuItem, DataTable,
   Disclosure, DraggablePopup, Facets, FieldSelect, FileDropZone, Flyout, HomeButton, InfoTip,
   Input, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader,
-  Pagination, Popover, PopoverMenuButton, ProfileChart, RampPicker, SaveButton, Select, SideNav, Slider,
+  Pagination, Popover, PopoverMenuButton, ProfileChart, RadioGroup, RampPicker, SaveButton, Select, SideNav, Slider,
   SortableList, Stepper, TabPanel, Tabs, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
   VirtualList, ZoomRangeSlider, distanceToMeters, sortRows, useTheme, useToast, useTypeaheadKeyboard,
   type BadgeColor, type ClassificationMarking, type ClassifyOptions, type DataTableColumn,
@@ -126,6 +126,59 @@ function ButtonPaletteDemo() {
         <Button size="sm" variant="secondary" active={tool === 'select'} onClick={() => setTool('select')}>Map</Button>
         <Button size="sm" variant="secondary" active={tool === 'measure'} onClick={() => setTool('measure')}>Split</Button>
         <Button size="sm" variant="secondary" active={tool === 'draw'} onClick={() => setTool('draw')}>Table</Button>
+      </ButtonPalette>
+    </div>
+  )
+}
+
+function ButtonPalettePopoverDemo() {
+  const [open, setOpen] = useState<'measure' | 'grid' | null>(null)
+  const [unit, setUnit] = useState('km')
+  const [mode, setMode] = useState('distance')
+  const [lines, setLines] = useState(true)
+  const [labels, setLabels] = useState(false)
+  const toggle = (id: 'measure' | 'grid') => setOpen(o => (o === id ? null : id))
+  return (
+    <div className="frame" style={{ height: 300, padding: 'var(--space-md)' }}>
+      <ButtonPalette ariaLabel="Map tools" orientation="vertical">
+        <Button variant="ghost" size="xs" icon={<TbPointer />} aria-label="Select" title="Select" />
+        <ButtonPalettePopover
+          open={open === 'measure'}
+          onClose={() => setOpen(null)}
+          closeOnOutsideClick={false}
+          ariaLabel="Measure"
+          title="Measure"
+          width={200}
+          trigger={
+            <Button variant="ghost" size="xs" icon={<TbRuler2 />} aria-label="Measure" title="Measure"
+              active={open === 'measure'} aria-expanded={open === 'measure'} onClick={() => toggle('measure')} />
+          }
+        >
+          <div className="stack" style={{ gap: 'var(--space-sm)', padding: 'var(--space-xs) var(--space-sm) var(--space-sm)' }}>
+            <RadioGroup ariaLabel="Measure" size="sm" value={mode} onChange={setMode}
+              options={[{ value: 'distance', label: 'Distance' }, { value: 'area', label: 'Area' }, { value: 'bearing', label: 'Bearing' }]} />
+            <Select ariaLabel="Unit" value={unit} onChange={v => setUnit(v ?? 'km')}
+              options={[{ value: 'km', label: 'Kilometres' }, { value: 'nm', label: 'Nautical miles' }, { value: 'mi', label: 'Miles' }]} />
+            <span className="caption">Stays open on map clicks</span>
+          </div>
+        </ButtonPalettePopover>
+        <ButtonPalettePopover
+          open={open === 'grid'}
+          onClose={() => setOpen(null)}
+          ariaLabel="Graticule"
+          title="Graticule"
+          width={200}
+          autoFocus
+          trigger={
+            <Button variant="ghost" size="xs" icon={<TbGridDots />} aria-label="Graticule" title="Graticule"
+              active={open === 'grid'} aria-expanded={open === 'grid'} onClick={() => toggle('grid')} />
+          }
+        >
+          <div className="stack" style={{ gap: 'var(--space-sm)', padding: 'var(--space-xs) var(--space-sm) var(--space-sm)' }}>
+            <Checkbox label="Grid lines" checked={lines} onChange={setLines} />
+            <Checkbox label="Labels" checked={labels} onChange={setLabels} />
+          </div>
+        </ButtonPalettePopover>
       </ButtonPalette>
     </div>
   )
@@ -847,18 +900,19 @@ function AttributeTableDemo() {
   const [widths, setWidths] = useState<Record<string, number>>({})
   const [opened, setOpened] = useState<string | null>(null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [order, setOrder] = useState<string[]>(() => TRACK_COLUMNS.map(c => c.key))
   // The caller sorts (here locally, standing in for a server-side sort).
   const rows = useMemo(() => {
     const col = TRACK_COLUMNS.find(c => c.key === sort?.key)
     return sort && col?.sortValue ? sortRows(TRACKS, col.sortValue, sort.direction) : TRACKS
   }, [sort])
   const columns = useMemo(
-    () => TRACK_COLUMNS.map(c => ({
+    () => order.map(key => TRACK_COLUMNS.find(c => c.key === key)!).map(c => ({
       ...c,
       width: widths[c.key] ?? (typeof c.width === 'number' ? c.width : 180),
       ...(c.key === 'status' ? { sortable: false, sortDisabledReason: 'Status cannot be sorted' } : null),
     })),
-    [widths],
+    [widths, order],
   )
   return (
     <div className="stack" style={{ gap: 'var(--space-sm)' }}>
@@ -874,6 +928,8 @@ function AttributeTableDemo() {
         pinFirstColumn
         onColumnResize={(key, width) => setWidths(w => ({ ...w, [key]: width }))}
         onRowDoubleClick={t => setOpened(t.id)}
+        headerDividers
+        onColumnReorder={(key, to) => setOrder(o => { const n = o.filter(k => k !== key); n.splice(to, 0, key); return n })}
         selection={{
           isSelected: t => picked.has(t.id),
           onToggle: t => setPicked(p => { const n = new Set(p); if (n.has(t.id)) n.delete(t.id); else n.add(t.id); return n }),
@@ -882,7 +938,7 @@ function AttributeTableDemo() {
         }}
         style={{ maxWidth: 520 }}
       />
-      <span className="caption">manualSort · pinned first column · drag a header edge to resize · double-click a row · {picked.size} selected{opened ? ` · opened ${opened}` : ''}</span>
+      <span className="caption">manualSort · pinned first column · drag a header edge to resize · drag a header to move it · double-click a row · {picked.size} selected{opened ? ` · opened ${opened}` : ''}</span>
     </div>
   )
 }
@@ -1010,6 +1066,31 @@ function CheckboxDemo() {
       <Checkbox label="Show empty fields" checked={a} onChange={setA} />
       <Checkbox label="Some rows selected" checked={false} indeterminate onChange={() => {}} />
       <Checkbox label="Locked" checked={b} disabled onChange={setB} />
+    </div>
+  )
+}
+
+function RadioGroupDemo() {
+  const [path, setPath] = useState<string | null>('existing')
+  const [clearance, setClearance] = useState<string | null>('S')
+  const [view, setView] = useState<string | null>('map')
+  return (
+    <div className="grid-2" style={{ alignItems: 'start' }}>
+      <RadioGroup ariaLabel="Layer source" label="Layer source" value={path} onChange={setPath}
+        options={[
+          { value: 'existing', label: 'Use an existing layer' },
+          { value: 'template', label: 'Create from template' },
+          { value: 'import', label: 'Import a file', disabled: true },
+        ]} />
+      <RadioGroup ariaLabel="Clearance" label="Clearance" value={clearance} onChange={setClearance}
+        options={[
+          { value: 'none', label: 'None' },
+          { value: 'U', label: 'Unclassified', description: 'U' },
+          { value: 'C', label: 'Confidential', description: 'C' },
+          { value: 'S', label: 'Secret', description: 'S' },
+        ]} />
+      <RadioGroup ariaLabel="View" label="View" orientation="horizontal" size="sm" value={view} onChange={setView}
+        options={[{ value: 'map', label: 'Map' }, { value: 'split', label: 'Split' }, { value: 'table', label: 'Table' }]} />
     </div>
   )
 }
@@ -1203,6 +1284,7 @@ export const DEMOS: Record<string, ComponentType> = {
   icons: IconsDemo,
   button: ButtonDemo,
   buttonpalette: ButtonPaletteDemo,
+  buttonpalettepopover: ButtonPalettePopoverDemo,
   savebutton: SaveButtonDemo,
   popovermenubutton: PopoverMenuButtonDemo,
   input: InputDemo,
@@ -1244,6 +1326,7 @@ export const DEMOS: Record<string, ComponentType> = {
   contextmenu: ContextMenuDemo,
   popover: PopoverDemo,
   checkbox: CheckboxDemo,
+  radiogroup: RadioGroupDemo,
   flyout: FlyoutDemo,
   toast: ToastDemo,
   mdtext: MDTextDemo,

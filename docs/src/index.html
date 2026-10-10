@@ -240,8 +240,9 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
     <p>Each component below renders live. Interact with it, switch the theme, and copy the code underneath. Everything
       is imported from <code>@kineticlogic/staresdk</code> unless the section names a subpath.</p>
 
-    <!-- ============================ Actions ============================ -->
-    <h3>Button</h3>
+    <div class="component-group" data-toc-group="Actions and controls">Actions and controls</div>
+
+    <h3>Button <span class="since">Available in 0.2.0+</span></h3>
     <p>Variants <code>primary</code> (at most one per panel or drawer), <code>secondary</code>, <code>ghost</code> (icon-only)
       and <code>danger</code>; sizes <code>xs</code> (square, icon-only) to <code>xl</code>. Use <code>size="sm"</code> in panel headers and drawers.
       Icon-only buttons always carry <code>aria-label</code> and <code>title</code>.</p>
@@ -255,7 +256,7 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
 &lt;Button variant="secondary" active&gt;Selected&lt;/Button&gt;</code></pre>
     </div>
 
-    <h3>ButtonPalette</h3>
+    <h3>ButtonPalette <span class="since">Available in 0.2.0+</span></h3>
     <p>Groups related buttons with even spacing, horizontally or vertically, on an optional glass surface. For map tool
       palettes and layout switchers.</p>
     <div class="example">
@@ -267,7 +268,28 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
 &lt;/ButtonPalette&gt;</code></pre>
     </div>
 
-    <h3>SaveButton</h3>
+    <h3>ButtonPalettePopover <span class="since">Available in 0.2.15+</span></h3>
+    <p>The flyout a palette button opens: rendered in place beside its trigger (to the <code>right</code> of a vertical
+      palette by default, <code>left</code>, or <code>top</code>/<code>bottom</code> of a horizontal one), flipped to the
+      other side when there is no room, lined up with the trigger (or, with <code>alignTo</code>, with the whole
+      palette), and kept clear of the classification banners and inside any container that clips its overflow. It wears
+      the palette's glass surface and closes on Escape or a press outside. A drawing tool passes
+      <code>closeOnOutsideClick={false}</code> so it stays open while the user works on the map. <code>isolatePointer</code> stops
+      pointer events at the flyout when it sits over a canvas that listens above it. Use <code>Popover</code> for menus hung below a control.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ButtonPalette + ButtonPalettePopover</code></div>
+      <div class="demo" data-demo="buttonpalettepopover"></div>
+<pre><code>&lt;ButtonPalette ariaLabel="Map tools" orientation="vertical"&gt;
+  &lt;ButtonPalettePopover open={open} onClose={() =&gt; setOpen(false)} closeOnOutsideClick={false}
+    ariaLabel="Measure" title="Measure" width={200}
+    trigger={&lt;Button variant="ghost" size="xs" icon={&lt;TbRuler2 /&gt;} aria-label="Measure" title="Measure"
+      active={open} aria-expanded={open} onClick={() =&gt; setOpen(o =&gt; !o)} /&gt;}&gt;
+    &lt;RadioGroup ariaLabel="Measure" size="sm" value={mode} onChange={setMode} options={modes} /&gt;
+  &lt;/ButtonPalettePopover&gt;
+&lt;/ButtonPalette&gt;</code></pre>
+    </div>
+
+    <h3>SaveButton <span class="since">Available in 0.2.0+</span></h3>
     <p>A <code>Button</code> with built-in dirty, saving and saved states. It stays disabled until there is something to save.</p>
     <div class="example">
       <div class="example-label">Example <code>SaveButton</code></div>
@@ -275,7 +297,7 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
 <pre><code>&lt;SaveButton dirty={dirty} saving={saving} saved={saved} onSave={save} /&gt;</code></pre>
     </div>
 
-    <h3>PopoverMenuButton</h3>
+    <h3>PopoverMenuButton <span class="since">Available in 0.2.0+</span></h3>
     <p>A full-width, left-aligned menu item for kebab and popover menus.</p>
     <div class="example">
       <div class="example-label">Example <code>PopoverMenuButton</code></div>
@@ -287,8 +309,9 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
 &lt;/div&gt;</code></pre>
     </div>
 
-    <!-- ============================ Forms ============================ -->
-    <h3>Label and Input</h3>
+    <div class="component-group" data-toc-group="Forms and input">Forms and input</div>
+
+    <h3>Label and Input <span class="since">Available in 0.2.0+</span></h3>
     <p>Every text or number field is a <code>Label</code> (uppercase, secondary) above an <code>Input</code>. <code>error</code>
       turns the border destructive.</p>
     <div class="example">
@@ -299,8 +322,9 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
 &lt;Input error value="12.3.4" aria-invalid /&gt;</code></pre>
     </div>
 
-    <h3>Select</h3>
+    <h3>Select <span class="since">Available in 0.2.0+</span></h3>
     <p>Pick one value from a list of options, with an optional "nothing chosen" placeholder.</p>
+    <p class="since-notes"><code>id</code>, <code>name</code>, <code>required</code>, <code>title</code>, <code>ref</code>: 0.2.13+</p>
     <div class="example">
       <div class="example-label">Example <code>Select</code></div>
       <div class="demo" data-demo="select"></div>
@@ -308,7 +332,7 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
   options={[{ value: 'air', label: 'Air' }, { value: 'sea', label: 'Sea' }, { value: 'land', label: 'Land' }]} /&gt;</code></pre>
     </div>
 
-    <h3>FieldSelect</h3>
+    <h3>FieldSelect <span class="since">Available in 0.2.0+</span></h3>
     <p>Pick one field by name. <code>allowNone</code> adds a leading "None"; options can be disabled with a reason.</p>
     <div class="example">
       <div class="example-label">Example <code>FieldSelect</code></div>
@@ -317,8 +341,9 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
   fields={[{ name: 'callsign' }, { name: 'mmsi' }, { name: 'geometry', disabled: true, disabledReason: 'Not a text field' }]} /&gt;</code></pre>
     </div>
 
-    <h3>MultiSelect</h3>
+    <h3>MultiSelect <span class="since">Available in 0.2.0+</span></h3>
     <p>Choose several values from a dropdown checklist. <code>locked</code> options are always on.</p>
+    <p class="since-notes"><code>icon</code> trigger: 0.2.6+</p>
     <div class="example">
       <div class="example-label">Example <code>MultiSelect</code></div>
       <div class="demo" data-demo="multiselect"></div>
@@ -326,7 +351,7 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
   options={[{ value: 'viewer', label: 'Viewer', locked: true }, { value: 'operator', label: 'Operator' }, …]} /&gt;</code></pre>
     </div>
 
-    <h3>UnitSelect</h3>
+    <h3>UnitSelect <span class="since">Available in 0.2.0+</span></h3>
     <p>Pick a unit, orientation convention or confidence level. The <code>family</code> picks the list; conversions live in <code>units.ts</code>.</p>
     <div class="example">
       <div class="example-label">Example <code>UnitSelect</code></div>
@@ -335,7 +360,30 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
 distanceToMeters(12, 'nmi') // 22224</code></pre>
     </div>
 
-    <h3>Toggle</h3>
+    <h3>Checkbox <span class="since">Available in 0.2.12+</span></h3>
+    <p>A real checkbox with a label, the accent tint, and an indeterminate state.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Checkbox</code></div>
+      <div class="demo" data-demo="checkbox"></div>
+<pre><code>&lt;Checkbox label="Show empty fields" checked={show} onChange={setShow} /&gt;</code></pre>
+    </div>
+
+    <h3>RadioGroup <span class="since">Available in 0.2.15+</span></h3>
+    <p>One choice from a short list the reader should see side by side (use <code>Select</code> when the list is long).
+      Real radios in a <code>radiogroup</code>: one tab stop, and the arrow keys move and choose. Options take a
+      <code>description</code> and <code>disabled</code>; <code>orientation="horizontal"</code> lays them in a row.</p>
+    <div class="example">
+      <div class="example-label">Example <code>RadioGroup</code></div>
+      <div class="demo" data-demo="radiogroup"></div>
+<pre><code>&lt;RadioGroup ariaLabel="Layer source" label="Layer source" value={path} onChange={setPath}
+  options={[{ value: 'existing', label: 'Use an existing layer' },
+            { value: 'template', label: 'Create from template' },
+            { value: 'import', label: 'Import a file', disabled: true }]} /&gt;
+&lt;RadioGroup ariaLabel="Clearance" value={level} onChange={setLevel}
+  options={levels.map(l =&gt; ({ value: l.id, label: l.name, description: l.id }))} /&gt;</code></pre>
+    </div>
+
+    <h3>Toggle <span class="since">Available in 0.2.0+</span></h3>
     <p>On/off settings. It renders no label of its own, so compose one beside it. <code>onColor</code> can mark a warning state.</p>
     <div class="example">
       <div class="example-label">Example <code>Toggle</code></div>
@@ -344,7 +392,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
 &lt;Toggle size="sm" value={airgap} onChange={setAirgap} onColor="var(--status-warning)" aria-label="Disconnected mode" /&gt;</code></pre>
     </div>
 
-    <h3>Slider</h3>
+    <h3>Slider <span class="since">Available in 0.2.0+</span></h3>
     <p>The standard single-handle numeric slider, for any min, max and step.</p>
     <div class="example">
       <div class="example-label">Example <code>Slider</code></div>
@@ -353,7 +401,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
   aria-label="Symbol scale" formatValue={v =&gt; `${v}×`} /&gt;</code></pre>
     </div>
 
-    <h3>OpacitySlider</h3>
+    <h3>OpacitySlider <span class="since">Available in 0.2.0+</span></h3>
     <p>The single opacity control, 0–100.</p>
     <div class="example">
       <div class="example-label">Example <code>OpacitySlider</code></div>
@@ -361,7 +409,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
 <pre><code>&lt;OpacitySlider value={opacity} onChange={setOpacity} aria-label="Layer opacity" /&gt;</code></pre>
     </div>
 
-    <h3>ZoomRangeSlider</h3>
+    <h3>ZoomRangeSlider <span class="since">Available in 0.2.0+</span></h3>
     <p>A dual-handle zoom range that never crosses. With <code>currentZoom</code>, it can set either end from the map's zoom.</p>
     <div class="example">
       <div class="example-label">Example <code>ZoomRangeSlider</code></div>
@@ -370,7 +418,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
   onChange={(lo, hi) =&gt; { setMin(lo); setMax(hi) }} /&gt;</code></pre>
     </div>
 
-    <h3>ColorPicker</h3>
+    <h3>ColorPicker <span class="since">Available in 0.2.0+</span></h3>
     <p>A swatch popover with a custom hex field. Its value is always a resolved hex, never a token.</p>
     <div class="example">
       <div class="example-label">Example <code>ColorPicker</code></div>
@@ -378,7 +426,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
 <pre><code>&lt;ColorPicker value={hex} onChange={setHex} aria-label="Track colour" /&gt;</code></pre>
     </div>
 
-    <h3>RampPicker</h3>
+    <h3>RampPicker <span class="since">Available in 0.2.0+</span></h3>
     <p>Pick a curated ColorBrewer ramp (graduated or categorized), with a reverse toggle.</p>
     <div class="example">
       <div class="example-label">Example <code>RampPicker</code></div>
@@ -387,17 +435,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
   reversed={reversed} onReverseChange={setReversed} /&gt;</code></pre>
     </div>
 
-    <h3>FileDropZone</h3>
-    <p>Drag-and-drop or browse, with extension checks on both paths and optional progress.</p>
-    <div class="example">
-      <div class="example-label">Example <code>FileDropZone</code></div>
-      <div class="demo" data-demo="filedropzone"></div>
-<pre><code>&lt;FileDropZone inputId="layer-file" label="Layer file" accept=".geojson,.kml"
-  acceptedExtensions={['geojson', 'kml']} file={file} onFileChange={setFile}
-  onReject={message =&gt; toast({ variant: 'error', message })} hint="GeoJSON or KML, up to 50 MB" /&gt;</code></pre>
-    </div>
-
-    <h3>TypeaheadPicker</h3>
+    <h3>TypeaheadPicker <span class="since">Available in 0.2.0+</span></h3>
     <p>The dropdown shell for search-and-pick from many: glass panel, highlight, loading, error and empty states. It owns
       no fetching. Render the input as its sibling inside a <code>position: relative</code> wrapper.</p>
     <div class="example">
@@ -411,64 +449,114 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
 &lt;/div&gt;</code></pre>
     </div>
 
-    <!-- ============================ Status & display ============================ -->
-    <h3>Badge</h3>
-    <p>Status, count or category. <code>grey</code> is the neutral default; <code>brand</code> is for brand affordances,
-      not status. Use <code>size="sm"</code> and <code>uppercase</code> for states. Status badges always carry text.</p>
+    <h3>FileDropZone <span class="since">Available in 0.2.0+</span></h3>
+    <p>Drag-and-drop or browse, with extension checks on both paths and optional progress.</p>
     <div class="example">
-      <div class="example-label">Example <code>Badge</code></div>
-      <div class="demo" data-demo="badge"></div>
-<pre><code>&lt;Badge size="sm" uppercase color="success"&gt;Live&lt;/Badge&gt;
-&lt;Badge size="sm" uppercase color="warning" icon={&lt;TbAlertTriangle /&gt;}&gt;Lagging&lt;/Badge&gt;
-&lt;Badge size="sm" outline color="blue"&gt;12 tracks&lt;/Badge&gt;</code></pre>
+      <div class="example-label">Example <code>FileDropZone</code></div>
+      <div class="demo" data-demo="filedropzone"></div>
+<pre><code>&lt;FileDropZone inputId="layer-file" label="Layer file" accept=".geojson,.kml"
+  acceptedExtensions={['geojson', 'kml']} file={file} onFileChange={setFile}
+  onReject={message =&gt; toast({ variant: 'error', message })} hint="GeoJSON or KML, up to 50 MB" /&gt;</code></pre>
     </div>
 
-    <h3>Avatar</h3>
-    <p>A circular avatar. Missing or failing images fall back to an initials circle.</p>
+    <h3>CodeEditor <span class="since">Available in 0.2.0+</span></h3>
+    <p><code>@kineticlogic/staresdk/code-editor</code>. A CodeMirror 6 JSON, HTML or text editor, token-themed, with parse
+      errors, caller-supplied diagnostics and caller-supplied completions. Try breaking the JSON, or type <code>{</code>
+      in the template to pick a field.</p>
+    <p class="since-notes"><code>language="html"</code>, <code>completions</code>: 0.2.10+</p>
     <div class="example">
-      <div class="example-label">Example <code>Avatar</code></div>
-      <div class="demo" data-demo="avatar"></div>
-<pre><code>&lt;Avatar size={32} username="jdoe" firstName="Jane" lastName="Doe" src={user.avatarUrl} /&gt;</code></pre>
+      <div class="example-label">Example <code>CodeEditor</code></div>
+      <div class="demo" data-demo="codeeditor"></div>
+<pre><code>import { CodeEditor } from '@kineticlogic/staresdk/code-editor'
+
+&lt;CodeEditor aria-label="Source config" language="json" value={json} onChange={setJson} minHeight={160}
+  diagnostics={[{ line: 4, message: 'Port 80 needs root on most hosts', severity: 'warning' }]} /&gt;
+
+&lt;CodeEditor aria-label="Popup template" language="html" value={html} onChange={setHtml}
+  completions={({ text, pos }) =&gt; /\{\w*$/.test(text.slice(0, pos))
+    ? { from: text.lastIndexOf('{', pos) + 1, options: fields.map(f =&gt; ({ label: f.name, detail: f.type, apply: `${f.name}}` })) }
+    : null} /&gt;</code></pre>
     </div>
 
-    <h3>InfoTip</h3>
-    <p>An ⓘ beside a label that explains a field, setting or heading. It shows above a <code>Modal</code>.</p>
+    <div class="component-group" data-toc-group="Overlays and menus">Overlays and menus</div>
+
+    <h3>Modal <span class="since">Available in 0.2.0+</span></h3>
+    <p>For decisions, not browsing: confirmations and short create or edit forms. <code>AdminModal</code> is the same
+      dialog for admin-only forms. Esc and the backdrop close it.</p>
     <div class="example">
-      <div class="example-label">Example <code>InfoTip</code></div>
-      <div class="demo" data-demo="infotip"></div>
-<pre><code>&lt;Label&gt;Gate distance &lt;InfoTip label="Gate distance"&gt;Contacts further than this from a track's
-  predicted position start a new track.&lt;/InfoTip&gt;&lt;/Label&gt;</code></pre>
+      <div class="example-label">Example <code>Modal + AdminModal</code></div>
+      <div class="demo" data-demo="modal"></div>
+<pre><code>{open &amp;&amp; (
+  &lt;Modal title="Rename source" onClose={close} width={420}&gt;
+    &lt;Label htmlFor="name"&gt;Name&lt;/Label&gt;
+    &lt;Input id="name" defaultValue="AIS — Channel" /&gt;
+    &lt;Button size="sm" onClick={save}&gt;Save&lt;/Button&gt;
+  &lt;/Modal&gt;
+)}</code></pre>
     </div>
 
-    <h3>Tooltip</h3>
-    <p>The hover label for a map feature, anchored to viewport coordinates. It sits below a <code>Modal</code>. Move the pointer over the frame.</p>
+    <h3>ClassifyModal <span class="since">Available in 0.2.0+</span></h3>
+    <p>Picks a full classification marking (level, controls, releasability, NOFORN) with favourites and a live banner preview.
+      The host supplies the options and the banner text.</p>
     <div class="example">
-      <div class="example-label">Example <code>Tooltip</code></div>
-      <div class="demo" data-demo="tooltip"></div>
-<pre><code>{hover &amp;&amp; &lt;Tooltip x={hover.x} y={hover.y} content={hover.feature.name} /&gt;}</code></pre>
+      <div class="example-label">Example <code>ClassifyModal</code></div>
+      <div class="demo" data-demo="classifymodal"></div>
+<pre><code>&lt;ClassifyModal options={options} value={marking} bannerFor={bannerFor}
+  favorites={favorites} onToggleFavorite={toggleFavorite}
+  onConfirm={setMarking} onClose={close} /&gt;</code></pre>
     </div>
 
-    <h3>ItemClassificationBar</h3>
-    <p>The per-item classification strip, coloured by level. <code>null</code> renders CLASSIFICATION NOT SET.</p>
+    <h3>DraggablePopup <span class="since">Available in 0.2.0+</span></h3>
+    <p>A floating, draggable and resizable glass popup whose position is remembered under <code>storageKey</code>.</p>
     <div class="example">
-      <div class="example-label">Example <code>ItemClassificationBar</code></div>
-      <div class="demo" data-demo="itemclassificationbar"></div>
-<pre><code>&lt;ItemClassificationBar banner="UNCLASSIFIED//REL TO USA, FVEY" level="UNCLASSIFIED" /&gt;
-&lt;ItemClassificationBar banner={null} /&gt;</code></pre>
+      <div class="example-label">Example <code>DraggablePopup</code></div>
+      <div class="demo" data-demo="draggablepopup"></div>
+<pre><code>&lt;DraggablePopup storageKey="popup:feature" title="Feature" getDefaultPos={() =&gt; ({ x: 120, y: 120 })}
+  headerRight={&lt;Button variant="ghost" size="xs" icon={&lt;TbX /&gt;} aria-label="Close" title="Close" onClick={close} /&gt;}&gt;
+  …
+&lt;/DraggablePopup&gt;</code></pre>
     </div>
 
-    <h3>ClassificationBanner</h3>
-    <p>Fixed top and bottom strips above everything. Reserve <code>BANNER_HEIGHT_PX</code> through <code>--banner-height</code>.
-      Shown here inside a frame.</p>
+    <h3>Popover <span class="since">Available in 0.2.12+</span></h3>
+    <p>A panel hung from a button (or a point): portaled, flipped and clamped to the viewport, kept clear of the classification banners, closed by Escape, an outside press or the anchor scrolling away.</p>
+    <p class="since-notes"><code>maxHeight</code>: 0.2.13+ · Placement by rendered width: 0.2.14+</p>
     <div class="example">
-      <div class="example-label">Example <code>ClassificationBanner</code></div>
-      <div class="demo" data-demo="classificationbanner"></div>
-<pre><code>&lt;ClassificationBanner enabled text="UNCLASSIFIED"
-  background="var(--classification-unclassified-bg)" color="var(--classification-unclassified-text)" /&gt;</code></pre>
+      <div class="example-label">Example <code>Popover</code></div>
+      <div class="demo" data-demo="popover"></div>
+<pre><code>&lt;Popover open={open} onClose={close} anchorRef={button} ariaLabel="Layer options"&gt;
+  &lt;Checkbox label="Show labels" checked={labels} onChange={setLabels} /&gt;
+&lt;/Popover&gt;</code></pre>
     </div>
 
-    <!-- ============================ Page structure ============================ -->
-    <h3>PageHeader</h3>
+    <h3>ContextMenu <span class="since">Available in 0.2.0+</span></h3>
+    <p>A right-click menu at the pointer, flipped to stay inside the viewport. Right-click the frame. The first item takes
+      focus; the arrow keys, Home and End move between enabled items, Enter or Space runs one, and Escape or Tab closes
+      the menu and returns focus to where it was.</p>
+    <p class="since-notes">Keyboard navigation: 0.2.11+</p>
+    <div class="example">
+      <div class="example-label">Example <code>ContextMenu + ContextMenuItem</code></div>
+      <div class="demo" data-demo="contextmenu"></div>
+<pre><code>{menu &amp;&amp; (
+  &lt;ContextMenu x={menu.x} y={menu.y} onClose={close} ariaLabel="Track actions" header="TRK-0412"&gt;
+    &lt;ContextMenuItem onClick={follow}&gt;&lt;TbFocus2 /&gt; Follow&lt;/ContextMenuItem&gt;
+    &lt;ContextMenuItem danger onClick={drop}&gt;&lt;TbTrash /&gt; Drop track&lt;/ContextMenuItem&gt;
+  &lt;/ContextMenu&gt;
+)}</code></pre>
+    </div>
+
+    <h3>Flyout <span class="since">Available in 0.2.0+</span></h3>
+    <p>A tool menu anchored to a trigger, with an optional filter box, shortcuts, hints, disabled reasons and favourites.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Flyout</code></div>
+      <div class="demo" data-demo="flyout"></div>
+<pre><code>&lt;Flyout open={open} onClose={close} anchorRef={triggerRef} ariaLabel="Tools" filterable
+  onSelect={run} onToggleFavourite={toggleFavourite}
+  items={[{ id: 'measure', label: 'Measure', icon: &lt;TbRuler2 /&gt;, shortcut: 'M', hint: 'Distance and bearing' }, …]} /&gt;</code></pre>
+    </div>
+
+    <div class="component-group" data-toc-group="Navigation and layout">Navigation and layout</div>
+
+    <h3>PageHeader <span class="since">Available in 0.2.0+</span></h3>
     <p>The glass page title bar, one per page, first in the column. It sets <code>document.title</code>. Optional
       <code>leading</code>, <code>center</code> and <code>actions</code> slots take the home button, clocks, assistant and user chip.</p>
     <div class="example">
@@ -482,7 +570,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
 &lt;/PageHeader&gt;</code></pre>
     </div>
 
-    <h3>Tabs</h3>
+    <h3>Tabs <span class="since">Available in 0.2.0+</span></h3>
     <p><code>variant="bar"</code> is the page navigation directly under the header: uppercase, no icons. The inline
       variant switches views inside a panel or drawer, with optional icons, counts and notification bubbles. Both are
       WAI-ARIA tabs with arrow-key navigation; pair them with <code>TabPanel</code>.</p>
@@ -499,7 +587,20 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
 &lt;TabPanel id={tab} idPrefix="detail"&gt;…&lt;/TabPanel&gt;</code></pre>
     </div>
 
-    <h3>CollapsiblePanel</h3>
+    <h3>SideNav <span class="since">Available in 0.2.0+</span></h3>
+    <p>The drawer for detail views, docked left or right, resizable, stacking with other drawers. It reserves page width
+      through <code>--assistant-width</code> / <code>--dock-left-width</code> and must sit inside a <code>DockProvider</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>SideNav + DockProvider</code></div>
+      <div class="demo" data-demo="sidenav"></div>
+<pre><code>&lt;DockProvider&gt;
+  &lt;SideNav open={selected != null} side="right" ariaLabel="Track detail" storageKey="sidenav:track"&gt;
+    …
+  &lt;/SideNav&gt;
+&lt;/DockProvider&gt;</code></pre>
+    </div>
+
+    <h3>CollapsiblePanel <span class="since">Available in 0.2.0+</span></h3>
     <p>The titled, collapsible section every page is built from. <code>titleActions</code> (directly after the title) and
       <code>actions</code> (right-aligned) hold the panel's own compact controls; clicks there never toggle it.
       <code>persistKey</code> remembers the open state.</p>
@@ -513,7 +614,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
 &lt;/CollapsiblePanel&gt;</code></pre>
     </div>
 
-    <h3>Disclosure</h3>
+    <h3>Disclosure <span class="since">Available in 0.2.0+</span></h3>
     <p>An inline expander. Its content renders only while open.</p>
     <div class="example">
       <div class="example-label">Example <code>Disclosure</code></div>
@@ -521,7 +622,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
 <pre><code>&lt;Disclosure label="sensors (3)"&gt;…&lt;/Disclosure&gt;</code></pre>
     </div>
 
-    <h3>Stepper</h3>
+    <h3>Stepper <span class="since">Available in 0.2.0+</span></h3>
     <p>A compact wizard step header. Completed or failed steps can be revisited; upcoming ones cannot.</p>
     <div class="example">
       <div class="example-label">Example <code>Stepper</code></div>
@@ -533,58 +634,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
 ]} /&gt;</code></pre>
     </div>
 
-    <h3>SideNav</h3>
-    <p>The drawer for detail views, docked left or right, resizable, stacking with other drawers. It reserves page width
-      through <code>--assistant-width</code> / <code>--dock-left-width</code> and must sit inside a <code>DockProvider</code>.</p>
-    <div class="example">
-      <div class="example-label">Example <code>SideNav + DockProvider</code></div>
-      <div class="demo" data-demo="sidenav"></div>
-<pre><code>&lt;DockProvider&gt;
-  &lt;SideNav open={selected != null} side="right" ariaLabel="Track detail" storageKey="sidenav:track"&gt;
-    …
-  &lt;/SideNav&gt;
-&lt;/DockProvider&gt;</code></pre>
-    </div>
-
-    <h3>Modal</h3>
-    <p>For decisions, not browsing: confirmations and short create or edit forms. <code>AdminModal</code> is the same
-      dialog for admin-only forms. Esc and the backdrop close it.</p>
-    <div class="example">
-      <div class="example-label">Example <code>Modal + AdminModal</code></div>
-      <div class="demo" data-demo="modal"></div>
-<pre><code>{open &amp;&amp; (
-  &lt;Modal title="Rename source" onClose={close} width={420}&gt;
-    &lt;Label htmlFor="name"&gt;Name&lt;/Label&gt;
-    &lt;Input id="name" defaultValue="AIS — Channel" /&gt;
-    &lt;Button size="sm" onClick={save}&gt;Save&lt;/Button&gt;
-  &lt;/Modal&gt;
-)}</code></pre>
-    </div>
-
-    <h3>ClassifyModal</h3>
-    <p>Picks a full classification marking (level, controls, releasability, NOFORN) with favourites and a live banner preview.
-      The host supplies the options and the banner text.</p>
-    <div class="example">
-      <div class="example-label">Example <code>ClassifyModal</code></div>
-      <div class="demo" data-demo="classifymodal"></div>
-<pre><code>&lt;ClassifyModal options={options} value={marking} bannerFor={bannerFor}
-  favorites={favorites} onToggleFavorite={toggleFavorite}
-  onConfirm={setMarking} onClose={close} /&gt;</code></pre>
-    </div>
-
-    <h3>DraggablePopup</h3>
-    <p>A floating, draggable and resizable glass popup whose position is remembered under <code>storageKey</code>.</p>
-    <div class="example">
-      <div class="example-label">Example <code>DraggablePopup</code></div>
-      <div class="demo" data-demo="draggablepopup"></div>
-<pre><code>&lt;DraggablePopup storageKey="popup:feature" title="Feature" getDefaultPos={() =&gt; ({ x: 120, y: 120 })}
-  headerRight={&lt;Button variant="ghost" size="xs" icon={&lt;TbX /&gt;} aria-label="Close" title="Close" onClick={close} /&gt;}&gt;
-  …
-&lt;/DraggablePopup&gt;</code></pre>
-    </div>
-
-    <!-- ============================ App shell ============================ -->
-    <h3>AppCard</h3>
+    <h3>AppCard <span class="since">Available in 0.2.0+</span></h3>
     <p>The landing-page app tile. It renders a real link, so Ctrl/⌘-click still opens a new tab; pass
       <code>onNavigate</code> to route a plain click through your router. <code>HomeButton</code>,
       <code>AssistantButton</code> and <code>ClockBadges</code> appear in the <a href="#pageheader">PageHeader</a> example.</p>
@@ -595,11 +645,13 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
 &lt;AppCard label="Imagery" icon={&lt;TbPhoto /&gt;} href="/imagery" disabled disabledTooltip="Ask an administrator for access" /&gt;</code></pre>
     </div>
 
-    <!-- ============================ Data ============================ -->
-    <h3>DataTable</h3>
+    <div class="component-group" data-toc-group="Data display">Data display</div>
+
+    <h3>DataTable <span class="since">Available in 0.2.0+</span></h3>
     <p>Sortable columns (stable, nulls last), row selection with keyboard activation, and a sticky header with
       virtualisation when <code>maxHeight</code> is set. Header rows stay neutral: weight, uppercase and a bottom border,
       no fill and no accent.</p>
+    <p class="since-notes"><code>manualSort</code>, <code>pinFirstColumn</code>, <code>onColumnResize</code>, <code>onRowDoubleClick</code>: 0.2.5+ · <code>headerDividers</code>: 0.2.7+ · <code>onColumnReorder</code>: 0.2.8+ · <code>selection</code>: 0.2.9+ · <code>onRowContextMenu</code>: 0.2.11+</p>
     <div class="example">
       <div class="example-label">Example <code>DataTable</code></div>
       <div class="demo" data-demo="datatable"></div>
@@ -618,22 +670,28 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
       <code>sortDisabledReason</code> as its tooltip, <code>pinFirstColumn</code> keeps the first column in place while
       the table scrolls sideways, <code>onColumnResize</code> adds a drag handle to each header edge (reported once, on
       release; widths stay controlled through each column's <code>width</code>), and <code>onRowDoubleClick</code> opens a
-      row. The single highlighted row is <code>selectedKey</code>.</p>
+      row. The single highlighted row is <code>selectedKey</code>. <code>selection</code> adds a checkbox column for a
+      caller-owned multi-row selection, <code>onColumnReorder</code> lets the reader drag headers into a new order,
+      <code>headerDividers</code> separates headings that run together, and <code>onRowContextMenu</code> opens a row menu
+      (right-click, Shift+F10 or the ContextMenu key).</p>
     <div class="example">
       <div class="example-label">Example <code>DataTable</code> as an attribute table</div>
       <div class="demo" data-demo="attributetable"></div>
 <pre><code>&lt;DataTable aria-label="Track attributes" rows={page} rowKey={t =&gt; t.id} maxHeight={220}
   manualSort sort={sort} onSortChange={setSort} pinFirstColumn
   onColumnResize={(key, width) =&gt; setWidths(w =&gt; ({ ...w, [key]: width }))}
-  onRowDoubleClick={t =&gt; open(t.id)}
+  onRowDoubleClick={t =&gt; open(t.id)} headerDividers
+  onColumnReorder={(key, toIndex) =&gt; move(key, toIndex)}
+  selection={{ isSelected, onToggle, header, onToggleAll }}
   columns={fields.map(f =&gt; ({ key: f.name, header: f.name, width: widths[f.name] ?? 160,
     sortable: f.sortable, sortDisabledReason: f.sortable ? undefined : 'Text fields cannot be sorted' }))} /&gt;</code></pre>
     </div>
 
-    <h3>Pagination</h3>
+    <h3>Pagination <span class="since">Available in 0.2.0+</span></h3>
     <p>Offset/limit paging that matches <code>?offset=</code> and <code>?limit=</code>. It handles an unknown total and a backend offset ceiling.
       Optionally, <code>showEnds</code> adds First/Last buttons, <code>pageSizes</code> with <code>onLimitChange</code> adds a page-size
       select, and <code>label="page"</code> reads "Page X of Y · N features" (<code>noun</code> changes the last word).</p>
+    <p class="since-notes"><code>showEnds</code>, <code>pageSizes</code>, <code>label="page"</code>: 0.2.5+</p>
     <div class="example">
       <div class="example-label">Example <code>Pagination</code></div>
       <div class="demo" data-demo="pagination"></div>
@@ -642,7 +700,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
   showEnds label="page" pageSizes={[50, 100, 250]} onLimitChange={l =&gt; { setLimit(l); setOffset(0) }} /&gt;</code></pre>
     </div>
 
-    <h3>Tree</h3>
+    <h3>Tree <span class="since">Available in 0.2.0+</span></h3>
     <p>A hierarchical list with expand and collapse, in <code>none</code>, <code>single</code> or <code>multi</code> selection modes.</p>
     <div class="example">
       <div class="example-label">Example <code>Tree</code></div>
@@ -652,7 +710,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
   expandedIds={expanded} onExpandedChange={(id, open) =&gt; …} /&gt;</code></pre>
     </div>
 
-    <h3>Facets</h3>
+    <h3>Facets <span class="since">Available in 0.2.0+</span></h3>
     <p>A group of filter chips with counts, for narrowing a catalogue or search results.</p>
     <div class="example">
       <div class="example-label">Example <code>Facets</code></div>
@@ -661,7 +719,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
   selected={selected} onToggle={toggle} onClear={() =&gt; setSelected([])} /&gt;</code></pre>
     </div>
 
-    <h3>SortableList</h3>
+    <h3>SortableList <span class="since">Available in 0.2.0+</span></h3>
     <p>Drag-to-reorder by a grip handle (or the whole row with <code>dragMode="row"</code>), keyboard-accessible through dnd-kit.</p>
     <div class="example">
       <div class="example-label">Example <code>SortableList</code></div>
@@ -670,7 +728,7 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
   renderItem={l =&gt; &lt;span&gt;{l.name}&lt;/span&gt;} /&gt;</code></pre>
     </div>
 
-    <h3>VirtualList</h3>
+    <h3>VirtualList <span class="since">Available in 0.2.0+</span></h3>
     <p>A windowed list for long, fixed-height rows. Only the visible window renders.</p>
     <div class="example">
       <div class="example-label">Example <code>VirtualList</code></div>
@@ -679,49 +737,73 @@ distanceToMeters(12, 'nmi') // 22224</code></pre>
   getKey={c =&gt; c.id} renderRow={c =&gt; &lt;div&gt;{c.id}&lt;/div&gt;} emptyState="No contacts." /&gt;</code></pre>
     </div>
 
-    <!-- ============================ Menus & feedback ============================ -->
-    <h3>Popover</h3>
-    <p>A panel hung from a button (or a point): portaled, flipped and clamped to the viewport, kept clear of the classification banners, closed by Escape, an outside press or the anchor scrolling away.</p>
+    <h3>MDText <span class="since">Available in 0.2.0+</span></h3>
+    <p>Rendered Markdown with GFM (tables, task lists, strikethrough), in the <code>wiki</code>, <code>chat</code> or
+      <code>tool</code> style. Mermaid code blocks render as diagrams when <code>mermaid</code> is installed.</p>
     <div class="example">
-      <div class="example-label">Example <code>Popover</code></div>
-      <div class="demo" data-demo="popover"></div>
-<pre><code>&lt;Popover open={open} onClose={close} anchorRef={button} ariaLabel="Layer options"&gt;
-  &lt;Checkbox label="Show labels" checked={labels} onChange={setLabels} /&gt;
-&lt;/Popover&gt;</code></pre>
+      <div class="example-label">Example <code>MDText</code></div>
+      <div class="demo" data-demo="mdtext"></div>
+<pre><code>&lt;MDText markdown={article} /&gt;</code></pre>
     </div>
 
-    <h3>Checkbox</h3>
-    <p>A real checkbox with a label, the accent tint, and an indeterminate state.</p>
+    <div class="component-group" data-toc-group="Status and feedback">Status and feedback</div>
+
+    <h3>Badge <span class="since">Available in 0.2.0+</span></h3>
+    <p>Status, count or category. <code>grey</code> is the neutral default; <code>brand</code> is for brand affordances,
+      not status. Use <code>size="sm"</code> and <code>uppercase</code> for states. Status badges always carry text.</p>
     <div class="example">
-      <div class="example-label">Example <code>Checkbox</code></div>
-      <div class="demo" data-demo="checkbox"></div>
-<pre><code>&lt;Checkbox label="Show empty fields" checked={show} onChange={setShow} /&gt;</code></pre>
+      <div class="example-label">Example <code>Badge</code></div>
+      <div class="demo" data-demo="badge"></div>
+<pre><code>&lt;Badge size="sm" uppercase color="success"&gt;Live&lt;/Badge&gt;
+&lt;Badge size="sm" uppercase color="warning" icon={&lt;TbAlertTriangle /&gt;}&gt;Lagging&lt;/Badge&gt;
+&lt;Badge size="sm" outline color="blue"&gt;12 tracks&lt;/Badge&gt;</code></pre>
     </div>
 
-    <h3>ContextMenu</h3>
-    <p>A right-click menu at the pointer, flipped to stay inside the viewport. Right-click the frame.</p>
+    <h3>Avatar <span class="since">Available in 0.2.0+</span></h3>
+    <p>A circular avatar. Missing or failing images fall back to an initials circle.</p>
     <div class="example">
-      <div class="example-label">Example <code>ContextMenu + ContextMenuItem</code></div>
-      <div class="demo" data-demo="contextmenu"></div>
-<pre><code>{menu &amp;&amp; (
-  &lt;ContextMenu x={menu.x} y={menu.y} onClose={close} ariaLabel="Track actions" header="TRK-0412"&gt;
-    &lt;ContextMenuItem onClick={follow}&gt;&lt;TbFocus2 /&gt; Follow&lt;/ContextMenuItem&gt;
-    &lt;ContextMenuItem danger onClick={drop}&gt;&lt;TbTrash /&gt; Drop track&lt;/ContextMenuItem&gt;
-  &lt;/ContextMenu&gt;
-)}</code></pre>
+      <div class="example-label">Example <code>Avatar</code></div>
+      <div class="demo" data-demo="avatar"></div>
+<pre><code>&lt;Avatar size={32} username="jdoe" firstName="Jane" lastName="Doe" src={user.avatarUrl} /&gt;</code></pre>
     </div>
 
-    <h3>Flyout</h3>
-    <p>A tool menu anchored to a trigger, with an optional filter box, shortcuts, hints, disabled reasons and favourites.</p>
+    <h3>Tooltip <span class="since">Available in 0.2.0+</span></h3>
+    <p>The hover label for a map feature, anchored to viewport coordinates. It sits below a <code>Modal</code>. Move the pointer over the frame.</p>
     <div class="example">
-      <div class="example-label">Example <code>Flyout</code></div>
-      <div class="demo" data-demo="flyout"></div>
-<pre><code>&lt;Flyout open={open} onClose={close} anchorRef={triggerRef} ariaLabel="Tools" filterable
-  onSelect={run} onToggleFavourite={toggleFavourite}
-  items={[{ id: 'measure', label: 'Measure', icon: &lt;TbRuler2 /&gt;, shortcut: 'M', hint: 'Distance and bearing' }, …]} /&gt;</code></pre>
+      <div class="example-label">Example <code>Tooltip</code></div>
+      <div class="demo" data-demo="tooltip"></div>
+<pre><code>{hover &amp;&amp; &lt;Tooltip x={hover.x} y={hover.y} content={hover.feature.name} /&gt;}</code></pre>
     </div>
 
-    <h3>Toast</h3>
+    <h3>InfoTip <span class="since">Available in 0.2.0+</span></h3>
+    <p>An ⓘ beside a label that explains a field, setting or heading. It shows above a <code>Modal</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>InfoTip</code></div>
+      <div class="demo" data-demo="infotip"></div>
+<pre><code>&lt;Label&gt;Gate distance &lt;InfoTip label="Gate distance"&gt;Contacts further than this from a track's
+  predicted position start a new track.&lt;/InfoTip&gt;&lt;/Label&gt;</code></pre>
+    </div>
+
+    <h3>ItemClassificationBar <span class="since">Available in 0.2.0+</span></h3>
+    <p>The per-item classification strip, coloured by level. <code>null</code> renders CLASSIFICATION NOT SET.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ItemClassificationBar</code></div>
+      <div class="demo" data-demo="itemclassificationbar"></div>
+<pre><code>&lt;ItemClassificationBar banner="UNCLASSIFIED//REL TO USA, FVEY" level="UNCLASSIFIED" /&gt;
+&lt;ItemClassificationBar banner={null} /&gt;</code></pre>
+    </div>
+
+    <h3>ClassificationBanner <span class="since">Available in 0.2.0+</span></h3>
+    <p>Fixed top and bottom strips above everything. Reserve <code>BANNER_HEIGHT_PX</code> through <code>--banner-height</code>.
+      Shown here inside a frame.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ClassificationBanner</code></div>
+      <div class="demo" data-demo="classificationbanner"></div>
+<pre><code>&lt;ClassificationBanner enabled text="UNCLASSIFIED"
+  background="var(--classification-unclassified-bg)" color="var(--classification-unclassified-text)" /&gt;</code></pre>
+    </div>
+
+    <h3>Toast <span class="since">Available in 0.2.0+</span></h3>
     <p><code>useToast().toast()</code> raises a transient result. Errors never auto-dismiss.
       <code>useToast().confirm()</code> replaces <code>window.confirm</code> and always names the object.
       Needs a <code>ToastProvider</code>.</p>
@@ -734,56 +816,9 @@ toast({ variant: 'error', title: 'Layer ingest failed', message: 'The file has n
 if (await confirm('Delete source "AIS — Channel"?', { confirmLabel: 'Delete' })) remove()</code></pre>
     </div>
 
-    <!-- ============================ Content & views ============================ -->
-    <h3>MDText</h3>
-    <p>Rendered Markdown with GFM (tables, task lists, strikethrough), in the <code>wiki</code>, <code>chat</code> or
-      <code>tool</code> style. Mermaid code blocks render as diagrams when <code>mermaid</code> is installed.</p>
-    <div class="example">
-      <div class="example-label">Example <code>MDText</code></div>
-      <div class="demo" data-demo="mdtext"></div>
-<pre><code>&lt;MDText markdown={article} /&gt;</code></pre>
-    </div>
+    <div class="component-group" data-toc-group="Maps and charts">Maps and charts</div>
 
-    <h3>ProfileChart</h3>
-    <p>Height against distance along a path, in plain SVG with token colours. <code>null</code> heights break the line;
-      an optional dashed sight line and obstruction marker show line of sight.</p>
-    <div class="example">
-      <div class="example-label">Example <code>ProfileChart</code></div>
-      <div class="demo" data-demo="profilechart"></div>
-<pre><code>&lt;ProfileChart aria-label="Terrain profile" samples={samples}
-  sightLine={[{ distance_m: 0, height_m: 412 }, { distance_m: 18000, height_m: 260 }]}
-  obstruction={{ distance_m: 9400, height_m: 351 }} /&gt;</code></pre>
-    </div>
-
-    <h3>TimeSeriesChart</h3>
-    <p><code>@kineticlogic/staresdk/chart</code>. A compact uPlot line chart over time. Colours come from tokens and update
-      when the theme changes. Each series picks a <code>tone</code>, never a colour, and the legend shows values under the cursor.</p>
-    <div class="example">
-      <div class="example-label">Example <code>TimeSeriesChart</code></div>
-      <div class="demo" data-demo="timeserieschart"></div>
-<pre><code>import { TimeSeriesChart } from '@kineticlogic/staresdk/chart'
-import 'uplot/dist/uPlot.min.css'
-
-&lt;TimeSeriesChart aria-label="Ingest rate" times={times} unit="/min"
-  series={[{ label: 'Contacts', values: contacts, tone: 'accent' }, { label: 'Rejected', values: rejected, tone: 'danger' }]} /&gt;</code></pre>
-    </div>
-
-    <h3>GraphView</h3>
-    <p><code>@kineticlogic/staresdk/graph-view</code>. A directed graph for lineage, provenance and pipelines: React Flow
-      rendering, dagre layout and token-styled nodes. <code>ended</code> edges are dashed, and <code>animated</code> edges
-      move to show data flowing (drawn still under reduced motion).</p>
-    <div class="example">
-      <div class="example-label">Example <code>GraphView</code></div>
-      <div class="demo" data-demo="graphview"></div>
-<pre><code>import { GraphView } from '@kineticlogic/staresdk/graph-view'
-import '@xyflow/react/dist/base.css'
-
-&lt;GraphView aria-label="Pipeline" height={240} layerGap={48}
-  nodes={[{ id: 'ais', label: 'AIS', sublabel: 'source', width: 120 }, { id: 'fuse', label: 'Fuse', tone: 'accent', width: 120 }, …]}
-  edges={[{ id: 'e1', source: 'ais', target: 'fuse', animated: true }, …]} /&gt;</code></pre>
-    </div>
-
-    <h3>MapView</h3>
+    <h3>MapView <span class="since">Available in 0.2.0+</span></h3>
     <p><code>@kineticlogic/staresdk/map-view</code>. A MapLibre GL map of points and polylines on the offline basemap
       style (theme-aware), with selection, fit-to-points and parent-driven <code>fitTo</code>. Point and line colours are
       data colours and stay the same in both themes. Click a point.</p>
@@ -799,16 +834,43 @@ import 'maplibre-gl/dist/maplibre-gl.css'
       <code>setWorkerUrl(maplibreWorkerUrl)</code> with <code>import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&amp;url'</code>.</p>
     </div>
 
-    <h3>CodeEditor</h3>
-    <p><code>@kineticlogic/staresdk/code-editor</code>. A CodeMirror 6 JSON or text editor, token-themed, with parse errors
-      and caller-supplied diagnostics. Try breaking the JSON.</p>
+    <h3>TimeSeriesChart <span class="since">Available in 0.2.0+</span></h3>
+    <p><code>@kineticlogic/staresdk/chart</code>. A compact uPlot line chart over time. Colours come from tokens and update
+      when the theme changes. Each series picks a <code>tone</code>, never a colour, and the legend shows values under the cursor.</p>
     <div class="example">
-      <div class="example-label">Example <code>CodeEditor</code></div>
-      <div class="demo" data-demo="codeeditor"></div>
-<pre><code>import { CodeEditor } from '@kineticlogic/staresdk/code-editor'
+      <div class="example-label">Example <code>TimeSeriesChart</code></div>
+      <div class="demo" data-demo="timeserieschart"></div>
+<pre><code>import { TimeSeriesChart } from '@kineticlogic/staresdk/chart'
+import 'uplot/dist/uPlot.min.css'
 
-&lt;CodeEditor aria-label="Source config" language="json" value={json} onChange={setJson} minHeight={160}
-  diagnostics={[{ line: 4, message: 'Port 80 needs root on most hosts', severity: 'warning' }]} /&gt;</code></pre>
+&lt;TimeSeriesChart aria-label="Ingest rate" times={times} unit="/min"
+  series={[{ label: 'Contacts', values: contacts, tone: 'accent' }, { label: 'Rejected', values: rejected, tone: 'danger' }]} /&gt;</code></pre>
+    </div>
+
+    <h3>ProfileChart <span class="since">Available in 0.2.0+</span></h3>
+    <p>Height against distance along a path, in plain SVG with token colours. <code>null</code> heights break the line;
+      an optional dashed sight line and obstruction marker show line of sight.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ProfileChart</code></div>
+      <div class="demo" data-demo="profilechart"></div>
+<pre><code>&lt;ProfileChart aria-label="Terrain profile" samples={samples}
+  sightLine={[{ distance_m: 0, height_m: 412 }, { distance_m: 18000, height_m: 260 }]}
+  obstruction={{ distance_m: 9400, height_m: 351 }} /&gt;</code></pre>
+    </div>
+
+    <h3>GraphView <span class="since">Available in 0.2.0+</span></h3>
+    <p><code>@kineticlogic/staresdk/graph-view</code>. A directed graph for lineage, provenance and pipelines: React Flow
+      rendering, dagre layout and token-styled nodes. <code>ended</code> edges are dashed, and <code>animated</code> edges
+      move to show data flowing (drawn still under reduced motion).</p>
+    <div class="example">
+      <div class="example-label">Example <code>GraphView</code></div>
+      <div class="demo" data-demo="graphview"></div>
+<pre><code>import { GraphView } from '@kineticlogic/staresdk/graph-view'
+import '@xyflow/react/dist/base.css'
+
+&lt;GraphView aria-label="Pipeline" height={240} layerGap={48}
+  nodes={[{ id: 'ais', label: 'AIS', sublabel: 'source', width: 120 }, { id: 'fuse', label: 'Fuse', tone: 'accent', width: 120 }, …]}
+  edges={[{ id: 'e1', source: 'ais', target: 'fuse', animated: true }, …]} /&gt;</code></pre>
     </div>
 
     <h2>Reference</h2>

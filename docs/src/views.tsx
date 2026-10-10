@@ -135,5 +135,28 @@ export function CodeEditorDemo() {
     const line = value.split('\n').findIndex(l => /"port":\s*80\b/.test(l))
     return line >= 0 ? [{ line: line + 1, message: 'Port 80 needs root on most hosts', severity: 'warning' }] : []
   }, [value])
-  return <CodeEditor aria-label="Source config" language="json" value={value} onChange={setValue} diagnostics={diagnostics} minHeight={160} maxHeight={320} />
+  const [template, setTemplate] = useState(POPUP_TEMPLATE)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+      <CodeEditor aria-label="Source config" language="json" value={value} onChange={setValue} diagnostics={diagnostics} minHeight={160} maxHeight={320} />
+      <CodeEditor aria-label="Popup template" language="html" value={template} onChange={setTemplate} completions={fieldCompletions} minHeight={96} maxHeight={200} />
+    </div>
+  )
+}
+
+const POPUP_TEMPLATE = `<h4>{callsign}</h4>
+<p>Speed {speed} kn · heading {heading}°</p>`
+
+const FIELDS = [
+  { label: 'callsign', detail: 'keyword' },
+  { label: 'speed', detail: 'float' },
+  { label: 'heading', detail: 'float' },
+  { label: 'updated', detail: 'date' },
+]
+
+/** Offers the layer's fields after a `{`, the way a popup-template editor would. */
+function fieldCompletions({ text, pos }: { text: string; pos: number }) {
+  const m = /\{(\w*)$/.exec(text.slice(0, pos))
+  if (!m) return null
+  return { from: pos - m[1].length, options: FIELDS.map(f => ({ ...f, apply: `${f.label}}` })) }
 }
