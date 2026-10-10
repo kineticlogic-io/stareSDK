@@ -198,11 +198,11 @@ describe('ButtonPalettePopover', () => {
     expect(document.activeElement).not.toBe(button(d, 'Distance'))
   })
 
-  it('stops pointer events at the flyout unless isolatePointer is off', () => {
+  it('stops pointer events at the flyout only with isolatePointer', () => {
     const below = vi.fn()
     const c = render(
       <div onPointerDown={below}>
-        <Host />
+        <Host isolatePointer />
       </div>,
     )
     act(() => {
@@ -211,13 +211,40 @@ describe('ButtonPalettePopover', () => {
     expect(below).not.toHaveBeenCalled()
     const d = render(
       <div onPointerDown={below}>
-        <Host isolatePointer={false} />
+        <Host />
       </div>,
     )
     act(() => {
       button(d, 'Area').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
     })
     expect(below).toHaveBeenCalledTimes(1)
+  })
+
+  it('gives focus back to the trigger when something inside closes it, not when focus is elsewhere', () => {
+    function Closer({ withFocus }: { withFocus: boolean }) {
+      const [open, setOpen] = useState(true)
+      return (
+        <div>
+          <ButtonPalettePopover open={open} onClose={() => setOpen(false)} ariaLabel="Measure"
+            trigger={<button type="button">Ruler</button>}>
+            <button type="button" onClick={() => setOpen(false)}>Done</button>
+          </ButtonPalettePopover>
+          <button type="button" onClick={() => setOpen(false)}>Elsewhere</button>
+          <span data-with-focus={String(withFocus)} />
+        </div>
+      )
+    }
+    const c = render(<Closer withFocus />)
+    act(() => button(c, 'Done').focus())
+    act(() => button(c, 'Done').click())
+    expect(panel(c)).toBeNull()
+    expect(document.activeElement).toBe(button(c, 'Ruler'))
+
+    const d = render(<Closer withFocus={false} />)
+    act(() => button(d, 'Elsewhere').focus())
+    act(() => button(d, 'Elsewhere').click())
+    expect(panel(d)).toBeNull()
+    expect(document.activeElement).toBe(button(d, 'Elsewhere'))
   })
 
   it('takes a role, width and zIndex', () => {

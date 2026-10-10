@@ -24,11 +24,11 @@ import { BANNER_HEIGHT_PX } from './ClassificationBanner.js'
  *   `closeOnOutsideClick={false}` keeps a drawing flyout open while the user clicks the map. A
  *   press inside something its children portal elsewhere (a colour picker's panel) or inside a
  *   `data-portal-overlay` counts as inside.
- * - **Focus:** `autoFocus` moves focus to the first control when it opens; closing with Escape
- *   returns focus to the trigger.
- * - **Pointer isolation** (`isolatePointer`, default true): pointer events inside the panel stop
- *   there, so a click in a flyout never reaches a canvas or stage underneath (mouse events still
- *   propagate, so outside-press listeners inside the flyout — a colour picker's — keep working).
+ * - **Focus:** `autoFocus` moves focus to the first control when it opens; when it closes while
+ *   focus is inside it (Escape, or a control inside closing it), focus returns to the trigger.
+ * - **Pointer isolation** (`isolatePointer`, off by default): pointer events inside the panel stop
+ *   there, for a flyout over a canvas or stage that listens above it (mouse events still
+ *   propagate, so outside-press listeners — a colour picker's — keep working).
  * - Glass surface matching `ButtonPalette` (`surface={false}` when the content is itself a
  *   surfaced palette); a short compositor-safe entrance (opacity + transform).
  */
@@ -63,7 +63,7 @@ export interface ButtonPalettePopoverProps {
   autoFocus?: boolean
   /** `dialog` (default) for a panel of controls, `menu` for a list of actions, `group` for a tool palette. */
   role?: 'dialog' | 'menu' | 'group'
-  /** Stop pointer events inside the flyout from reaching what is underneath. Default true. */
+  /** Stop pointer events inside the flyout from reaching what is underneath. Default false. */
   isolatePointer?: boolean
   /** Default 4500 (above in-page controls, below the stareSDK Modal and the banners). */
   zIndex?: number
@@ -143,7 +143,7 @@ export function ButtonPalettePopover({
   closeOnEscape = true,
   autoFocus = false,
   role = 'dialog',
-  isolatePointer = true,
+  isolatePointer = false,
   zIndex = 4500,
   style,
   children,
@@ -156,6 +156,8 @@ export function ButtonPalettePopover({
   // anything its content positions outside it.
   const [scrolls, setScrolls] = useState(false)
   const pressInsideRef = useRef(false)
+  // Whether focus is inside the flyout — read when it closes, to give focus back to the trigger.
+  const focusInsideRef = useRef(false)
   const onCloseRef = useRef(onClose)
   useEffect(() => {
     onCloseRef.current = onClose
@@ -202,9 +204,7 @@ export function ButtonPalettePopover({
     if (!open) return
     function onKeyDown(e: KeyboardEvent) {
       if (!closeOnEscape || e.key !== 'Escape') return
-      const focusInside = wrapRef.current?.contains(document.activeElement) ?? false
       onCloseRef.current()
-      if (focusInside) wrapRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus()
     }
     function onMouseDown(e: MouseEvent) {
       const pressedInside = pressInsideRef.current
@@ -223,6 +223,17 @@ export function ButtonPalettePopover({
       document.removeEventListener('mousedown', onMouseDown)
     }
   }, [open, closeOnEscape, closeOnOutsideClick])
+
+  // Focus back to the trigger when it closes with focus inside (the panel is gone by now, so
+  // focus would otherwise fall to the page).
+  const wasOpenRef = useRef(open)
+  useLayoutEffect(() => {
+    if (wasOpenRef.current && !open && focusInsideRef.current) {
+      focusInsideRef.current = false
+      wrapRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus()
+    }
+    wasOpenRef.current = open
+  }, [open])
 
   // Focus in once placed, when asked.
   useEffect(() => {
@@ -255,7 +266,6 @@ export function ButtonPalettePopover({
           background: 'var(--color-glass-bg)',
           border: '1px solid var(--color-glass-border)',
           borderRadius: 6,
-          boxShadow: 'var(--shadow-standard)',
           padding: 'var(--space-xs)',
         }
       : null),
@@ -279,6 +289,12 @@ export function ButtonPalettePopover({
           data-side={currentSide}
           onMouseDown={() => {
             pressInsideRef.current = true
+          }}
+          onFocus={() => {
+            focusInsideRef.current = true
+          }}
+          onBlur={e => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) focusInsideRef.current = false
           }}
           onPointerDown={isolatePointer ? stop : undefined}
           onPointerMove={isolatePointer ? stop : undefined}

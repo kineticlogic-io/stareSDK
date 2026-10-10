@@ -41,6 +41,11 @@ body { min-height: 100vh; }
 .toc-link[aria-current='true'] { color: var(--color-accent); }
 .toc-sub { display: flex; flex-direction: column; gap: 6px; padding-left: var(--space-md); margin-bottom: 4px; }
 .toc-link--sub { font-weight: 400; font-size: 12px; }
+.toc-group {
+  margin: 10px 0 2px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.toc-sub > .toc-group:first-child { margin-top: 2px; }
 
 /* Prose — the `.wiki-md` reading style, under its own class so it never collides with MDText. */
 .guide { min-width: 0; max-width: 1040px; font-size: 15px; line-height: 1.6; color: var(--color-text-primary); }
@@ -59,6 +64,16 @@ body { min-height: 100vh; }
 /* The first heading under a section title needs no extra gap above it. */
 .guide h2 + h3, .guide h2 + p + h3 { margin-top: 1.6em; }
 .guide h4 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-secondary); margin: 1.2em 0 0.4em; }
+/* A group of components: a quiet label with a rule, and room above it. */
+.component-group {
+  margin: 4.5em 0 0; padding-bottom: 0.4em; border-bottom: 1px solid var(--color-glass-border);
+  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted);
+}
+.component-group + h3 { margin-top: 1.4em; }
+/* "Available in X+" beside a component title, and later feature versions under its description. */
+.since { margin-left: var(--space-sm); font-family: var(--font-mono); font-size: 11px; font-weight: 400; color: var(--text-muted); vertical-align: 1px; }
+.guide .since-notes { margin-top: -0.4em; font-size: 12px; color: var(--text-muted); }
+.guide .since-notes code { font-size: 11px; background: none; border: none; padding: 0; color: var(--text-muted); }
 .guide-heading { scroll-margin-top: calc(var(--page-header-height) + var(--space-md)); }
 .guide-anchor { margin-left: var(--space-sm); color: var(--color-text-secondary); opacity: 0; }
 .guide-heading:hover .guide-anchor, .guide-anchor:focus { opacity: 1; }

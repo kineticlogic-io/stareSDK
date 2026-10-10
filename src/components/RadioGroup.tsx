@@ -42,7 +42,10 @@ export interface RadioGroupProps {
   /** The radios' shared `name`; one is generated when omitted. */
   name?: string
   id?: string
+  /** Style for the group's outer element. */
   style?: CSSProperties
+  /** Style for each option's row (the label), merged last — like `Checkbox`'s `style`. */
+  optionStyle?: CSSProperties
 }
 
 const CONTROL = { sm: 13, md: 14 } as const
@@ -60,6 +63,7 @@ export function RadioGroup({
   name,
   id,
   style,
+  optionStyle,
 }: RadioGroupProps) {
   const generated = useId()
   const groupName = name ?? `radio-${generated}`
@@ -99,6 +103,7 @@ export function RadioGroup({
                 cursor: optionDisabled ? 'not-allowed' : 'pointer',
                 opacity: optionDisabled ? 0.6 : 1,
                 userSelect: 'none',
+                ...optionStyle,
               }}
             >
               <input
@@ -122,7 +127,7 @@ export function RadioGroup({
               />
               <span>{option.label}</span>
               {option.description != null && (
-                <span style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)', fontSize: TEXT[size] - 1 }}>
+                <span style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)', fontSize: TEXT[size] }}>
                   {option.description}
                 </span>
               )}

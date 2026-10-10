@@ -23,6 +23,9 @@ const slugOf = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N} _-]/gu
 /**
  * Gives every `<h2>`/`<h3>` in the guide an anchor and a hover `#` link, and writes the contents
  * rail from them in place of `<!-- toc -->` (the same treatment as OpenStare's user guide build).
+ * A `<div class="component-group" data-toc-group="…">` heads a group of components in the page
+ * and becomes an unlinked group label in the rail; a heading's `<span class="since">` note stays
+ * out of the rail and the anchor.
  * `__VERSION__` becomes the package version.
  */
 function contentsRail(): Plugin {
@@ -30,9 +33,14 @@ function contentsRail(): Plugin {
     name: 'staresdk-contents-rail',
     transformIndexHtml(html) {
       const seen = new Map<string, number>()
-      const headings: { depth: number; text: string; id: string }[] = []
-      const out = html.replace(/<h([23])>([\s\S]*?)<\/h\1>/g, (_m, depth: string, inner: string) => {
-        const text = inner.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim()
+      const headings: { depth: number; text: string; id: string; group?: boolean }[] = []
+      const out = html.replace(/<h([23])>([\s\S]*?)<\/h\1>|<div class="component-group" data-toc-group="([^"]+)">/g, (m, depth: string, inner: string, group?: string) => {
+        if (group) {
+          headings.push({ depth: 3, text: group, id: '', group: true })
+          return m
+        }
+        // A heading's "Available in" note is not part of its name.
+        const text = inner.replace(/<span class="since">[\s\S]*?<\/span>/g, '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim()
         const base = slugOf(text)
         const n = seen.get(base) ?? 0
         seen.set(base, n + 1)
@@ -47,6 +55,8 @@ function contentsRail(): Plugin {
           if (open) toc += '</div>'
           toc += `<a class="toc-link" href="#${h.id}">${escapeHtml(h.text)}</a><div class="toc-sub">`
           open = true
+        } else if (h.group) {
+          toc += `<div class="toc-group">${escapeHtml(h.text)}</div>`
         } else {
           toc += `<a class="toc-link toc-link--sub" href="#${h.id}">${escapeHtml(h.text)}</a>`
         }

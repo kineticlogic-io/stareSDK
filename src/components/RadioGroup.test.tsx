@@ -111,6 +111,12 @@ describe('RadioGroup', () => {
     expect((group.lastElementChild as HTMLElement).style.flexDirection).toBe('row')
   })
 
+  it('applies optionStyle to every option row', () => {
+    const c = render({ optionStyle: { fontSize: 14, padding: '2px 8px' } })
+    const labels = Array.from(c.querySelectorAll('label'))
+    expect(labels.every((l) => l.style.fontSize === '14px' && l.style.padding === '2px 8px')).toBe(true)
+  })
+
   it('tints the radios with the accent token and carries the focus-ring class', () => {
     const r = radios(render({}))[0]
     expect(r.className).toBe('ui-radio')
