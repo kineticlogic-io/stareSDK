@@ -129,6 +129,16 @@ describe('Popover', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('caps its height at maxHeight, never above the room to the banner', () => {
+    render(
+      <Popover open onClose={() => {}} point={{ x: 10, y: 10 }} ariaLabel="Capped" maxHeight={100}>
+        <button type="button">Item</button>
+      </Popover>,
+    )
+    const capped = document.body.querySelector('[aria-label="Capped"]') as HTMLElement
+    expect(capped.style.maxHeight).toBe('100px')
+  })
+
   it('renders nothing while closed', () => {
     render(<Host initiallyOpen={false} />)
     expect(panel()).toBeNull()

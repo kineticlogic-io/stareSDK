@@ -5,8 +5,11 @@
  * but each option carries a `value` and a separate `label`, so a stored id can be shown by name
  * (a classification level stored as `S`, shown as `SECRET`). `placeholder` renders a leading empty
  * option for "nothing chosen yet"; picking it reports `null`.
+ *
+ * Since 0.2.13 it also takes the form attributes a `<label htmlFor>` / form needs — `id`, `name`,
+ * `required`, `title` — and a React 19 `ref` (for call sites that focus it on mount).
  */
-import type { CSSProperties } from 'react'
+import type { CSSProperties, Ref } from 'react'
 
 export interface SelectOption {
   value: string
@@ -23,6 +26,12 @@ export interface SelectProps {
   placeholder?: string
   disabled?: boolean
   style?: CSSProperties
+  /** For a `<label htmlFor>`. */
+  id?: string
+  name?: string
+  required?: boolean
+  title?: string
+  ref?: Ref<HTMLSelectElement>
 }
 
 const selectStyle: CSSProperties = {
@@ -38,9 +47,27 @@ const selectStyle: CSSProperties = {
   boxSizing: 'border-box',
 }
 
-export function Select({ options, value, onChange, ariaLabel, placeholder, disabled, style }: SelectProps) {
+export function Select({
+  options,
+  value,
+  onChange,
+  ariaLabel,
+  placeholder,
+  disabled,
+  style,
+  id,
+  name,
+  required,
+  title,
+  ref,
+}: SelectProps) {
   return (
     <select
+      ref={ref}
+      id={id}
+      name={name}
+      required={required}
+      title={title}
       value={value ?? ''}
       aria-label={ariaLabel}
       disabled={disabled}
