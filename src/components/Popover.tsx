@@ -46,6 +46,9 @@ export interface PopoverProps {
   minWidth?: number
   /** Maximum width in px. */
   maxWidth?: number
+  /** A height cap in px (since 0.2.13). The popover is never taller than the room to the banner
+   *  either way; this only lowers that limit. */
+  maxHeight?: number
   /** Estimated height in px — used only to decide whether to open above. Default 240. */
   estimatedHeight?: number
   /** Close when something the anchor sits in scrolls. Default true. */
@@ -103,6 +106,7 @@ export function Popover({
   gap = 2,
   minWidth = 168,
   maxWidth,
+  maxHeight,
   estimatedHeight = 240,
   closeOnScroll = true,
   autoFocus = true,
@@ -202,7 +206,7 @@ export function Popover({
         top: placement.top,
         bottom: placement.bottom,
         left: placement.left,
-        maxHeight: placement.maxHeight,
+        maxHeight: maxHeight != null ? Math.min(maxHeight, placement.maxHeight) : placement.maxHeight,
         overflowY: 'auto',
         overflowX: 'hidden',
         zIndex,

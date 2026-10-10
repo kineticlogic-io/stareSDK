@@ -87,7 +87,8 @@ Added 2026-09-25 (first consumer: OpenTrack), compact by default and neutral per
 and token rules:
 
 - `Popover` (0.2.12) — an anchored, portaled floating panel (kebab menus, pickers): flips and clamps to the
-  viewport, stays clear of the classification banners, closes on Escape / outside press / anchor scroll.
+  viewport, stays clear of the classification banners, closes on Escape / outside press / anchor scroll;
+  since 0.2.13 `maxHeight` caps its height.
 - `Checkbox` (0.2.12) — a themed real checkbox with label, indeterminate and disabled states.
 - `ContextMenu` / `ContextMenuItem` — right-click menu shell; since 0.2.11 keyboard-operable
   (focus on open, arrows/Home/End, Enter/Space, Escape/Tab close, focus returns to the opener).
@@ -104,6 +105,9 @@ and token rules:
   for a caller-owned selection, and `onRowClick` receives the modifier keys held.
 - `MultiSelect` — a dropdown of checkboxes; since 0.2.6 optionally an `xs` icon button (`icon`)
   whose list floats below it (`align`), for toolbars.
+- `Select` — a native single-select over `{ value, label, disabled? }` options with an optional
+  "nothing chosen" `placeholder` (reported as `null`); since 0.2.13 it passes `id`, `name`,
+  `required`, `title` and `ref` through to the `<select>`.
 - `Pagination` — offset/limit paging; since 0.2.5 optionally with First/Last buttons (`showEnds`),
   a page-size select (`pageSizes` + `onLimitChange`) and a "Page X of Y · N features" label
   (`label="page"`).
