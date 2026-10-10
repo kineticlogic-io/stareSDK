@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { createContext, useContext, useEffect, useRef } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 
 /**
@@ -20,7 +20,16 @@ import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
  * Escape and Tab close the menu. When the menu closes while focus is in it (or nowhere), focus
  * returns to the element that had it when the menu opened — never when an item has moved focus
  * elsewhere on purpose (e.g. into a dialog it opened). Disabled items are skipped.
+ *
+ * Size (0.2.16, kineticlogic-io/OpenStare map right-click menu): `size="sm"` is the compact menu
+ * — 10px text, tight rows, as wide as its content — for a map's one-line menus. `md` (default) is
+ * the roomier menu with 36px rows.
  */
+export type ContextMenuSize = 'md' | 'sm'
+
+/** The menu's size, read by its {@link ContextMenuItem}s. */
+const ContextMenuSizeContext = createContext<ContextMenuSize>('md')
+
 export interface ContextMenuProps {
   /** Viewport-relative click x (e.g. `MouseEvent.clientX`). */
   x: number
@@ -36,6 +45,8 @@ export interface ContextMenuProps {
   width?: number
   /** Estimated menu height, used only for the viewport edge-flip math. Default 300. */
   estimatedHeight?: number
+  /** `sm` is the compact menu (10px text, tight rows, as wide as its content). Default `md`. 0.2.16+ */
+  size?: ContextMenuSize
 }
 
 export function ContextMenu({
@@ -47,7 +58,9 @@ export function ContextMenu({
   children,
   width = 240,
   estimatedHeight = 300,
+  size = 'md',
 }: ContextMenuProps) {
+  const sm = size === 'sm'
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Focus the first enabled item on open; give focus back to the opener on close.
@@ -137,19 +150,20 @@ export function ContextMenu({
         // confirm dialog it opened is open — at 9999 it would render ON TOP of
         // that dialog instead of behind it.
         zIndex: 4900,
-        minWidth: width,
+        // A compact menu is as wide as its content; `width` then only feeds the edge flip.
+        minWidth: sm ? 'max-content' : width,
         background: 'var(--color-glass-bg)',
         border: '1px solid var(--color-glass-border)',
         borderRadius: 4,
         fontFamily: 'var(--font-sans)',
-        padding: 'var(--space-xs) 0',
+        padding: sm ? '3px 0' : 'var(--space-xs) 0',
         opacity: 1,
       }}
     >
       {header != null && (
         <div
           style={{
-            padding: '4px 12px 6px',
+            padding: sm ? '3px 10px 4px' : '4px 12px 6px',
             fontSize: 9,
             fontWeight: 600,
             letterSpacing: '0.08em',
@@ -162,7 +176,7 @@ export function ContextMenu({
           {header}
         </div>
       )}
-      {children}
+      <ContextMenuSizeContext.Provider value={size}>{children}</ContextMenuSizeContext.Provider>
     </div>
   )
 }
@@ -186,6 +200,7 @@ export interface ContextMenuItemProps {
 
 /** A single `role="menuitem"` row for {@link ContextMenu}. */
 export function ContextMenuItem({ onClick, ariaLabel, disabled = false, danger = false, children }: ContextMenuItemProps) {
+  const sm = useContext(ContextMenuSizeContext) === 'sm'
   const highlight = (el: HTMLButtonElement, on: boolean) => {
     if (disabled && on) return
     el.style.background = on ? 'var(--brand-subtle)' : 'transparent'
@@ -202,17 +217,18 @@ export function ContextMenuItem({ onClick, ariaLabel, disabled = false, danger =
       style={{
         display: 'block',
         width: '100%',
-        padding: '8px 12px',
+        padding: sm ? '3px 10px' : '8px 12px',
         background: 'transparent',
         border: 'none',
         borderLeft: '2px solid transparent',
         textAlign: 'left',
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: 'var(--font-sans)',
-        fontSize: 12,
+        fontSize: sm ? 10 : 12,
+        whiteSpace: sm ? 'nowrap' : undefined,
         color: danger ? 'var(--color-destructive)' : 'var(--color-text-primary)',
         opacity: disabled ? 0.6 : 1,
-        minHeight: 36,
+        minHeight: sm ? undefined : 36,
         position: 'relative',
         outline: 'none',
       }}
