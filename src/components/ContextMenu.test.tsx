@@ -20,7 +20,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { ContextMenu } from './ContextMenu.js'
+import { ContextMenu, ContextMenuItem } from './ContextMenu.js'
 
 function renderMenu(onClose: () => void) {
   const container = document.createElement('div')
@@ -137,3 +137,40 @@ describe('ContextMenu', () => {
     expect(zIndex).toBeLessThan(5000)
   })
 })
+
+describe('ContextMenu size', () => {
+  function renderSized(size?: 'md' | 'sm') {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    act(() => {
+      root.render(
+        <ContextMenu x={10} y={10} onClose={() => {}} ariaLabel="Map" size={size}>
+          <ContextMenuItem onClick={() => {}}>Copy coordinates</ContextMenuItem>
+        </ContextMenu>,
+      )
+    })
+    const menu = container.querySelector<HTMLElement>('[role="menu"]')!
+    const item = container.querySelector<HTMLElement>('[role="menuitem"]')!
+    return { menu, item, cleanup: () => { act(() => root.unmount()); container.remove() } }
+  }
+
+  it('defaults to the roomy menu', () => {
+    const { menu, item, cleanup } = renderSized()
+    expect(menu.style.minWidth).toBe('240px')
+    expect(item.style.fontSize).toBe('12px')
+    expect(item.style.minHeight).toBe('36px')
+    cleanup()
+  })
+
+  it('sm is compact and as wide as its content', () => {
+    const { menu, item, cleanup } = renderSized('sm')
+    expect(menu.style.minWidth).toBe('max-content')
+    expect(item.style.fontSize).toBe('10px')
+    expect(item.style.padding).toBe('3px 10px')
+    expect(item.style.minHeight).toBe('')
+    expect(item.style.whiteSpace).toBe('nowrap')
+    cleanup()
+  })
+})
+
