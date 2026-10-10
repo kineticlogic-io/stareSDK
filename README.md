@@ -103,7 +103,8 @@ and token rules:
   `autoFocus`, focus back to the trigger on close, `panelRef`, optional `isolatePointer` over a canvas. Separate from `Popover`, which hangs
   menus and pickers below a control.
 - `ContextMenu` / `ContextMenuItem` — right-click menu shell; since 0.2.11 keyboard-operable
-  (focus on open, arrows/Home/End, Enter/Space, Escape/Tab close, focus returns to the opener).
+  (focus on open, arrows/Home/End, Enter/Space, Escape/Tab close, focus returns to the opener);
+  since 0.2.16 `size="sm"` is the compact menu (10px text, tight rows, as wide as its content).
 - `DataTable` — sortable columns (stable, nulls last), optional row selection with keyboard
   activation, sticky header and row virtualisation when `maxHeight` is set. Header chrome follows
   the neutral-table rule (weight, uppercase, letter-spacing, bottom border; no fill, no colour).
