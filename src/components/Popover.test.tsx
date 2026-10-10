@@ -3,6 +3,7 @@
  * Popover tests — React 19 createRoot + act + native DOM events (project convention).
  */
 import { createRoot } from 'react-dom/client'
+import { createPortal } from 'react-dom'
 import { act, useRef, useState } from 'react'
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { Popover, placePopover } from './Popover.js'
@@ -127,6 +128,56 @@ describe('Popover', () => {
       c.dispatchEvent(new Event('scroll'))
     })
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not close on a press inside something its children portal elsewhere', () => {
+    const onClose = vi.fn()
+    const outside = document.createElement('div')
+    document.body.appendChild(outside)
+    cleanups.push(() => outside.remove())
+    render(
+      <Popover open onClose={onClose} point={{ x: 10, y: 10 }} ariaLabel="Nested">
+        {createPortal(<button type="button">Swatch</button>, outside)}
+      </Popover>,
+    )
+    act(() => {
+      outside.querySelector('button')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    })
+    expect(onClose).not.toHaveBeenCalled()
+    act(() => {
+      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps its measured width inside the viewport', () => {
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const width = this.getAttribute('aria-label') === 'Wide' ? 300 : 0
+      return { x: 0, y: 0, top: 0, left: 0, bottom: 0, right: width, width, height: 0, toJSON: () => ({}) } as DOMRect
+    })
+    cleanups.push(() => spy.mockRestore())
+    render(
+      <Popover open onClose={() => {}} point={{ x: window.innerWidth - 10, y: 10 }} ariaLabel="Wide">
+        <button type="button">Item</button>
+      </Popover>,
+    )
+    const wide = document.body.querySelector('[aria-label="Wide"]') as HTMLElement
+    expect(wide.style.left).toBe(`${window.innerWidth - 300 - 8}px`)
+  })
+
+  it('lines an end-aligned popover up with the anchor by its measured width', () => {
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const width = this.getAttribute('aria-label') === 'End' ? 250 : 0
+      return { x: 0, y: 0, top: 0, left: 0, bottom: 0, right: width, width, height: 0, toJSON: () => ({}) } as DOMRect
+    })
+    cleanups.push(() => spy.mockRestore())
+    render(
+      <Popover open onClose={() => {}} point={{ x: 600, y: 10 }} ariaLabel="End" align="end">
+        <button type="button">Item</button>
+      </Popover>,
+    )
+    const end = document.body.querySelector('[aria-label="End"]') as HTMLElement
+    expect(end.style.left).toBe('350px')
   })
 
   it('caps its height at maxHeight, never above the room to the banner', () => {

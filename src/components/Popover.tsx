@@ -19,7 +19,12 @@ import { BANNER_HEIGHT_PX } from './ClassificationBanner.js'
  * - **Closes** on Escape, on a pointer press outside it and outside its anchor (the anchor toggles
  *   itself), and — `closeOnScroll` — when something the anchor sits in scrolls (it moved away;
  *   scrolling the popover's own content does not close it). A press inside an overlay marked
- *   `data-portal-overlay` (a confirm dialog the popover opened) does not close it.
+ *   `data-portal-overlay` (a confirm dialog the popover opened) does not close it, and neither
+ *   does a press inside anything its own children portal elsewhere (a colour picker's panel —
+ *   React events from a portal still bubble through the popover; since 0.2.14).
+ * - **Placed by its real width:** once rendered, its measured width is clamped inside the
+ *   viewport, so content wider than `minWidth` never runs off the right edge, and an
+ *   `align="end"` popover's right edge meets the anchor's (since 0.2.14).
  * - **Focus** moves to the first focusable element inside when it opens (`autoFocus`) and returns
  *   to the anchor when it closes, if focus was inside it.
  * - Layering: `zIndex` 4500 by default — above in-page controls, below the stareSDK `Modal`
@@ -117,6 +122,12 @@ export function Popover({
 }: PopoverProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [placement, setPlacement] = useState<Placement | null>(null)
+  // Set by the panel's React mousedown handler, which also sees presses inside portals its
+  // children open (React bubbles those through the component tree); read and cleared by the
+  // document listener, which runs after React's root listener for the same event.
+  const pressInsideRef = useRef(false)
+  // The anchor's rect when it opened — the measured-width pass below lines `align="end"` up with it.
+  const anchorRectRef = useRef<{ left: number; right: number } | null>(null)
   // The latest onClose, so the listeners below stay attached for the whole open period.
   const onCloseRef = useRef(onClose)
   useEffect(() => {
@@ -136,12 +147,25 @@ export function Popover({
         ? { top: point.y, bottom: point.y, left: point.x, right: point.x }
         : null
     if (!rect) return
+    anchorRectRef.current = rect
     setPlacement(
       placePopover(rect, { width: window.innerWidth, height: window.innerHeight }, { align, gap, minWidth, estimatedHeight }),
     )
     // Placed once per open: the anchor/point at that moment decides (a menu, not a tooltip).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  // Once rendered, place by its real width (the first placement only knew `minWidth`): an
+  // `align="end"` popover's right edge meets the anchor's, and either way it stays on screen.
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    const rect = anchorRectRef.current
+    if (!open || !placement || !panel || !rect) return
+    const width = panel.getBoundingClientRect().width
+    const want = align === 'end' ? rect.right - width : placement.left
+    const left = Math.max(MARGIN, Math.min(want, window.innerWidth - width - MARGIN))
+    if (left !== placement.left) setPlacement({ ...placement, left })
+  }, [open, placement, align])
 
   // Close on Escape, outside press, and anchor scroll.
   useEffect(() => {
@@ -154,9 +178,11 @@ export function Popover({
       }
     }
     function onPointerDown(e: PointerEvent | MouseEvent) {
+      const pressedInside = pressInsideRef.current
+      pressInsideRef.current = false
       const target = e.target as Node | null
       if (!target) return
-      if (panelRef.current?.contains(target)) return
+      if (pressedInside || panelRef.current?.contains(target)) return
       if (anchor?.contains(target)) return
       const el = target instanceof Element ? target : target.parentElement
       if (el?.closest?.('[data-portal-overlay]')) return
@@ -197,6 +223,9 @@ export function Popover({
   return createPortal(
     <div
       ref={panelRef}
+      onMouseDown={() => {
+        pressInsideRef.current = true
+      }}
       role={role}
       aria-label={ariaLabel}
       aria-orientation={role === 'menu' ? 'vertical' : undefined}

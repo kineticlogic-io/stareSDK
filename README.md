@@ -88,7 +88,9 @@ and token rules:
 
 - `Popover` (0.2.12) — an anchored, portaled floating panel (kebab menus, pickers): flips and clamps to the
   viewport, stays clear of the classification banners, closes on Escape / outside press / anchor scroll;
-  since 0.2.13 `maxHeight` caps its height.
+  since 0.2.13 `maxHeight` caps its height; since 0.2.14 it is placed by its rendered width (kept on
+  screen; `align="end"` lines up with the anchor's right edge) and a press inside anything its
+  children portal (e.g. a colour picker) does not close it.
 - `Checkbox` (0.2.12) — a themed real checkbox with label, indeterminate and disabled states.
 - `ContextMenu` / `ContextMenuItem` — right-click menu shell; since 0.2.11 keyboard-operable
   (focus on open, arrows/Home/End, Enter/Space, Escape/Tab close, focus returns to the opener).
