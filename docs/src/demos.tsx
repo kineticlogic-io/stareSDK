@@ -946,10 +946,10 @@ function AttributeTableDemo() {
 const TREE: TreeNode[] = [
   { id: 'base', title: 'Basemaps', children: [{ id: 'base-osm', title: 'OpenStreetMap' }, { id: 'base-sat', title: 'Satellite', disabled: true, disabledReason: 'Needs an imagery licence' }] },
   { id: 'ops', title: 'Operations', children: [
-    { id: 'ops-tracks', title: 'Tracks' },
+    { id: 'ops-tracks', title: 'Tracks', description: 'Live AIS and ADS-B tracks, updated every few seconds.' },
     { id: 'ops-areas', title: 'Areas of interest', children: [{ id: 'aoi-north', title: 'North sector' }, { id: 'aoi-south', title: 'South sector' }] },
   ] },
-  { id: 'ref', title: 'Reference', children: [{ id: 'ref-ports', title: 'Ports' }, { id: 'ref-airfields', title: 'Airfields' }] },
+  { id: 'ref', title: 'Reference', children: [{ id: 'ref-ports', title: 'Ports', description: 'World port index.' }, { id: 'ref-airfields', title: 'Airfields' }] },
 ]
 
 function TreeDemo() {
