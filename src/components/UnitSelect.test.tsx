@@ -22,4 +22,32 @@ describe('UnitSelect (#263)', () => {
     act(() => { root.unmount() })
     container.remove()
   })
+
+  it('offers the speed and time families (0.2.18)', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    const onSpeed = vi.fn()
+    act(() => {
+      root.render(
+        <>
+          <UnitSelect family="speed" value="kn" onChange={onSpeed} ariaLabel="Speed unit" />
+          <UnitSelect family="time" value="min" onChange={() => {}} ariaLabel="Time unit" />
+        </>,
+      )
+    })
+    const speed = container.querySelector('select[aria-label="Speed unit"]') as HTMLSelectElement
+    const time = container.querySelector('select[aria-label="Time unit"]') as HTMLSelectElement
+    expect([...speed.options].map(o => o.value)).toEqual(['mps', 'kph', 'kn', 'mph'])
+    expect(speed.value).toBe('kn')
+    expect([...time.options].map(o => o.value)).toEqual(['s', 'min', 'h', 'd'])
+    expect(time.value).toBe('min')
+    act(() => {
+      speed.value = 'mph'
+      speed.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(onSpeed).toHaveBeenCalledWith('mph')
+    act(() => { root.unmount() })
+    container.remove()
+  })
 })

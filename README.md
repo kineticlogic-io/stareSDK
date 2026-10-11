@@ -126,6 +126,10 @@ and token rules:
 - `Pagination` — offset/limit paging; since 0.2.5 optionally with First/Last buttons (`showEnds`),
   a page-size select (`pageSizes` + `onLimitChange`) and a "Page X of Y · N features" label
   (`label="page"`).
+- `UnitSelect` and `units.ts` — the shared unit dropdown and conversions (distance, elevation,
+  elevation reference, orientation, confidence); since 0.2.18 also `speed` (`mps`, `kph`, `kn`, `mph`;
+  `speedToMetersPerSecond` / `speedFromMetersPerSecond`) and `time` (`s`, `min`, `h`, `d`;
+  `durationToSeconds` / `durationFromSeconds`).
 - `Tabs` / `TabPanel` — WAI-ARIA tabs with automatic activation and arrow-key navigation.
 - `Stepper` — compact wizard step header; completed or failed steps can be revisited, upcoming
   ones cannot.

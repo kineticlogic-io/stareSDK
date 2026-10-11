@@ -14,10 +14,10 @@ import {
   Input, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader,
   Pagination, Popover, PopoverMenuButton, ProfileChart, RadioGroup, RampPicker, SaveButton, Select, SideNav, Slider,
   SortableList, Stepper, TabPanel, Tabs, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
-  VirtualList, ZoomRangeSlider, distanceToMeters, sortRows, useTheme, useToast, useTypeaheadKeyboard,
+  VirtualList, ZoomRangeSlider, distanceToMeters, durationToSeconds, sortRows, speedToMetersPerSecond, useTheme, useToast, useTypeaheadKeyboard,
   type BadgeColor, type ClassificationMarking, type ClassifyOptions, type DataTableColumn,
   type DataTableSort,
-  type DistanceUnit, type FlyoutItem, type StepItem, type TreeNode,
+  type DistanceUnit, type FlyoutItem, type SpeedUnit, type StepItem, type TimeUnit, type TreeNode,
 } from '../../src/index'
 import {
   BadgeSwatches, CanonicalSwatches, ClassificationSwatches, ExtendedSwatches, IntelSwatches, Scales,
@@ -326,6 +326,8 @@ function UnitSelectDemo() {
   const [unit, setUnit] = useState('nmi')
   const [elev, setElev] = useState('ft')
   const [conf, setConf] = useState('0.95')
+  const [speed, setSpeed] = useState('kn')
+  const [time, setTime] = useState('min')
   return (
     <div className="stack">
       <div className="row">
@@ -335,6 +337,14 @@ function UnitSelectDemo() {
       <div className="row">
         <UnitSelect family="elevation" value={elev} onChange={setElev} ariaLabel="Elevation unit" style={{ width: 160 }} />
         <UnitSelect family="confidence" value={conf} onChange={setConf} ariaLabel="Confidence level" style={{ width: 160 }} />
+      </div>
+      <div className="row">
+        <UnitSelect family="speed" value={speed} onChange={setSpeed} ariaLabel="Speed unit" style={{ width: 160 }} />
+        <span className="caption mono">20 {speed} = {speedToMetersPerSecond(20, speed as SpeedUnit).toFixed(2)} m/s</span>
+      </div>
+      <div className="row">
+        <UnitSelect family="time" value={time} onChange={setTime} ariaLabel="Time unit" style={{ width: 160 }} />
+        <span className="caption mono">2 {time} = {durationToSeconds(2, time as TimeUnit).toLocaleString()} s</span>
       </div>
     </div>
   )
