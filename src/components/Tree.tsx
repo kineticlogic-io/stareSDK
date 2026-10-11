@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { TbChevronRight, TbSquare, TbSquareCheckFilled, TbSquareMinusFilled } from 'react-icons/tb'
+import { Tooltip } from './Tooltip.js'
 
 /**
  * ui/Tree — generic collapsible, multi-select checkbox tree (D-03).
@@ -32,6 +33,11 @@ import { TbChevronRight, TbSquare, TbSquareCheckFilled, TbSquareMinusFilled } fr
  * The `selectable='multi'` and `selectable='none'` render paths are deliberately UNTOUCHED
  * by D-30 — no new click handler, no cascade math change — so the two shipped multi-select
  * consumers (`ServiceLayerPicker`, `ManageServiceLayersModal`) render byte-identically.
+ *
+ * Descriptions (0.2.17, OpenStare#262): a node's optional `description` shows in a {@link Tooltip}
+ * while its row is hovered (following the pointer) or keyboard-focused (below the row), and the
+ * row points at it with `aria-describedby`. A node with a description drops the native `title`
+ * on its label so the two never show together.
  */
 
 // ---------------------------------------------------------------------------
@@ -46,6 +52,8 @@ export interface TreeNode {
   disabledReason?: string
   name?: string
   bbox?: [number, number, number, number]
+  /** Shown in a tooltip while the row is hovered or focused (0.2.17). */
+  description?: string
 }
 
 export type TreeSelectable = 'none' | 'single' | 'multi'
@@ -221,6 +229,9 @@ function TreeRow({
   onSelect,
 }: TreeRowProps) {
   const [hovered, setHovered] = useState(false)
+  const [tip, setTip] = useState<{ x: number; y: number } | null>(null)
+  const tipId = useId()
+  const description = node.description || undefined
   const hasChildren = (node.children?.length ?? 0) > 0
   const expanded = expandedIds.has(node.id)
   const state: CheckState = selectable === 'multi' ? checkState(node, checkedIds) : 'unchecked'
@@ -268,7 +279,19 @@ function TreeRow({
           ...(isSelectableSingleRow ? { cursor: 'pointer' } : {}),
         }}
         onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseLeave={() => { setHovered(false); setTip(null) }}
+        {...(description
+          ? {
+              onMouseMove: (e: React.MouseEvent) => setTip({ x: e.clientX, y: e.clientY }),
+              onFocus: (e: React.FocusEvent<HTMLDivElement>) => {
+                if (e.target !== e.currentTarget) return
+                const r = e.currentTarget.getBoundingClientRect()
+                setTip({ x: r.left + INDENT_PER_DEPTH, y: r.bottom + INDENT_PER_DEPTH })
+              },
+              onBlur: () => setTip(null),
+              'aria-describedby': tip ? tipId : undefined,
+            }
+          : {})}
         onClick={isSingle ? handleSelect : undefined}
         {...(isSelectableSingleRow
           ? { 'aria-selected': isActive, tabIndex: 0, onKeyDown: handleRowKeyDown }
@@ -319,13 +342,14 @@ function TreeRow({
               fontWeight: TITLE_WEIGHT[state === 'checked' ? 'checked' : 'unchecked'],
               ...(isActive ? { color: 'var(--color-accent)' } : {}),
             }}
-            title={node.title}
+            title={description ? undefined : node.title}
           >
             {node.title}
           </span>
           {hasReason && <span style={disabledReasonStyle}>{node.disabledReason}</span>}
         </div>
       </div>
+      {description && tip && <Tooltip id={tipId} x={tip.x} y={tip.y} content={description} />}
 
       {hasChildren && expanded && node.children!.map(child => (
         <TreeRow

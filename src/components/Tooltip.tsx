@@ -35,9 +35,11 @@ export interface TooltipProps {
   content: string
   /** Stacking order. Default 4200 — above a DraggablePopup (4000), below ui/Modal (5000). */
   zIndex?: number
+  /** Element id, so the element it describes can point at it with `aria-describedby` (0.2.17). */
+  id?: string
 }
 
-export function Tooltip({ x, y, content, zIndex = 4200 }: TooltipProps) {
+export function Tooltip({ x, y, content, zIndex = 4200, id }: TooltipProps) {
   if (!content) return null
 
   const style: CSSProperties = {
@@ -60,7 +62,7 @@ export function Tooltip({ x, y, content, zIndex = 4200 }: TooltipProps) {
   }
 
   return createPortal(
-    <div role="tooltip" style={style}>
+    <div role="tooltip" id={id} style={style}>
       {content}
     </div>,
     document.body,
