@@ -1,6 +1,6 @@
 /**
  * UnitSelect — the standard form dropdown for units, orientation conventions and confidence levels
- * (#263, operator-approved 2026-10-05). A `Select` over one shared vocabulary from `units.ts`, so
+ * (#263, operator-approved 2026-10-05); since 0.2.18 also speed and time units. A `Select` over one shared vocabulary from `units.ts`, so
  * every form offers the same choices in the same order.
  */
 import type { CSSProperties } from 'react'

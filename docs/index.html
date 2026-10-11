@@ -18,14 +18,14 @@
     document.documentElement.dataset.theme = t
   })()
 </script>
-  <script type="module" crossorigin src="./assets/index-NXw61zLh.js"></script>
+  <script type="module" crossorigin src="./assets/index-DSwAWYsS.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-B0Z9INg1.js">
   <link rel="stylesheet" crossorigin href="./assets/index-L_hlnD6t.css">
 </head>
 <body>
 <header class="guide-header">
   <a class="guide-brand" href="#overview">stare<span>SDK</span></a>
-  <span class="guide-version">v0.2.17</span>
+  <span class="guide-version">v0.2.18</span>
   <nav class="guide-nav" aria-label="Site">
     <a href="#getting-started">Start</a>
     <a href="#foundations">Foundations</a>
@@ -355,11 +355,14 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
 
     <h3 id="unitselect" class="guide-heading">UnitSelect <span class="since">Available in 0.2.0+</span><a class="guide-anchor" href="#unitselect" aria-label="Link to this section">#</a></h3>
     <p>Pick a unit, orientation convention or confidence level. The <code>family</code> picks the list; conversions live in <code>units.ts</code>.</p>
+    <p class="since-notes"><code>speed</code> (m/s, km/h, knots, mph) and <code>time</code> (seconds, minutes, hours, days) families: 0.2.18+</p>
     <div class="example">
       <div class="example-label">Example <code>UnitSelect</code></div>
       <div class="demo" data-demo="unitselect"></div>
 <pre><code>&lt;UnitSelect family="distance" value={unit} onChange={setUnit} ariaLabel="Distance unit" /&gt;
-distanceToMeters(12, 'nmi') // 22224</code></pre>
+distanceToMeters(12, 'nmi') // 22224
+speedToMetersPerSecond(20, 'kn') // 10.29
+durationToSeconds(2, 'h') // 7200</code></pre>
     </div>
 
     <h3 id="checkbox" class="guide-heading">Checkbox <span class="since">Available in 0.2.12+</span><a class="guide-anchor" href="#checkbox" aria-label="Link to this section">#</a></h3>
@@ -910,7 +913,7 @@ npm run docs      # this guide, into docs/</code></pre>
     <p><a href="https://github.com/kineticlogic-io/stareSDK/blob/main/LICENSE">MIT</a>. © 2026 kineticlogic.io. For consulting
       or support, email <a href="mailto:admin@kineticlogic.io">admin@kineticlogic.io</a>.</p>
 
-    <footer class="guide-footer">stareSDK v0.2.17 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
+    <footer class="guide-footer">stareSDK v0.2.18 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
   </main>
 </div>
 </body>

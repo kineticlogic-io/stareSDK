@@ -2,9 +2,13 @@
  * units.ts — the shared unit vocabularies and conversions behind `UnitSelect` (#263, operator-approved
  * 2026-10-05). One definition per family, so tool forms (#264–#266) and the layer Elevation setting
  * (#272) never hand-roll unit math.
+ *
+ * 0.2.18: `speed` and `time` families (OpenStare's Calculate motion and Motion Events tools), each
+ * with a conversion to and from SI (meters per second, seconds).
  */
 
-export type UnitFamily = 'distance' | 'elevation' | 'elevation-reference' | 'orientation' | 'confidence'
+export type UnitFamily =
+  | 'distance' | 'elevation' | 'elevation-reference' | 'orientation' | 'confidence' | 'speed' | 'time'
 
 export type DistanceUnit = 'm' | 'km' | 'ft' | 'mi' | 'nmi'
 export type ElevationUnit = 'm' | 'ft' | 'fl'
@@ -12,6 +16,8 @@ export type ElevationReference = 'msl' | 'ellipsoid' | 'ground'
 export type OrientationConvention = 'cw-north' | 'ccw-east'
 /** A 2D confidence level, as a probability string (`'0.95'`). */
 export type ConfidenceLevel = '0.393' | '0.5' | '0.865' | '0.9' | '0.95' | '0.989' | '0.99'
+export type SpeedUnit = 'mps' | 'kph' | 'kn' | 'mph'
+export type TimeUnit = 's' | 'min' | 'h' | 'd'
 
 export interface UnitOption {
   value: string
@@ -50,6 +56,18 @@ export const UNIT_OPTIONS: Record<UnitFamily, readonly UnitOption[]> = {
     { value: '0.989', label: '98.9% (3σ)' },
     { value: '0.99', label: '99%' },
   ],
+  speed: [
+    { value: 'mps', label: 'Meters per second' },
+    { value: 'kph', label: 'Kilometers per hour' },
+    { value: 'kn', label: 'Knots' },
+    { value: 'mph', label: 'Miles per hour' },
+  ],
+  time: [
+    { value: 's', label: 'Seconds' },
+    { value: 'min', label: 'Minutes' },
+    { value: 'h', label: 'Hours' },
+    { value: 'd', label: 'Days' },
+  ],
 }
 
 const METERS_PER: Record<DistanceUnit, number> = { m: 1, km: 1000, ft: 0.3048, mi: 1609.344, nmi: 1852 }
@@ -83,4 +101,28 @@ export function ellipseScaleForConfidence(p: number): number {
 /** Rescales an ellipse axis drawn at confidence `from` to the same ellipse at confidence `to`. */
 export function rescaleEllipseAxis(axis: number, from: ConfidenceLevel, to: ConfidenceLevel): number {
   return axis * (ellipseScaleForConfidence(Number(to)) / ellipseScaleForConfidence(Number(from)))
+}
+
+const MPS_PER: Record<SpeedUnit, number> = { mps: 1, kph: 1000 / 3600, kn: 1852 / 3600, mph: 1609.344 / 3600 }
+
+/** A speed in `unit`, in meters per second. */
+export function speedToMetersPerSecond(value: number, unit: SpeedUnit): number {
+  return value * MPS_PER[unit]
+}
+
+/** A speed in meters per second, in `unit`. */
+export function speedFromMetersPerSecond(value: number, unit: SpeedUnit): number {
+  return value / MPS_PER[unit]
+}
+
+const SECONDS_PER: Record<TimeUnit, number> = { s: 1, min: 60, h: 3600, d: 86400 }
+
+/** A duration in `unit`, in seconds. */
+export function durationToSeconds(value: number, unit: TimeUnit): number {
+  return value * SECONDS_PER[unit]
+}
+
+/** A duration in seconds, in `unit`. */
+export function durationFromSeconds(value: number, unit: TimeUnit): number {
+  return value / SECONDS_PER[unit]
 }
