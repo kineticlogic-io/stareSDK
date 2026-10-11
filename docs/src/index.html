@@ -353,11 +353,14 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
 
     <h3>UnitSelect <span class="since">Available in 0.2.0+</span></h3>
     <p>Pick a unit, orientation convention or confidence level. The <code>family</code> picks the list; conversions live in <code>units.ts</code>.</p>
+    <p class="since-notes"><code>speed</code> (m/s, km/h, knots, mph) and <code>time</code> (seconds, minutes, hours, days) families: 0.2.18+</p>
     <div class="example">
       <div class="example-label">Example <code>UnitSelect</code></div>
       <div class="demo" data-demo="unitselect"></div>
 <pre><code>&lt;UnitSelect family="distance" value={unit} onChange={setUnit} ariaLabel="Distance unit" /&gt;
-distanceToMeters(12, 'nmi') // 22224</code></pre>
+distanceToMeters(12, 'nmi') // 22224
+speedToMetersPerSecond(20, 'kn') // 10.29
+durationToSeconds(2, 'h') // 7200</code></pre>
     </div>
 
     <h3>Checkbox <span class="since">Available in 0.2.12+</span></h3>
