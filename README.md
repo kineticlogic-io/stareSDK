@@ -105,6 +105,9 @@ and token rules:
 - `ContextMenu` / `ContextMenuItem` — right-click menu shell; since 0.2.11 keyboard-operable
   (focus on open, arrows/Home/End, Enter/Space, Escape/Tab close, focus returns to the opener);
   since 0.2.16 `size="sm"` is the compact menu (10px text, tight rows, as wide as its content).
+- `InfoTip` — an ⓘ beside a label whose bubble explains it (hover or focus, above a `Modal`); since
+  0.2.19 `interactive` lets the bubble hold links: it stays open as the pointer moves in, a click
+  pins it, Escape or a press outside closes it.
 - `Tree` — collapsible tree in `none`/`single`/`multi` selection modes; since 0.2.17 a node's
   `description` shows in a `Tooltip` while its row is hovered or focused (`aria-describedby`).
 - `DataTable` — sortable columns (stable, nulls last), optional row selection with keyboard
