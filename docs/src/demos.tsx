@@ -548,6 +548,12 @@ function InfoTipDemo() {
         Gate distance
         <InfoTip label="Gate distance">Contacts further than this from a track's predicted position start a new track instead of updating it.</InfoTip>
       </Label>
+      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+        Interactive
+        <InfoTip label="Interactive" interactive>
+          Holds a link: <a href="#infotip">Back to InfoTip</a>
+        </InfoTip>
+      </div>
       <Input id="demo-gate" defaultValue="2.5" />
     </div>
   )
