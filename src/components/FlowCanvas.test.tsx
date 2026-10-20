@@ -205,6 +205,106 @@ describe('FlowCanvas', () => {
     expect(el.querySelector('.react-flow__handle.connectable')).toBeTruthy()
   })
 
+  describe('palette groups', () => {
+    const labelsIn = (el: Element) => [...el.querySelectorAll('[role="listitem"]')].map((n) => n.getAttribute('aria-label'))
+    const headingOf = (g: Element) => document.getElementById(g.getAttribute('aria-labelledby')!)!
+
+    it('lists grouped items under one heading per group, groups in first-appearance order', () => {
+      const el = render({
+        palette: [
+          { type: 'udp', label: 'UDP', group: 'Source' },
+          { type: 'rename', label: 'Rename', group: 'Transform' },
+          { type: 'nats', label: 'NATS', group: 'Source' },
+          { type: 'track', label: 'Track layer', group: 'Output' },
+          { type: 'classify', label: 'Classify', group: 'Transform' },
+        ],
+        onDropNode: vi.fn(),
+      })
+      const palette = el.querySelector('[aria-label="Steps"]') as HTMLElement
+      expect(palette.getAttribute('role')).toBe('group')
+      const groups = [...palette.querySelectorAll('[role="group"][aria-labelledby]')]
+      expect(groups.map((g) => headingOf(g).textContent)).toEqual(['Source', 'Transform', 'Output'])
+      expect(groups.map(labelsIn)).toEqual([
+        ['Add UDP', 'Add NATS'],
+        ['Add Rename', 'Add Classify'],
+        ['Add Track layer'],
+      ])
+      const heading = headingOf(groups[0]) as HTMLElement
+      expect(heading.style.textTransform).toBe('uppercase')
+      expect(heading.style.letterSpacing).toBe('0.08em')
+      expect(heading.style.color).toBe('var(--color-text-secondary)')
+      // A heading is a label, not a step: not draggable, not focusable, not a list item.
+      expect(heading.getAttribute('draggable')).toBeNull()
+      expect(heading.getAttribute('tabindex')).toBeNull()
+      expect(heading.getAttribute('role')).toBeNull()
+      expect(heading.closest('[role="listitem"]')).toBeNull()
+    })
+
+    it('an ungrouped palette renders as before: one flat list, no headings', () => {
+      const el = render({
+        palette: [
+          { type: 'source', label: 'Source', description: 'A transport and a codec' },
+          { type: 'output', label: 'Output' },
+        ],
+        onDropNode: vi.fn(),
+      })
+      const palette = el.querySelector('[aria-label="Steps"]') as HTMLElement
+      expect(palette.getAttribute('role')).toBe('list')
+      expect(palette.querySelector('[role="group"]')).toBeNull()
+      expect([...palette.children].map((c) => c.getAttribute('role'))).toEqual(['listitem', 'listitem'])
+      expect(labelsIn(palette)).toEqual(['Add Source', 'Add Output'])
+    })
+
+    it('mixed: ungrouped items are listed without a heading, in first-appearance order among the groups', () => {
+      const el = render({
+        palette: [
+          { type: 'note', label: 'Note' },
+          { type: 'udp', label: 'UDP', group: 'Source' },
+          { type: 'comment', label: 'Comment' },
+          { type: 'track', label: 'Track layer', group: 'Output' },
+        ],
+        onDropNode: vi.fn(),
+      })
+      const palette = el.querySelector('[aria-label="Steps"]') as HTMLElement
+      const sections = [...palette.children]
+      expect(sections).toHaveLength(3)
+      expect(sections[0].getAttribute('role')).toBe('list')
+      expect(labelsIn(sections[0])).toEqual(['Add Note', 'Add Comment'])
+      expect(headingOf(sections[1]).textContent).toBe('Source')
+      expect(labelsIn(sections[1])).toEqual(['Add UDP'])
+      expect(headingOf(sections[2]).textContent).toBe('Output')
+      expect(labelsIn(sections[2])).toEqual(['Add Track layer'])
+      expect(palette.querySelectorAll('[aria-labelledby]')).toHaveLength(2)
+    })
+
+    it('drags and keyboard-adds from a grouped item', () => {
+      const onDropNode = vi.fn()
+      const el = render({
+        palette: [
+          { type: 'udp', label: 'UDP', group: 'Source' },
+          { type: 'track', label: 'Track layer', group: 'Output' },
+        ],
+        onDropNode,
+      })
+      const item = el.querySelector('[aria-label="Add Track layer"]') as HTMLElement
+      expect(item.getAttribute('draggable')).toBe('true')
+      const data: Record<string, string> = {}
+      act(() => {
+        item.dispatchEvent(dragEvent('dragstart', data, 0, 0))
+      })
+      expect(data[FLOW_NODE_MIME]).toBe('track')
+      const pane = el.querySelector('.react-flow')!.parentElement as HTMLElement
+      act(() => {
+        pane.dispatchEvent(dragEvent('drop', { ...data }, 120, 80))
+      })
+      expect(onDropNode).toHaveBeenCalledWith('track', expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }))
+      act(() => {
+        ;(el.querySelector('[aria-label="Add UDP"]') as HTMLElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      })
+      expect(onDropNode).toHaveBeenLastCalledWith('udp', expect.objectContaining({ x: expect.any(Number) }))
+    })
+  })
+
   it('shows a minimap only when asked', () => {
     expect(render().querySelector('.react-flow__minimap')).toBeNull()
     expect(render({ minimap: true }).querySelector('.react-flow__minimap')).toBeTruthy()
