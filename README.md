@@ -243,7 +243,8 @@ Added for OpenStare's migration onto this package (#31). Each takes its data as 
 never depends on a router, an app context, or an API client; the host app keeps that wiring.
 
 - `AppCard` — the landing-page app tile (icon, uppercase label, description; 180 × 160 glass tile
-  with a hover lift; dimmed with a tooltip when `disabled`). Which apps a user may see is the
+  with a hover lift; when `disabled`, dimmed with no link and its `disabledTooltip` shown in a
+  `Tooltip` on hover or focus — 0.2.23). Which apps a user may see is the
   host's concern.
 - `HomeButton` — the header "Home" link.
 - `AppCard` and `HomeButton` render real links (`href`), so Ctrl/⌘-click still opens a new tab;
