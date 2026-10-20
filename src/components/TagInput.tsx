@@ -2,7 +2,8 @@
  * TagInput — free-entry values shown as removable chips (added 0.2.20 for OpenStare's multi-valued
  * info-card fields, a radar's ELNOTs; kineticlogic-io/OpenStare#361).
  *
- * Type a value and press Enter or comma to add it; pasting "a, b, c" adds each. Backspace in the
+ * Type a value and press Enter or comma to add it; pasting "a, b, c" adds each, and a comma that
+ * arrives without a key press (a touch keyboard, autofill) ends a value too. Backspace in the
  * empty input removes the last chip, and each chip has its own × button. Values are trimmed (then
  * passed through `normalize`, when given) and never added twice. A value `validate` rejects is not
  * added; its message shows under the field. Leaving the field adds what was typed, so a value is
@@ -290,13 +291,24 @@ export function TagInput({
             aria-controls={suggestions ? listId : undefined}
             aria-activedescendant={listOpen && highlight >= 0 ? `${listId}-${highlight}` : undefined}
             value={draft}
-            placeholder={full ? undefined : placeholder}
+            // Shown only while there are no chips, so it never reads as a value beside them.
+            placeholder={full || value.length > 0 ? undefined : placeholder}
             disabled={disabled || full}
             onChange={(e) => {
-              setDraft(e.target.value)
+              const text = e.target.value
               setOpen(true)
               setHighlight(-1)
               if (error) setError(null)
+              // Touch keyboards (key "Unidentified") and autofill deliver a comma with no comma
+              // key press: every part before the last separator is a finished value.
+              if (/[,\n]/.test(text)) {
+                const parts = splitTagText(text)
+                const last = parts.pop() ?? ''
+                add(parts)
+                setDraft(last)
+              } else {
+                setDraft(text)
+              }
             }}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
