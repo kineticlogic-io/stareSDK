@@ -1,16 +1,19 @@
 // The optional-entry-point examples: TimeSeriesChart (uplot), GraphView (React Flow + dagre),
+// FlowCanvas (React Flow),
 // MapView (MapLibre) and CodeEditor (CodeMirror). Loaded on demand from demos.tsx, the way an app
 // imports them from their own subpaths.
 import 'uplot/dist/uPlot.min.css'
-import '@xyflow/react/dist/base.css'
+import '@xyflow/react/dist/style.css'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { setWorkerUrl } from 'maplibre-gl'
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import { TbFocusCentered } from 'react-icons/tb'
+import { TbArrowsShuffle, TbFocusCentered, TbPlugConnected, TbStack2 } from 'react-icons/tb'
+import { addEdge, applyEdgeChanges, applyNodeChanges, Handle, Position, type Connection, type EdgeChange, type NodeChange, type NodeProps } from '@xyflow/react'
 import { Badge, Button } from '../../src/index'
 import { TimeSeriesChart } from '../../src/chart'
 import { GraphView, type GraphViewEdge, type GraphViewNode } from '../../src/graph-view'
+import { FlowCanvas, type FlowCanvasEdge, type FlowCanvasNode, type FlowPaletteItem } from '../../src/flow-canvas'
 import { MapView, type MapLine, type MapPoint } from '../../src/map-view'
 import { CodeEditor, type CodeEditorDiagnostic } from '../../src/code-editor'
 
@@ -80,6 +83,74 @@ export function GraphViewDemo() {
       <span className="caption">
         {node ? <>Selected <strong>{node.label}</strong> ({node.sublabel}). </> : null}
         Animated edges carry data; the dashed edge has ended. Click a node to select it.
+      </span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- FlowCanvas
+
+type StepKind = 'source' | 'transform' | 'output'
+const STEP_RANK: Record<StepKind, number> = { source: 0, transform: 1, output: 2 }
+
+function StepNode({ data, selected }: NodeProps) {
+  const d = data as { label: string; kind: StepKind }
+  return (
+    <div style={{
+      minWidth: 128, padding: '6px 10px', borderRadius: 'var(--radius-md)', fontSize: 12,
+      background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)',
+      border: `1px solid ${selected ? 'var(--color-accent)' : 'var(--border-strong)'}`,
+    }}>
+      {d.kind !== 'source' && <Handle type="target" position={Position.Left} />}
+      <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-secondary)' }}>{d.kind}</div>
+      {d.label}
+      {d.kind !== 'output' && <Handle type="source" position={Position.Right} />}
+    </div>
+  )
+}
+const STEP_TYPES = { step: StepNode }
+
+const PALETTE: FlowPaletteItem[] = [
+  { type: 'source', label: 'Source', description: 'A transport and a codec', icon: <TbPlugConnected /> },
+  { type: 'transform', label: 'Transform', description: 'Rename, remap, classify', icon: <TbArrowsShuffle /> },
+  { type: 'output', label: 'Output', description: 'A feature or track layer', icon: <TbStack2 /> },
+]
+
+const START_NODES: FlowCanvasNode[] = [
+  { id: 'n1', type: 'step', position: { x: 0, y: 40 }, data: { kind: 'source', label: 'UDP · JSON' } },
+  { id: 'n2', type: 'step', position: { x: 220, y: 40 }, data: { kind: 'transform', label: 'Rename fields' } },
+  { id: 'n3', type: 'step', position: { x: 440, y: 40 }, data: { kind: 'output', label: 'Tracks · TRACK' } },
+]
+const START_EDGES: FlowCanvasEdge[] = [
+  { id: 'n1-n2', source: 'n1', target: 'n2' },
+  { id: 'n2-n3', source: 'n2', target: 'n3' },
+]
+
+export function FlowCanvasDemo() {
+  const [nodes, setNodes] = useState<FlowCanvasNode[]>(START_NODES)
+  const [edges, setEdges] = useState<FlowCanvasEdge[]>(START_EDGES)
+  const [readOnly, setReadOnly] = useState(false)
+  const kindOf = useCallback((id: string) => (nodes.find(n => n.id === id)?.data as { kind: StepKind } | undefined)?.kind, [nodes])
+  return (
+    <div className="stack" style={{ gap: 'var(--space-sm)' }}>
+      <FlowCanvas
+        aria-label="Feed" height={320} nodes={nodes} edges={edges} nodeTypes={STEP_TYPES}
+        palette={PALETTE} readOnly={readOnly} minimap
+        onNodesChange={(ch: NodeChange[]) => setNodes(ns => applyNodeChanges(ch, ns))}
+        onEdgesChange={(ch: EdgeChange[]) => setEdges(es => applyEdgeChanges(ch, es))}
+        onConnect={(c: Connection) => setEdges(es => addEdge(c, es))}
+        isValidConnection={c => {
+          const a = kindOf(c.source), b = kindOf(c.target)
+          if (!a || !b) return false
+          return STEP_RANK[b] === STEP_RANK[a] + 1 || (a === 'transform' && b === 'transform')
+        }}
+        onDropNode={(type, position) => setNodes(ns => [...ns, {
+          id: `n${Date.now()}`, type: 'step', position, data: { kind: type as StepKind, label: `New ${type}` },
+        }])}
+      />
+      <span className="caption">
+        Drag a step from the palette (or focus it and press Enter), connect source → transform → output, select and press
+        Delete to remove. <Button size="sm" variant="ghost" onClick={() => setReadOnly(r => !r)}>{readOnly ? 'Edit' : 'Read only'}</Button>
       </span>
     </div>
   )

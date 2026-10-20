@@ -69,6 +69,7 @@
       <tbody>
         <tr><td><code>@kineticlogic/staresdk/map-view</code></td><td><code>maplibre-gl</code></td></tr>
         <tr><td><code>@kineticlogic/staresdk/graph-view</code></td><td><code>@xyflow/react @dagrejs/dagre</code></td></tr>
+        <tr><td><code>@kineticlogic/staresdk/flow-canvas</code></td><td><code>@xyflow/react</code></td></tr>
         <tr><td><code>@kineticlogic/staresdk/chart</code></td><td><code>uplot</code></td></tr>
         <tr><td><code>@kineticlogic/staresdk/code-editor</code></td><td><code>@codemirror/*</code> and <code>@lezer/highlight</code></td></tr>
         <tr><td>Mermaid diagrams in <code>MDText</code></td><td><code>mermaid</code></td></tr>
@@ -167,6 +168,7 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
         <tr><td>JSON / text editing</td><td><a href="#codeeditor"><code>CodeEditor</code></a></td><td><code>&lt;textarea&gt;</code></td></tr>
         <tr><td>Points on a map</td><td><a href="#mapview"><code>MapView</code></a></td><td>a second map library</td></tr>
         <tr><td>Lineage or a pipeline</td><td><a href="#graphview"><code>GraphView</code></a></td><td>hand-drawn SVG</td></tr>
+        <tr><td>Editing a flow (drag-and-drop steps)</td><td><a href="#flowcanvas"><code>FlowCanvas</code></a></td><td>a second flow library</td></tr>
         <tr><td>Values over time</td><td><a href="#timeserieschart"><code>TimeSeriesChart</code></a></td><td>a second chart library</td></tr>
         <tr><td>Rendered Markdown</td><td><a href="#mdtext"><code>MDText</code></a></td><td></td></tr>
       </tbody>
@@ -897,6 +899,27 @@ import '@xyflow/react/dist/base.css'
 &lt;GraphView aria-label="Pipeline" height={240} layerGap={48}
   nodes={[{ id: 'ais', label: 'AIS', sublabel: 'source', width: 120 }, { id: 'fuse', label: 'Fuse', tone: 'accent', width: 120 }, …]}
   edges={[{ id: 'e1', source: 'ais', target: 'fuse', animated: true }, …]} /&gt;</code></pre>
+    </div>
+
+    <h3>FlowCanvas <span class="since">Available in 0.2.22+</span></h3>
+    <p><code>@kineticlogic/staresdk/flow-canvas</code>. An editable drag-and-drop flow (LOOM's feed editor): React Flow
+      with every colour on tokens. You own the graph and your node renderers; FlowCanvas adds a palette (drag a step on,
+      or focus it and press Enter), a connection rule (<code>isValidConnection</code>), zoom and fit controls, an optional
+      minimap, Delete to remove the selection, and <code>readOnly</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>FlowCanvas</code></div>
+      <div class="demo" data-demo="flowcanvas"></div>
+<pre><code>import { FlowCanvas } from '@kineticlogic/staresdk/flow-canvas'
+import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+
+&lt;FlowCanvas aria-label="Feed" nodes={nodes} edges={edges} nodeTypes={{ step: StepNode }}
+  palette={[{ type: 'source', label: 'Source' }, { type: 'transform', label: 'Transform' }, { type: 'output', label: 'Output' }]}
+  onDropNode={(type, position) =&gt; setNodes(ns =&gt; [...ns, newStep(type, position)])}
+  onNodesChange={ch =&gt; setNodes(ns =&gt; applyNodeChanges(ch, ns))}
+  onEdgesChange={ch =&gt; setEdges(es =&gt; applyEdgeChanges(ch, es))}
+  onConnect={c =&gt; setEdges(es =&gt; addEdge(c, es))}
+  isValidConnection={c =&gt; allowed(c.source, c.target)} /&gt;</code></pre>
     </div>
 
     <h2>Reference</h2>
