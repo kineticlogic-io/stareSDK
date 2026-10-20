@@ -1268,6 +1268,7 @@ function ProfileChartDemo() {
 
 const TimeSeriesChartDemo = lazy(() => import('./views').then(m => ({ default: m.TimeSeriesChartDemo })))
 const GraphViewDemo = lazy(() => import('./views').then(m => ({ default: m.GraphViewDemo })))
+const FlowCanvasDemo = lazy(() => import('./views').then(m => ({ default: m.FlowCanvasDemo })))
 const MapViewDemo = lazy(() => import('./views').then(m => ({ default: m.MapViewDemo })))
 const CodeEditorDemo = lazy(() => import('./views').then(m => ({ default: m.CodeEditorDemo })))
 
@@ -1374,6 +1375,7 @@ export const DEMOS: Record<string, ComponentType> = {
   profilechart: ProfileChartDemo,
   timeserieschart: TimeSeriesChartDemo,
   graphview: GraphViewDemo,
+  flowcanvas: FlowCanvasDemo,
   mapview: MapViewDemo,
   codeeditor: CodeEditorDemo,
 }
