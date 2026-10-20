@@ -85,7 +85,31 @@ describe('AppCard (#31)', () => {
     expect(el.querySelector('a')).toBeNull()
     const card = el.firstElementChild as HTMLElement
     expect(card.getAttribute('aria-disabled')).toBe('true')
-    expect(card.getAttribute('title')).toBe('No imagery server')
+    expect(card.getAttribute('aria-label')).toBe('No imagery server')
+    expect(card.getAttribute('title')).toBeNull()
+  })
+
+  it('a disabled card shows its reason in a Tooltip on hover and focus (0.2.23)', () => {
+    const el = mount(<AppCard label="Vantage" icon={<i>icon</i>} href="/vantage" disabled disabledTooltip="No imagery server" />)
+    const card = el.firstElementChild as HTMLElement
+    const tooltip = () => document.body.querySelector('[role="tooltip"]')
+    expect(tooltip()).toBeNull()
+    act(() => { card.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 40, clientY: 60 })) })
+    expect(tooltip()?.textContent).toBe('No imagery server')
+    expect(card.getAttribute('aria-describedby')).toBe(tooltip()?.id)
+    act(() => { card.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body })) })
+    expect(tooltip()).toBeNull()
+    act(() => { card.focus() })
+    expect(tooltip()?.textContent).toBe('No imagery server')
+    act(() => { card.blur() })
+    expect(tooltip()).toBeNull()
+  })
+
+  it('an enabled card never shows a tooltip', () => {
+    const el = mount(<AppCard label="Apex" icon={<i>icon</i>} href="/apex" disabledTooltip="unused" />)
+    const card = el.firstElementChild as HTMLElement
+    act(() => { card.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 1, clientY: 1 })) })
+    expect(document.body.querySelector('[role="tooltip"]')).toBeNull()
   })
 })
 
