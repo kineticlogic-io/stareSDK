@@ -124,7 +124,8 @@ and token rules:
 - `MultiSelect` — a dropdown of checkboxes; since 0.2.6 optionally an `xs` icon button (`icon`)
   whose list floats below it (`align`), for toolbars.
 - `TagInput` — since 0.2.20, free-entry values as removable chips: Enter or comma adds (a pasted
-  list is split), Backspace in the empty input removes the last, each chip has a ×; values are
+  list is split; since 0.2.21 also a comma typed on a touch keyboard or autofilled, and the
+  placeholder shows only while there are no chips), Backspace in the empty input removes the last, each chip has a ×; values are
   trimmed and de-duplicated, with optional `normalize`, `validate` (the message shows under the
   field), `suggestions` (typeahead), `maxItems`, `removeLabel`, `disabled` and `readOnly`.
 - `Select` — a native single-select over `{ value, label, disabled? }` options with an optional

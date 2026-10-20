@@ -118,6 +118,24 @@ describe('TagInput', () => {
     expect(input(c).value).toBe(' D')
   })
 
+  it('ends a value at a comma that arrives without a key press (touch keyboards, autofill)', () => {
+    const c = render()
+    type(c, 'alpha,')
+    expect(chips(c)).toEqual(['alpha'])
+    expect(input(c).value).toBe('')
+    type(c, 'bravo, charlie, del')
+    expect(chips(c)).toEqual(['alpha', 'bravo', 'charlie'])
+    expect(input(c).value).toBe(' del')
+  })
+
+  it('shows the placeholder only while there are no chips', () => {
+    const c = render({ placeholder: 'Add a tag…' })
+    expect(input(c).placeholder).toBe('Add a tag…')
+    type(c, 'alpha')
+    key(c, 'Enter')
+    expect(input(c).placeholder).toBe('')
+  })
+
   it('shows the validation message and does not add a rejected value', () => {
     const c = render({ validate: (v) => (/^[0-9A-Z]{5}$/.test(v) ? null : 'An ELNOT is five letters or digits') })
     type(c, 'bad')
