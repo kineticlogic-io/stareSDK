@@ -1,4 +1,4 @@
-import { useCallback, useRef, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useId, useRef, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -36,6 +36,7 @@ import { Button } from './Button.js'
  * - **Palette**: `palette` items are listed beside the canvas. Drag one onto the canvas, or focus it
  *   and press Enter (or click it), and `onDropNode(type, position)` reports where the new step goes
  *   (the drop point, or the centre of the view) in flow coordinates. The consumer adds the node.
+ *   Items with a `group` are listed under a quiet section heading per group (0.2.24).
  * - **Connections**: `isValidConnection` decides which connections may be made (LOOM allows only
  *   source → transform → output); a refused connection is never reported to `onConnect`.
  * - **Controls**: zoom in, zoom out and fit, drawn with stareSDK `Button`s and Tabler icons. A dot
@@ -61,6 +62,12 @@ export interface FlowPaletteItem {
   description?: string
   /** A react-icons/tb glyph. */
   icon?: ReactNode
+  /**
+   * The palette section this item is listed under (e.g. "Source", "Transform", "Output"). Items
+   * that share a group sit under one heading, groups in the order they first appear. Items with no
+   * group are listed without a heading; a palette with no groups looks as it always has.
+   */
+  group?: string
 }
 
 export interface FlowCanvasProps {
@@ -143,6 +150,37 @@ function Controls() {
   )
 }
 
+/** A palette section heading: the design system's quiet section-label style (as Flyout, ContextMenu). */
+const groupHeadingStyle: CSSProperties = {
+  padding: '0 2px',
+  fontFamily: 'var(--font-sans)',
+  fontSize: 9,
+  fontWeight: 600,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  color: 'var(--color-text-secondary)',
+  userSelect: 'none',
+}
+
+const columnStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }
+
+/** Palette items in sections: one per group (and one for ungrouped items), in first-appearance order. */
+function flowPaletteSections(items: FlowPaletteItem[]): Array<{ group?: string; items: FlowPaletteItem[] }> {
+  const sections: Array<{ group?: string; items: FlowPaletteItem[] }> = []
+  const byGroup = new Map<string | undefined, FlowPaletteItem[]>()
+  for (const item of items) {
+    const group = item.group || undefined
+    let list = byGroup.get(group)
+    if (!list) {
+      list = []
+      byGroup.set(group, list)
+      sections.push({ group, items: list })
+    }
+    list.push(item)
+  }
+  return sections
+}
+
 function Palette({
   items,
   onChoose,
@@ -150,6 +188,7 @@ function Palette({
   items: FlowPaletteItem[]
   onChoose: (type: string) => void
 }) {
+  const idBase = useId()
   const start = (e: DragEvent<HTMLElement>, type: string) => {
     e.dataTransfer.setData(FLOW_NODE_MIME, type)
     e.dataTransfer.effectAllowed = 'move'
@@ -160,57 +199,77 @@ function Palette({
       onChoose(type)
     }
   }
-  return (
+  const renderItem = (item: FlowPaletteItem) => (
     <div
-      role="list"
-      aria-label="Steps"
+      key={item.type}
+      role="listitem"
+      tabIndex={0}
+      draggable
+      aria-label={`Add ${item.label}`}
+      title={item.description}
+      onDragStart={(e) => start(e, item.type)}
+      onKeyDown={(e) => key(e, item.type)}
+      onClick={() => onChoose(item.type)}
       style={{
-        width: 168,
-        flexShrink: 0,
-        overflowY: 'auto',
-        padding: 'var(--space-sm)',
         display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-xs)',
-        borderRight: '1px solid var(--color-glass-border)',
-        background: 'var(--color-bg-secondary)',
+        alignItems: 'flex-start',
+        gap: 6,
+        padding: '6px 8px',
+        border: '1px solid var(--color-glass-border)',
+        borderRadius: 'var(--radius-sm)',
+        background: 'var(--color-bg-primary)',
+        color: 'var(--color-text-primary)',
+        fontFamily: 'var(--font-sans)',
+        fontSize: 12,
+        cursor: 'grab',
+        userSelect: 'none',
       }}
     >
-      {items.map((item) => (
-        <div
-          key={item.type}
-          role="listitem"
-          tabIndex={0}
-          draggable
-          aria-label={`Add ${item.label}`}
-          title={item.description}
-          onDragStart={(e) => start(e, item.type)}
-          onKeyDown={(e) => key(e, item.type)}
-          onClick={() => onChoose(item.type)}
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 6,
-            padding: '6px 8px',
-            border: '1px solid var(--color-glass-border)',
-            borderRadius: 'var(--radius-sm)',
-            background: 'var(--color-bg-primary)',
-            color: 'var(--color-text-primary)',
-            fontFamily: 'var(--font-sans)',
-            fontSize: 12,
-            cursor: 'grab',
-            userSelect: 'none',
-          }}
-        >
-          {item.icon && <span aria-hidden style={{ display: 'flex', color: 'var(--color-text-secondary)', paddingTop: 1 }}>{item.icon}</span>}
-          <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <span style={{ fontWeight: 600 }}>{item.label}</span>
-            {item.description && (
-              <span style={{ fontSize: 10, color: 'var(--color-text-secondary)', lineHeight: 1.3 }}>{item.description}</span>
-            )}
-          </span>
-        </div>
-      ))}
+      {item.icon && <span aria-hidden style={{ display: 'flex', color: 'var(--color-text-secondary)', paddingTop: 1 }}>{item.icon}</span>}
+      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <span style={{ fontWeight: 600 }}>{item.label}</span>
+        {item.description && (
+          <span style={{ fontSize: 10, color: 'var(--color-text-secondary)', lineHeight: 1.3 }}>{item.description}</span>
+        )}
+      </span>
+    </div>
+  )
+  const grouped = items.some((item) => !!item.group)
+  const frame: CSSProperties = {
+    width: 168,
+    flexShrink: 0,
+    overflowY: 'auto',
+    padding: 'var(--space-sm)',
+    borderRight: '1px solid var(--color-glass-border)',
+    background: 'var(--color-bg-secondary)',
+  }
+  if (!grouped) {
+    return (
+      <div role="list" aria-label="Steps" style={{ ...frame, ...columnStyle }}>
+        {items.map(renderItem)}
+      </div>
+    )
+  }
+  return (
+    <div role="group" aria-label="Steps" style={{ ...frame, display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+      {flowPaletteSections(items).map((section, i) => {
+        if (section.group === undefined) {
+          return (
+            <div key={`ungrouped-${i}`} role="list" style={columnStyle}>
+              {section.items.map(renderItem)}
+            </div>
+          )
+        }
+        const headingId = `${idBase}-group-${i}`
+        return (
+          <div key={`group-${section.group}`} role="group" aria-labelledby={headingId} style={columnStyle}>
+            <div id={headingId} style={groupHeadingStyle}>{section.group}</div>
+            <div role="list" style={columnStyle}>
+              {section.items.map(renderItem)}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

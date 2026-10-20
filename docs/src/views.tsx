@@ -111,9 +111,9 @@ function StepNode({ data, selected }: NodeProps) {
 const STEP_TYPES = { step: StepNode }
 
 const PALETTE: FlowPaletteItem[] = [
-  { type: 'source', label: 'Source', description: 'A transport and a codec', icon: <TbPlugConnected /> },
-  { type: 'transform', label: 'Transform', description: 'Rename, remap, classify', icon: <TbArrowsShuffle /> },
-  { type: 'output', label: 'Output', description: 'A feature or track layer', icon: <TbStack2 /> },
+  { type: 'source', label: 'UDP listener', description: 'A transport and a codec', icon: <TbPlugConnected />, group: 'Source' },
+  { type: 'transform', label: 'Rename fields', description: 'Rename, remap, classify', icon: <TbArrowsShuffle />, group: 'Transform' },
+  { type: 'output', label: 'Track layer', description: 'A feature or track layer', icon: <TbStack2 />, group: 'Output' },
 ]
 
 const START_NODES: FlowCanvasNode[] = [

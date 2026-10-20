@@ -904,7 +904,7 @@ import '@xyflow/react/dist/base.css'
     <h3>FlowCanvas <span class="since">Available in 0.2.22+</span></h3>
     <p><code>@kineticlogic/staresdk/flow-canvas</code>. An editable drag-and-drop flow (LOOM's feed editor): React Flow
       with every colour on tokens. You own the graph and your node renderers; FlowCanvas adds a palette (drag a step on,
-      or focus it and press Enter), a connection rule (<code>isValidConnection</code>), zoom and fit controls, an optional
+      or focus it and press Enter; give items a <code>group</code> to list them under section headings, 0.2.24+), a connection rule (<code>isValidConnection</code>), zoom and fit controls, an optional
       minimap, Delete to remove the selection, and <code>readOnly</code>.</p>
     <div class="example">
       <div class="example-label">Example <code>FlowCanvas</code></div>
@@ -914,7 +914,11 @@ import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
 &lt;FlowCanvas aria-label="Feed" nodes={nodes} edges={edges} nodeTypes={{ step: StepNode }}
-  palette={[{ type: 'source', label: 'Source' }, { type: 'transform', label: 'Transform' }, { type: 'output', label: 'Output' }]}
+  palette={[
+    { type: 'source', label: 'UDP listener', group: 'Source' },
+    { type: 'transform', label: 'Rename fields', group: 'Transform' },
+    { type: 'output', label: 'Track layer', group: 'Output' },
+  ]}
   onDropNode={(type, position) =&gt; setNodes(ns =&gt; [...ns, newStep(type, position)])}
   onNodesChange={ch =&gt; setNodes(ns =&gt; applyNodeChanges(ch, ns))}
   onEdgesChange={ch =&gt; setEdges(es =&gt; applyEdgeChanges(ch, es))}

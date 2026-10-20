@@ -18,14 +18,14 @@
     document.documentElement.dataset.theme = t
   })()
 </script>
-  <script type="module" crossorigin src="./assets/index-B4q1HQXp.js"></script>
+  <script type="module" crossorigin src="./assets/index-BgepVjch.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-B0Z9INg1.js">
   <link rel="stylesheet" crossorigin href="./assets/index-L_hlnD6t.css">
 </head>
 <body>
 <header class="guide-header">
   <a class="guide-brand" href="#overview">stare<span>SDK</span></a>
-  <span class="guide-version">v0.2.22</span>
+  <span class="guide-version">v0.2.24</span>
   <nav class="guide-nav" aria-label="Site">
     <a href="#getting-started">Start</a>
     <a href="#foundations">Foundations</a>
@@ -906,7 +906,7 @@ import '@xyflow/react/dist/base.css'
     <h3 id="flowcanvas" class="guide-heading">FlowCanvas <span class="since">Available in 0.2.22+</span><a class="guide-anchor" href="#flowcanvas" aria-label="Link to this section">#</a></h3>
     <p><code>@kineticlogic/staresdk/flow-canvas</code>. An editable drag-and-drop flow (LOOM's feed editor): React Flow
       with every colour on tokens. You own the graph and your node renderers; FlowCanvas adds a palette (drag a step on,
-      or focus it and press Enter), a connection rule (<code>isValidConnection</code>), zoom and fit controls, an optional
+      or focus it and press Enter; give items a <code>group</code> to list them under section headings, 0.2.24+), a connection rule (<code>isValidConnection</code>), zoom and fit controls, an optional
       minimap, Delete to remove the selection, and <code>readOnly</code>.</p>
     <div class="example">
       <div class="example-label">Example <code>FlowCanvas</code></div>
@@ -916,7 +916,11 @@ import { applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
 &lt;FlowCanvas aria-label="Feed" nodes={nodes} edges={edges} nodeTypes={{ step: StepNode }}
-  palette={[{ type: 'source', label: 'Source' }, { type: 'transform', label: 'Transform' }, { type: 'output', label: 'Output' }]}
+  palette={[
+    { type: 'source', label: 'UDP listener', group: 'Source' },
+    { type: 'transform', label: 'Rename fields', group: 'Transform' },
+    { type: 'output', label: 'Track layer', group: 'Output' },
+  ]}
   onDropNode={(type, position) =&gt; setNodes(ns =&gt; [...ns, newStep(type, position)])}
   onNodesChange={ch =&gt; setNodes(ns =&gt; applyNodeChanges(ch, ns))}
   onEdgesChange={ch =&gt; setEdges(es =&gt; applyEdgeChanges(ch, es))}
@@ -956,7 +960,7 @@ npm run docs      # this guide, into docs/</code></pre>
     <p><a href="https://github.com/kineticlogic-io/stareSDK/blob/main/LICENSE">MIT</a>. © 2026 kineticlogic.io. For consulting
       or support, email <a href="mailto:admin@kineticlogic.io">admin@kineticlogic.io</a>.</p>
 
-    <footer class="guide-footer">stareSDK v0.2.22 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
+    <footer class="guide-footer">stareSDK v0.2.24 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
   </main>
 </div>
 </body>
