@@ -1,6 +1,6 @@
 {
   "name": "@kineticlogic/staresdk",
-  "version": "0.2.21",
+  "version": "0.2.22",
   "description": "React UI components, theming and design tokens for mission and geospatial applications: the design system behind OpenStare and OpenTrack.",
   "license": "MIT",
   "author": "kineticlogic.io <admin@kineticlogic.io>",
@@ -44,6 +44,10 @@
     "./graph-view": {
       "types": "./dist/graph-view.d.ts",
       "import": "./dist/graph-view.js"
+    },
+    "./flow-canvas": {
+      "types": "./dist/flow-canvas.d.ts",
+      "import": "./dist/flow-canvas.js"
     },
     "./chart": {
       "types": "./dist/chart.d.ts",
