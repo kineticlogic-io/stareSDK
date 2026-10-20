@@ -123,6 +123,10 @@ and token rules:
   for a caller-owned selection, and `onRowClick` receives the modifier keys held.
 - `MultiSelect` — a dropdown of checkboxes; since 0.2.6 optionally an `xs` icon button (`icon`)
   whose list floats below it (`align`), for toolbars.
+- `TagInput` — since 0.2.20, free-entry values as removable chips: Enter or comma adds (a pasted
+  list is split), Backspace in the empty input removes the last, each chip has a ×; values are
+  trimmed and de-duplicated, with optional `normalize`, `validate` (the message shows under the
+  field), `suggestions` (typeahead), `maxItems`, `removeLabel`, `disabled` and `readOnly`.
 - `Select` — a native single-select over `{ value, label, disabled? }` options with an optional
   "nothing chosen" `placeholder` (reported as `null`); since 0.2.13 it passes `id`, `name`,
   `required`, `title` and `ref` through to the `<select>`.

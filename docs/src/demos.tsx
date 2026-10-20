@@ -13,7 +13,7 @@ import {
   Disclosure, DraggablePopup, Facets, FieldSelect, FileDropZone, Flyout, HomeButton, InfoTip,
   Input, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader,
   Pagination, Popover, PopoverMenuButton, ProfileChart, RadioGroup, RampPicker, SaveButton, Select, SideNav, Slider,
-  SortableList, Stepper, TabPanel, Tabs, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
+  SortableList, Stepper, TabPanel, Tabs, TagInput, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
   VirtualList, ZoomRangeSlider, distanceToMeters, durationToSeconds, sortRows, speedToMetersPerSecond, useTheme, useToast, useTypeaheadKeyboard,
   type BadgeColor, type ClassificationMarking, type ClassifyOptions, type DataTableColumn,
   type DataTableSort,
@@ -284,6 +284,30 @@ function FieldSelectDemo() {
         fields={[{ name: 'callsign' }, { name: 'mmsi' }, { name: 'flag' }, { name: 'geometry', disabled: true, disabledReason: 'Not a text field' }]}
       />
       <span className="caption mono">value: {JSON.stringify(value)}</span>
+    </div>
+  )
+}
+
+function TagInputDemo() {
+  const [elnots, setElnots] = useState(['3E2AA', '3F1BB'])
+  const [tags, setTags] = useState(['maritime'])
+  return (
+    <div style={narrow}>
+      <Label htmlFor="demo-elnots">ELNOTs</Label>
+      <TagInput
+        id="demo-elnots"
+        ariaLabel="ELNOTs"
+        value={elnots}
+        onChange={setElnots}
+        normalize={(v) => v.toUpperCase()}
+        validate={(v) => (/^[0-9A-Z]{5}$/.test(v) ? null : 'An ELNOT is five letters or digits')}
+        placeholder="Add an ELNOT…"
+      />
+      <div style={{ marginTop: 'var(--space-md)' }}>
+        <Label htmlFor="demo-tags">Tags</Label>
+        <TagInput id="demo-tags" ariaLabel="Tags" value={tags} onChange={setTags} suggestions={['maritime', 'air', 'land', 'space', 'cyber']} placeholder="Add a tag…" />
+      </div>
+      <span className="caption mono">value: {JSON.stringify(elnots)}</span>
     </div>
   )
 }
@@ -1307,6 +1331,7 @@ export const DEMOS: Record<string, ComponentType> = {
   select: SelectDemo,
   fieldselect: FieldSelectDemo,
   multiselect: MultiSelectDemo,
+  taginput: TagInputDemo,
   unitselect: UnitSelectDemo,
   toggle: ToggleDemo,
   slider: SliderDemo,
