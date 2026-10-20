@@ -351,6 +351,22 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
   options={[{ value: 'viewer', label: 'Viewer', locked: true }, { value: 'operator', label: 'Operator' }, …]} /&gt;</code></pre>
     </div>
 
+    <h3>TagInput <span class="since">Available in 0.2.20+</span></h3>
+    <p>Type values and press Enter or comma to add each as a chip; paste a comma-separated list to add them all. Backspace in
+      the empty input removes the last chip, and each chip has its own ×. Values are trimmed and never added twice;
+      <code>normalize</code> (e.g. lower-casing) runs first, and a value <code>validate</code> rejects is not added — its message
+      shows under the field. <code>suggestions</code> lists matching values as you type (free entry still works),
+      <code>maxItems</code> caps the count, and <code>readOnly</code> shows the chips alone.</p>
+    <div class="example">
+      <div class="example-label">Example <code>TagInput</code></div>
+      <div class="demo" data-demo="taginput"></div>
+<pre><code>&lt;Label htmlFor="elnots"&gt;ELNOTs&lt;/Label&gt;
+&lt;TagInput id="elnots" ariaLabel="ELNOTs" value={elnots} onChange={setElnots}
+  normalize={v =&gt; v.toUpperCase()}
+  validate={v =&gt; (/^[0-9A-Z]{5}$/.test(v) ? null : 'An ELNOT is five letters or digits')} /&gt;
+&lt;TagInput ariaLabel="Tags" value={tags} onChange={setTags} suggestions={['maritime', 'air', 'land']} /&gt;</code></pre>
+    </div>
+
     <h3>UnitSelect <span class="since">Available in 0.2.0+</span></h3>
     <p>Pick a unit, orientation convention or confidence level. The <code>family</code> picks the list; conversions live in <code>units.ts</code>.</p>
     <p class="since-notes"><code>speed</code> (m/s, km/h, knots, mph) and <code>time</code> (seconds, minutes, hours, days) families: 0.2.18+</p>
