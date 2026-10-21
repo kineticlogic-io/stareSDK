@@ -300,7 +300,44 @@ describe('ItemCard', () => {
       const c = render({ layout: 'tile', selectable: true, onCheckedChange: () => {} })
       const wrap = c.querySelector('input[type="checkbox"]')!.parentElement as HTMLElement
       expect(wrap.style.position).toBe('absolute')
-      expect(wrap.parentElement).toBe(card(c))
+      // Positioned over the thumbnail's own box, so a banner above it never sits under the checkbox.
+      const box = wrap.parentElement as HTMLElement
+      expect(box.style.position).toBe('relative')
+      expect(box.querySelector('.ui-item-card__thumb')).not.toBeNull()
+      expect(box.parentElement).toBe(card(c))
+    })
+
+    it('no banner renders no banner strip', () => {
+      expect(render().querySelector('.ui-item-card__banner')).toBeNull()
+      expect(render({ layout: 'tile' }).querySelector('.ui-item-card__banner')).toBeNull()
+    })
+
+    it('a tile shows its banner across the top edge, above the thumbnail and the checkbox', () => {
+      const c = render({ layout: 'tile', selectable: true, onCheckedChange: () => {}, banner: <div role="note">SECRET</div> })
+      const strip = c.querySelector('.ui-item-card__banner') as HTMLElement
+      expect(card(c).firstElementChild).toBe(strip)
+      expect(strip.textContent).toBe('SECRET')
+      expect(strip.nextElementSibling!.querySelector('.ui-item-card__thumb')).not.toBeNull()
+      expect(strip.querySelector('input[type="checkbox"]')).toBeNull()
+    })
+
+    it('a row with a banner stacks the strip over the row content', () => {
+      const c = render({ thumbnailSrc: '/thumb.png', selectable: true, onCheckedChange: () => {}, banner: <div role="note">SECRET</div> })
+      const strip = c.querySelector('.ui-item-card__banner') as HTMLElement
+      expect(card(c).style.flexDirection).toBe('column')
+      expect(card(c).firstElementChild).toBe(strip)
+      const row = strip.nextElementSibling as HTMLElement
+      expect(row.style.flexDirection).toBe('row')
+      expect(row.querySelector('input[type="checkbox"]')).not.toBeNull()
+      expect(row.querySelector('.ui-item-card__thumb')).not.toBeNull()
+      expect(row.querySelector('.ui-item-card__title')!.textContent).toBe('Port of Rotterdam AIS')
+    })
+
+    it('a click on the banner activates the card like any other part of it', () => {
+      const onClick = vi.fn()
+      const c = render({ layout: 'tile', onClick, banner: <div role="note">SECRET</div> })
+      act(() => (c.querySelector('.ui-item-card__banner') as HTMLElement).click())
+      expect(onClick).toHaveBeenCalledTimes(1)
     })
 
     it('tile keeps the slots isolated from onClick too', () => {
