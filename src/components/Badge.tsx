@@ -1,4 +1,5 @@
 import type { ReactNode, CSSProperties } from 'react'
+import { TbX } from 'react-icons/tb'
 import { BADGE_BG } from './badgeTokens.js'
 import { relativeLuminance } from '../internal/color.js'
 import { useTheme } from '../theme/useTheme.js'
@@ -13,6 +14,10 @@ import { useTheme } from '../theme/useTheme.js'
  *
  * This is the single source of truth for small status/label pills (roles,
  * statuses, counts, etc.). Prefer it over hand-rolled inline pill styles.
+ *
+ * `onRemove` (0.2.26) makes it a removable chip: a trailing × button (`TbX`) named by
+ * `removeLabel` (default "Remove"), the same chip `TagInput` shows for each value — e.g. a
+ * chosen filter value shown under its search field.
  */
 
 export type BadgeColor = 'grey' | 'brand' | 'blue' | 'success' | 'warning' | 'danger'
@@ -63,7 +68,25 @@ interface BadgeProps {
   /** Hollow style: transparent fill with a colored outline + colored text (instead of a solid fill). */
   outline?: boolean
   title?: string
+  /** Adds a trailing × button that calls this (a removable chip). */
+  onRemove?: () => void
+  /** The × button's accessible name (default "Remove"). */
+  removeLabel?: string
+  /** Disables the × button. */
+  removeDisabled?: boolean
   style?: CSSProperties
+}
+
+const removeStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginLeft: 4,
+  padding: 0,
+  border: 'none',
+  background: 'transparent',
+  color: 'inherit',
+  lineHeight: 1,
 }
 
 export function Badge({
@@ -74,6 +97,9 @@ export function Badge({
   icon,
   outline = false,
   title,
+  onRemove,
+  removeLabel = 'Remove',
+  removeDisabled = false,
   style,
 }: BadgeProps) {
   const { theme } = useTheme()
@@ -103,6 +129,21 @@ export function Badge({
         <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>{icon}</span>
       )}
       {children}
+      {onRemove && (
+        <button
+          type="button"
+          aria-label={removeLabel}
+          title={removeLabel}
+          disabled={removeDisabled}
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}
+          style={{ ...removeStyle, cursor: removeDisabled ? 'not-allowed' : 'pointer' }}
+        >
+          <TbX size={10} aria-hidden />
+        </button>
+      )}
     </span>
   )
 }

@@ -268,6 +268,34 @@ describe('ItemCard', () => {
       expect(c.querySelector('.ui-item-card__thumb--placeholder')).not.toBeNull()
     })
 
+    it('tile shows its title, description and owner, and clips without becoming a scroll container', () => {
+      // `overflow: hidden` made the tile a scroll container (automatic minimum height 0), so a grid
+      // of auto rows in a height-limited scroller squeezed every tile to its thumbnail: blank cards.
+      const c = render({ layout: 'tile', owner: { name: 'Dana Analyst' } })
+      expect(c.querySelector('.ui-item-card__title')!.textContent).toBe('Port of Rotterdam AIS')
+      expect(c.querySelector('.ui-item-card__description')!.textContent).toBe('Vessel positions around the port.')
+      expect(c.querySelector('.ui-item-card__owner')!.textContent).toContain('Dana Analyst')
+      expect(card(c).style.overflow).toBe('clip')
+      expect(card(c).style.height).toBe('100%')
+    })
+
+    it('size lg makes a larger tile: a taller 3:2 thumbnail, bigger title, four description lines', () => {
+      const md = render({ layout: 'tile' })
+      const lg = render({ layout: 'tile', size: 'lg' })
+      expect((md.querySelector('.ui-item-card__thumb') as HTMLElement).style.aspectRatio).toBe('16 / 9')
+      expect((lg.querySelector('.ui-item-card__thumb') as HTMLElement).style.aspectRatio).toBe('3 / 2')
+      expect(card(lg).classList.contains('ui-item-card--lg')).toBe(true)
+      expect(card(md).classList.contains('ui-item-card--lg')).toBe(false)
+      expect((lg.querySelector('.ui-item-card__title') as HTMLElement).style.fontSize).toBe('16px')
+      expect((lg.querySelector('.ui-item-card__description') as HTMLElement).style.webkitLineClamp).toBe('4')
+    })
+
+    it('a row ignores size', () => {
+      const c = render({ size: 'lg' })
+      expect(card(c).classList.contains('ui-item-card--lg')).toBe(false)
+      expect((c.querySelector('.ui-item-card__title') as HTMLElement).style.fontSize).toBe('14px')
+    })
+
     it('tile overlays the selection checkbox on the thumbnail corner', () => {
       const c = render({ layout: 'tile', selectable: true, onCheckedChange: () => {} })
       const wrap = c.querySelector('input[type="checkbox"]')!.parentElement as HTMLElement

@@ -18,6 +18,11 @@ import type { CSSProperties, ReactNode } from 'react'
  * modal's narrower one) — `sm` reproduces CatalogModal's tighter mono header verbatim, `md`
  * reproduces LedgerPage's sans header verbatim, `lg` extends the same scale upward for any
  * future denser or full-height rail.
+ *
+ * `children` (0.2.26) replaces the option list with the caller's own body under the same header
+ * (label and Clear) — for a facet whose values are too many to list, such as a people or tag
+ * search field with the chosen values as removable `Badge` chips beneath it. `options` and
+ * `onToggle` are then unused and may be left out.
  */
 
 export type FacetsSize = 'sm' | 'md' | 'lg'
@@ -34,10 +39,14 @@ export interface FacetsProps {
   label: string
   /** Optional leading glyph next to the group label (CatalogModal's `TbTag`). */
   icon?: ReactNode
-  options: FacetOption[]
+  /** The values to toggle; unused (and optional) when `children` is given. */
+  options?: FacetOption[]
   selected: string[]
-  onToggle: (value: string) => void
+  /** Unused (and optional) when `children` is given. */
+  onToggle?: (value: string) => void
   onClear: () => void
+  /** The group's own body in place of the option list (e.g. a search field and chips). */
+  children?: ReactNode
   size?: FacetsSize
   /** Copy shown when `options` is empty. Defaults to 'None'. */
   emptyCopy?: string
@@ -75,10 +84,11 @@ const SIZE_STYLES: Record<FacetsSize, SizeStyle> = {
 export function Facets({
   label,
   icon,
-  options,
+  options = [],
   selected,
   onToggle,
   onClear,
+  children,
   size = 'md',
   emptyCopy = 'None',
   style,
@@ -114,44 +124,50 @@ export function Facets({
         )}
       </div>
 
-      {options.length === 0 && (
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-secondary)' }}>
-          {emptyCopy}
-        </div>
-      )}
+      {children != null ? (
+        children
+      ) : (
+        <>
+          {options.length === 0 && (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-secondary)' }}>
+              {emptyCopy}
+            </div>
+          )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {options.map(opt => {
-          const active = selected.includes(opt.value)
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onToggle(opt.value)}
-              aria-pressed={active}
-              style={{
-                display: 'flex', alignItems: 'center', gap: s.gap, width: '100%',
-                padding: s.optionPadding, borderRadius: 4, cursor: 'pointer', textAlign: 'left',
-                background: active ? 'var(--brand-subtle)' : 'transparent',
-                border: `1px solid ${active ? 'var(--color-accent)' : 'transparent'}`,
-                color: active ? 'var(--color-accent)' : 'var(--color-text-primary)',
-                fontFamily: 'var(--font-sans)', fontSize: s.optionFontSize,
-                transition: 'background 0.12s, border-color 0.12s',
-              }}
-            >
-              {opt.icon != null && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>{opt.icon}</span>
-              )}
-              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {opt.label}
-              </span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: s.countFontSize, color: 'var(--color-text-secondary)' }}>
-                {opt.count}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {options.map(opt => {
+              const active = selected.includes(opt.value)
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onToggle?.(opt.value)}
+                  aria-pressed={active}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: s.gap, width: '100%',
+                    padding: s.optionPadding, borderRadius: 4, cursor: 'pointer', textAlign: 'left',
+                    background: active ? 'var(--brand-subtle)' : 'transparent',
+                    border: `1px solid ${active ? 'var(--color-accent)' : 'transparent'}`,
+                    color: active ? 'var(--color-accent)' : 'var(--color-text-primary)',
+                    fontFamily: 'var(--font-sans)', fontSize: s.optionFontSize,
+                    transition: 'background 0.12s, border-color 0.12s',
+                  }}
+                >
+                  {opt.icon != null && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>{opt.icon}</span>
+                  )}
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {opt.label}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: s.countFontSize, color: 'var(--color-text-secondary)' }}>
+                    {opt.count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }

@@ -35,7 +35,11 @@
  * design (both the dark and light drift guards still pin its literal value).
  */
 
-import { describe, it, expect } from 'vitest'
+import { createRoot } from 'react-dom/client'
+import { act } from 'react'
+import type { ReactNode } from 'react'
+import { describe, it, expect, vi } from 'vitest'
+import { Badge } from './Badge.js'
 import { BADGE_BG } from './badgeTokens.js'
 import { DARK_THEME, LIGHT_THEME } from '../styles/chromeTheme.js'
 import { contrastRatio } from '../internal/color.js'
@@ -154,5 +158,43 @@ describe('Badge BADGE_BG outline-as-text contrast gate (D-04/D-14)', () => {
     for (const [name, hex] of Object.entries(BADGE_BG.light)) {
       expect(contrastRatio(hex, LIGHT_BG), `light.${name} (${hex}) vs ${LIGHT_BG}`).toBeGreaterThanOrEqual(4.5)
     }
+  })
+})
+
+describe('Badge onRemove (0.2.26)', () => {
+  ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+  function render(node: ReactNode) {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    act(() => root.render(node))
+    return { container, unmount: () => { act(() => root.unmount()); container.remove() } }
+  }
+
+  it('has no remove button without onRemove', () => {
+    const { container, unmount } = render(<Badge>maritime</Badge>)
+    expect(container.querySelector('button')).toBeNull()
+    unmount()
+  })
+
+  it('adds a labelled × button that calls onRemove and does not bubble', () => {
+    const onRemove = vi.fn()
+    const outer = vi.fn()
+    const { container, unmount } = render(
+      <div onClick={outer}><Badge onRemove={onRemove} removeLabel="Remove tag maritime">maritime</Badge></div>,
+    )
+    const button = container.querySelector('button[aria-label="Remove tag maritime"]') as HTMLButtonElement
+    expect(button).not.toBeNull()
+    expect(container.textContent).toBe('maritime')
+    act(() => button.click())
+    expect(onRemove).toHaveBeenCalledOnce()
+    expect(outer).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('removeDisabled disables the button', () => {
+    const { container, unmount } = render(<Badge onRemove={() => {}} removeDisabled>maritime</Badge>)
+    expect((container.querySelector('button[aria-label="Remove"]') as HTMLButtonElement).disabled).toBe(true)
+    unmount()
   })
 })

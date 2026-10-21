@@ -19,7 +19,15 @@ import { Checkbox } from './Checkbox.js'
  * - `row` (default) — the full-width list row LEDGER shows today; a `thumbnailSrc` shows as a
  *   small preview at the leading edge.
  * - `tile` — a grid tile with the thumbnail across the top; without one, the type icon sits in a
- *   neutral placeholder area of the same size.
+ *   neutral placeholder area of the same size. The tile fills its grid cell (`height: 100%`) and
+ *   clips its rounded corners with `overflow: clip`, not `hidden` (0.2.26): `hidden` made the tile
+ *   a scroll container, whose automatic minimum height is zero, so in a grid of `auto` rows inside
+ *   a height-limited scroller the rows were squeezed to share the visible height and every tile
+ *   was cut off below its thumbnail — a page of blank cards.
+ *
+ * `size` (0.2.26) scales a tile: `md` (default) as above; `lg` a larger card for a grid of few
+ * columns — a taller 3:2 thumbnail, a bigger placeholder icon, larger type and four lines of
+ * description. A row ignores it.
  *
  * Interaction:
  * - `onClick` makes the whole card one control (`role="button"`, focusable, Enter/Space
@@ -37,6 +45,7 @@ import { Checkbox } from './Checkbox.js'
  * design tokens only, so it follows the dark and light themes.
  */
 export type ItemCardLayout = 'row' | 'tile'
+export type ItemCardSize = 'md' | 'lg'
 
 export interface ItemCardOwner {
   name: string
@@ -84,6 +93,8 @@ export interface ItemCardProps {
   /** Accessible name of the star toggle (default "Favorite"); its state is `aria-pressed`. */
   favoriteLabel?: string
   layout?: ItemCardLayout
+  /** A tile's scale (default `md`); a row ignores it. */
+  size?: ItemCardSize
   id?: string
   style?: CSSProperties
 }
@@ -177,10 +188,12 @@ export function ItemCard({
   onFavoriteChange,
   favoriteLabel = 'Favorite',
   layout = 'row',
+  size = 'md',
   id,
   style,
 }: ItemCardProps) {
   const tile = layout === 'tile'
+  const large = tile && size === 'lg'
   const interactive = onClick != null
   const shown = tags.slice(0, Math.max(0, maxTags))
   const hidden = tags.slice(shown.length)
@@ -253,7 +266,7 @@ export function ItemCard({
       aria-label={typeLabel}
       aria-hidden={typeLabel ? undefined : true}
       title={typeLabel}
-      style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, fontSize: 18, color: 'var(--color-text-secondary)', marginTop: 1 }}
+      style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, fontSize: large ? 20 : 18, color: 'var(--color-text-secondary)', marginTop: 1 }}
     >
       {typeIcon}
     </span>
@@ -264,12 +277,12 @@ export function ItemCard({
       <div
         className="ui-item-card__title"
         title={title}
-        style={{ ...ellipsis, fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)' }}
+        style={{ ...ellipsis, fontFamily: 'var(--font-sans)', fontSize: large ? 16 : 14, fontWeight: 700, color: 'var(--color-text-primary)' }}
       >
         {title}
       </div>
       {subtitle != null && (
-        <div style={{ ...ellipsis, fontSize: 12, color: 'var(--color-text-secondary)' }}>{subtitle}</div>
+        <div style={{ ...ellipsis, fontSize: large ? 13 : 12, color: 'var(--color-text-secondary)' }}>{subtitle}</div>
       )}
     </div>
   )
@@ -293,12 +306,12 @@ export function ItemCard({
       className="ui-item-card__description"
       style={{
         fontFamily: 'var(--font-sans)',
-        fontSize: 12,
+        fontSize: large ? 13 : 12,
         lineHeight: 1.4,
         color: 'var(--color-text-secondary)',
         overflow: 'hidden',
         display: '-webkit-box',
-        WebkitLineClamp: 3,
+        WebkitLineClamp: large ? 4 : 3,
         WebkitBoxOrient: 'vertical',
       }}
     >
@@ -372,6 +385,7 @@ export function ItemCard({
   const className = [
     'ui-item-card',
     `ui-item-card--${layout}`,
+    large ? 'ui-item-card--lg' : '',
     interactive ? 'ui-item-card--interactive' : '',
     selected ? 'ui-item-card--selected' : '',
   ].filter(Boolean).join(' ')
@@ -386,7 +400,8 @@ export function ItemCard({
     background: 'var(--color-glass-bg)',
     border: `1px solid ${selected ? 'var(--color-accent)' : 'var(--color-glass-border)'}`,
     boxShadow: selected ? 'inset 0 0 0 1px var(--color-accent)' : undefined,
-    overflow: tile ? 'hidden' : undefined,
+    // `clip`, never `hidden`: see the note on `tile` above.
+    overflow: tile ? 'clip' : undefined,
     height: tile ? '100%' : undefined,
     boxSizing: 'border-box',
     cursor: interactive ? 'pointer' : undefined,
@@ -395,7 +410,16 @@ export function ItemCard({
   }
 
   const body = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)', flex: 1, minWidth: 0, padding: tile ? 'var(--space-md)' : 0 }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: large ? 'var(--space-sm)' : 'var(--space-xs)',
+        flex: 1,
+        minWidth: 0,
+        padding: large ? 'var(--space-md) var(--space-lg) var(--space-lg)' : tile ? 'var(--space-md)' : 0,
+      }}
+    >
       {header}
       {tile && badgeRow}
       {descriptionBlock}
@@ -423,8 +447,8 @@ export function ItemCard({
             src={thumbnailSrc}
             alt={thumbnailAlt}
             typeIcon={typeIcon}
-            iconSize={36}
-            style={{ width: '100%', aspectRatio: '16 / 9', borderBottom: '1px solid var(--color-glass-border)' }}
+            iconSize={large ? 56 : 36}
+            style={{ width: '100%', aspectRatio: large ? '3 / 2' : '16 / 9', borderBottom: '1px solid var(--color-glass-border)' }}
           />
         </>
       ) : (
