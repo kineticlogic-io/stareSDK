@@ -25,6 +25,11 @@ import { Checkbox } from './Checkbox.js'
  *   a height-limited scroller the rows were squeezed to share the visible height and every tile
  *   was cut off below its thumbnail — a page of blank cards.
  *
+ * `banner` (0.2.28) is a strip across the card's top edge, above everything else in both layouts
+ * (above a tile's thumbnail; above a row's checkbox, thumbnail and body) — e.g. an
+ * `ItemClassificationBar` for the item's classification. The card renders whatever it is given;
+ * whether a banner shows is the caller's decision.
+ *
  * `size` (0.2.26) scales a tile: `md` (default) as above; `lg` a larger card for a grid of few
  * columns — a taller 3:2 thumbnail, a bigger placeholder icon, larger type and four lines of
  * description. A row ignores it.
@@ -95,6 +100,8 @@ export interface ItemCardProps {
   layout?: ItemCardLayout
   /** A tile's scale (default `md`); a row ignores it. */
   size?: ItemCardSize
+  /** A strip across the card's top edge in both layouts (0.2.28), e.g. an `ItemClassificationBar`. */
+  banner?: ReactNode
   id?: string
   style?: CSSProperties
 }
@@ -189,6 +196,7 @@ export function ItemCard({
   favoriteLabel = 'Favorite',
   layout = 'row',
   size = 'md',
+  banner,
   id,
   style,
 }: ItemCardProps) {
@@ -393,7 +401,7 @@ export function ItemCard({
   const cardStyle: CSSProperties = {
     position: 'relative',
     display: 'flex',
-    flexDirection: tile ? 'column' : 'row',
+    flexDirection: tile || banner != null ? 'column' : 'row',
     gap: tile ? 0 : 'var(--space-sm)',
     padding: tile ? 0 : 'var(--space-md)',
     borderRadius: 8,
@@ -427,6 +435,31 @@ export function ItemCard({
     </div>
   )
 
+  const rowContent = (
+    <>
+      {checkbox}
+      {thumbnailSrc && (
+        <Thumbnail
+          src={thumbnailSrc}
+          alt={thumbnailAlt}
+          typeIcon={typeIcon}
+          iconSize={24}
+          style={{ width: 96, height: 64, borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-glass-border)' }}
+        />
+      )}
+      {body}
+    </>
+  )
+
+  const bannerBlock = banner != null ? (
+    <div
+      className="ui-item-card__banner"
+      style={{ flexShrink: 0, padding: tile ? 'var(--space-sm) var(--space-md)' : 0, borderBottom: tile ? '1px solid var(--color-glass-border)' : undefined }}
+    >
+      {banner}
+    </div>
+  ) : null
+
   return (
     <div
       id={id}
@@ -440,32 +473,26 @@ export function ItemCard({
       onKeyDown={onCardKeyDown}
       style={cardStyle}
     >
+      {bannerBlock}
       {tile ? (
         <>
-          {checkbox}
-          <Thumbnail
-            src={thumbnailSrc}
-            alt={thumbnailAlt}
-            typeIcon={typeIcon}
-            iconSize={large ? 56 : 36}
-            style={{ width: '100%', aspectRatio: large ? '3 / 2' : '16 / 9', borderBottom: '1px solid var(--color-glass-border)' }}
-          />
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            {checkbox}
+            <Thumbnail
+              src={thumbnailSrc}
+              alt={thumbnailAlt}
+              typeIcon={typeIcon}
+              iconSize={large ? 56 : 36}
+              style={{ width: '100%', aspectRatio: large ? '3 / 2' : '16 / 9', borderBottom: '1px solid var(--color-glass-border)' }}
+            />
+          </div>
+          {body}
         </>
+      ) : banner != null ? (
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--space-sm)', minWidth: 0 }}>{rowContent}</div>
       ) : (
-        <>
-          {checkbox}
-          {thumbnailSrc && (
-          <Thumbnail
-            src={thumbnailSrc}
-            alt={thumbnailAlt}
-            typeIcon={typeIcon}
-            iconSize={24}
-            style={{ width: 96, height: 64, borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-glass-border)' }}
-          />
-          )}
-        </>
+        rowContent
       )}
-      {body}
     </div>
   )
 }

@@ -174,6 +174,9 @@ height-limited scroller no longer squeezes them to their thumbnails. `Badge` `on
 `children` replaces the option list under the same header and Clear, for a facet chosen through a
 search field instead of a list.
 
+0.2.28: `ItemCard` `banner` is a strip across the card's top edge in both layouts (above a tile's
+thumbnail, above a row's content), e.g. an `ItemClassificationBar` for the item's classification.
+
 0.2.27: a `Facets` option may carry `subOptions` (with `subLabel`), a second level rendered
 directly beneath that option — not after the whole list — toggled through `onToggleSub` and
 marked from `subSelected`.
