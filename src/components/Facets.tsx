@@ -23,6 +23,11 @@ import type { CSSProperties, ReactNode } from 'react'
  * (label and Clear) — for a facet whose values are too many to list, such as a people or tag
  * search field with the chosen values as removable `Badge` chips beneath it. `options` and
  * `onToggle` are then unused and may be left out.
+ *
+ * `subOptions` (0.2.27) on an option nests a second level directly under that option (e.g. the
+ * kinds of a selected type), indented beneath it rather than after the whole list. Sub-options
+ * toggle through `onToggleSub` and read their state from `subSelected`; the caller decides when
+ * an option carries them (typically only while the option itself is selected).
  */
 
 export type FacetsSize = 'sm' | 'md' | 'lg'
@@ -33,6 +38,10 @@ export interface FacetOption {
   count: number
   /** Optional leading glyph per option (e.g. a sharing-tier icon or an Avatar for an owner). */
   icon?: ReactNode
+  /** A second level shown directly beneath this option (0.2.27); see `onToggleSub`. */
+  subOptions?: FacetOption[]
+  /** Accessible name of the nested group (defaults to the option's label). */
+  subLabel?: string
 }
 
 export interface FacetsProps {
@@ -44,6 +53,10 @@ export interface FacetsProps {
   selected: string[]
   /** Unused (and optional) when `children` is given. */
   onToggle?: (value: string) => void
+  /** The selected sub-option values (0.2.27). */
+  subSelected?: string[]
+  /** Toggles a sub-option value (0.2.27). */
+  onToggleSub?: (value: string) => void
   onClear: () => void
   /** The group's own body in place of the option list (e.g. a search field and chips). */
   children?: ReactNode
@@ -88,6 +101,8 @@ export function Facets({
   selected,
   onToggle,
   onClear,
+  subSelected = [],
+  onToggleSub,
   children,
   size = 'md',
   emptyCopy = 'None',
@@ -135,39 +150,64 @@ export function Facets({
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {options.map(opt => {
-              const active = selected.includes(opt.value)
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onToggle?.(opt.value)}
-                  aria-pressed={active}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: s.gap, width: '100%',
-                    padding: s.optionPadding, borderRadius: 4, cursor: 'pointer', textAlign: 'left',
-                    background: active ? 'var(--brand-subtle)' : 'transparent',
-                    border: `1px solid ${active ? 'var(--color-accent)' : 'transparent'}`,
-                    color: active ? 'var(--color-accent)' : 'var(--color-text-primary)',
-                    fontFamily: 'var(--font-sans)', fontSize: s.optionFontSize,
-                    transition: 'background 0.12s, border-color 0.12s',
-                  }}
-                >
-                  {opt.icon != null && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>{opt.icon}</span>
-                  )}
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {opt.label}
-                  </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: s.countFontSize, color: 'var(--color-text-secondary)' }}>
-                    {opt.count}
-                  </span>
-                </button>
-              )
-            })}
+            {options.map(opt => (
+              <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <OptionButton opt={opt} active={selected.includes(opt.value)} onClick={() => onToggle?.(opt.value)} s={s} />
+                {opt.subOptions != null && opt.subOptions.length > 0 && (
+                  <div
+                    role="group"
+                    aria-label={opt.subLabel ?? opt.label}
+                    style={{
+                      display: 'flex', flexDirection: 'column', gap: 2,
+                      marginLeft: 'var(--space-md)', paddingLeft: 'var(--space-sm)',
+                      borderLeft: '1px solid var(--color-glass-border)',
+                    }}
+                  >
+                    {opt.subOptions.map(sub => (
+                      <OptionButton
+                        key={sub.value}
+                        opt={sub}
+                        active={subSelected.includes(sub.value)}
+                        onClick={() => onToggleSub?.(sub.value)}
+                        s={s}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </>
       )}
     </div>
+  )
+}
+
+function OptionButton({ opt, active, onClick, s }: { opt: FacetOption; active: boolean; onClick: () => void; s: SizeStyle }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      style={{
+        display: 'flex', alignItems: 'center', gap: s.gap, width: '100%',
+        padding: s.optionPadding, borderRadius: 4, cursor: 'pointer', textAlign: 'left',
+        background: active ? 'var(--brand-subtle)' : 'transparent',
+        border: `1px solid ${active ? 'var(--color-accent)' : 'transparent'}`,
+        color: active ? 'var(--color-accent)' : 'var(--color-text-primary)',
+        fontFamily: 'var(--font-sans)', fontSize: s.optionFontSize,
+        transition: 'background 0.12s, border-color 0.12s',
+      }}
+    >
+      {opt.icon != null && (
+        <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>{opt.icon}</span>
+      )}
+      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {opt.label}
+      </span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: s.countFontSize, color: 'var(--color-text-secondary)' }}>
+        {opt.count}
+      </span>
+    </button>
   )
 }

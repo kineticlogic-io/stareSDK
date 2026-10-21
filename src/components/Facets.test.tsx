@@ -13,6 +13,8 @@
  *   (e) emptyCopy (default 'None') renders when options is empty
  *   (f) the group-level icon renders when provided
  *   (g) role="group" carries an aria-label matching `label`
+ *   (h) subOptions render nested directly beneath their own option, not after the list (0.2.27)
+ *   (i) a sub-option toggles through onToggleSub and reads subSelected
  */
 
 import { createRoot } from 'react-dom/client'
@@ -144,5 +146,40 @@ describe('Facets', () => {
     expect(container.textContent).toContain('Owner')
     click(container.querySelector('button[aria-label="Clear Owner filters"]') as HTMLButtonElement)
     expect(onClear).toHaveBeenCalledOnce()
+  })
+})
+
+describe('Facets subOptions (0.2.27)', () => {
+  const NESTED: FacetOption[] = [
+    { value: 'layer', label: 'Layer', count: 5, subLabel: 'Layer type', subOptions: [
+      { value: 'layer:point', label: 'Point', count: 2 },
+      { value: 'layer:polygon', label: 'Polygon', count: 3 },
+    ] },
+    { value: 'workspace', label: 'Workspace', count: 4 },
+  ]
+
+  it('nests sub-options directly beneath their own option', () => {
+    const h = renderFacets({ options: NESTED, selected: ['layer'] })
+    const labels = Array.from(h.container.querySelectorAll('button[aria-pressed]')).map(b => b.textContent)
+    expect(labels).toEqual(['Layer5', 'Point2', 'Polygon3', 'Workspace4'])
+    const sub = h.container.querySelector('[role="group"][aria-label="Layer type"]')!
+    expect(sub.textContent).toContain('Point')
+    expect(sub.textContent).not.toContain('Workspace')
+    h.unmount()
+  })
+
+  it('toggles a sub-option through onToggleSub and marks it from subSelected', () => {
+    const onToggleSub = vi.fn()
+    const onToggle = vi.fn()
+    const h = renderFacets({ options: NESTED, selected: ['layer'], subSelected: ['layer:polygon'], onToggleSub, onToggle })
+    const buttons = Array.from(h.container.querySelectorAll('button[aria-pressed]')) as HTMLButtonElement[]
+    const point = buttons.find(b => b.textContent === 'Point2')!
+    const polygon = buttons.find(b => b.textContent === 'Polygon3')!
+    expect(point.getAttribute('aria-pressed')).toBe('false')
+    expect(polygon.getAttribute('aria-pressed')).toBe('true')
+    click(point)
+    expect(onToggleSub).toHaveBeenCalledWith('layer:point')
+    expect(onToggle).not.toHaveBeenCalled()
+    h.unmount()
   })
 })
