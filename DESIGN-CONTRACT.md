@@ -98,6 +98,10 @@ Every page is a full-height column, top to bottom:
 | Status, count, category | `Badge` (`size="sm"`; `uppercase` for states) | coloured text, custom pills |
 | Actions | `Button` (`primary` once per view, `secondary`, `ghost` for icon-only, `danger` for destructive) | links styled as buttons |
 | Save with dirty/saving/saved states | `SaveButton` | a `Button` with ad-hoc state text |
+| Search a list | `SearchInput` (`size="sm"` in a panel header; `onDebouncedChange` for server queries) | an `Input` with a hand-placed icon |
+| Switch between a few views or modes (grid / table) | `SegmentedControl` | a `ButtonPalette` of hand-wired `active` buttons |
+| An item in a catalog (list row or grid tile) | `ItemCard` (`layout="row"` or `"tile"`) | a bespoke card per app |
+| Nothing to show | `EmptyState` (title says what is missing, `action` for the next step) | an empty area, illustrations |
 | Text / number field | `Label` + `Input` | bare `<input>` |
 | Pick one of a list | `FieldSelect` (`allowNone` when empty is valid) | bare `<select>` |
 | Pick a unit, orientation convention or confidence level | `UnitSelect` (`family`: distance, elevation, elevation-reference, orientation, confidence; conversions in `units.ts`) | a hand-built unit list, inline unit math |
@@ -164,7 +168,7 @@ Icon-only buttons are `variant="ghost"`, `size="xs"`, and always carry `aria-lab
 - **Loading**: the panel still renders its title; its body shows `LOADING…` in secondary text or
   keeps the last data while refreshing. Never an empty screen.
 - **Empty**: say what is missing and what to do, in one line (`No sources yet. Add one to start
-  onboarding a feed.`). No illustrations.
+  onboarding a feed.`), rendered with `EmptyState`. No illustrations.
 - **Errors**: a failed load raises `useToast().toast({ variant: 'error', message })` and the view
   keeps working; a failed save shows the server's message next to the control that failed, in
   `--color-destructive`.

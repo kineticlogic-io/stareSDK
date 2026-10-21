@@ -1,18 +1,19 @@
 // The guide's live examples, keyed by the `data-demo` slot they render into. Each one uses the real
 // component from `src/` with sample data. The optional views (map, graph, chart, code editor) load
 // lazily so their peer dependencies only download when the reader reaches them.
-import { lazy, useMemo, useRef, useState, type ComponentType, type CSSProperties } from 'react'
+import { lazy, useMemo, useRef, useState, type ComponentType, type CSSProperties, type ReactElement } from 'react'
 import {
   TbAlertTriangle, TbBell, TbBolt, TbChartLine, TbDatabase, TbDownload, TbFilter, TbFocus2, TbHome,
   TbGridDots, TbInfoCircle, TbLayersSubtract, TbMap2, TbPencil, TbPhoto, TbPlus, TbPointer, TbPolygon, TbRadar2,
   TbMenu2, TbRefresh, TbRuler2, TbSearch, TbSettings, TbShare, TbTag, TbTool, TbTrash, TbUpload, TbUsers, TbX,
+  TbDotsVertical, TbFolderOpen, TbLayoutGrid, TbList, TbLock, TbTable, TbWorld,
 } from 'react-icons/tb'
 import {
   AdminModal, AppCard, AssistantButton, Avatar, Badge, Button, ButtonPalette, ButtonPalettePopover, ClassificationBanner,
   Checkbox, ClassifyModal, ClockBadges, CollapsiblePanel, ColorPicker, ContextMenu, ContextMenuItem, DataTable,
-  Disclosure, DraggablePopup, Facets, FieldSelect, FileDropZone, Flyout, HomeButton, InfoTip,
-  Input, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader,
-  Pagination, Popover, PopoverMenuButton, ProfileChart, RadioGroup, RampPicker, SaveButton, Select, SideNav, Slider,
+  Disclosure, DraggablePopup, EmptyState, Facets, FieldSelect, FileDropZone, Flyout, HomeButton, InfoTip,
+  Input, ItemCard, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader,
+  Pagination, Popover, PopoverMenuButton, ProfileChart, RadioGroup, RampPicker, SaveButton, SearchInput, SegmentedControl, Select, SideNav, Slider,
   SortableList, Stepper, TabPanel, Tabs, TagInput, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
   VirtualList, ZoomRangeSlider, distanceToMeters, durationToSeconds, sortRows, speedToMetersPerSecond, useTheme, useToast, useTypeaheadKeyboard,
   type BadgeColor, type ClassificationMarking, type ClassifyOptions, type DataTableColumn,
@@ -888,6 +889,167 @@ function AppCardDemo() {
   )
 }
 
+// ---------------------------------------------------------------- catalog (0.2.25)
+
+function SearchInputDemo() {
+  const [text, setText] = useState('')
+  const [query, setQuery] = useState('')
+  const [compact, setCompact] = useState('maritime')
+  return (
+    <div className="stack" style={narrow}>
+      <SearchInput aria-label="Search the catalog" placeholder="Search…" value={text} onChange={setText} onDebouncedChange={setQuery} debounceMs={300} />
+      <span className="caption mono">debounced query: {JSON.stringify(query)}</span>
+      <SearchInput size="sm" aria-label="Filter rows" placeholder="Filter…" value={compact} onChange={setCompact} />
+    </div>
+  )
+}
+
+function SegmentedControlDemo() {
+  const [view, setView] = useState('grid')
+  const [owner, setOwner] = useState('all')
+  return (
+    <div className="row" style={{ gap: 'var(--space-xl)', alignItems: 'center' }}>
+      <SegmentedControl
+        aria-label="View"
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'grid', icon: <TbLayoutGrid />, ariaLabel: 'Grid' },
+          { value: 'list', icon: <TbList />, ariaLabel: 'List' },
+          { value: 'table', icon: <TbTable />, ariaLabel: 'Table' },
+        ]}
+      />
+      <SegmentedControl
+        aria-label="Owner"
+        value={owner}
+        onChange={setOwner}
+        options={[{ value: 'all', label: 'All' }, { value: 'mine', label: 'Mine' }, { value: 'shared', label: 'Shared' }]}
+      />
+      <SegmentedControl aria-label="Density" size="md" value="comfortable" onChange={() => {}} disabled
+        options={[{ value: 'compact', label: 'Compact' }, { value: 'comfortable', label: 'Comfortable' }]} />
+    </div>
+  )
+}
+
+interface DemoItem {
+  id: string
+  kind: 'layer' | 'workspace'
+  title: string
+  subtitle: string
+  description: string
+  sharing: 'public' | 'workspace' | 'private'
+  owner: string
+  tags: string[]
+  updated: string
+}
+
+const DEMO_ITEMS: DemoItem[] = [
+  {
+    id: 'rotterdam', kind: 'layer', title: 'Port of Rotterdam AIS', subtitle: 'Track layer · 1,204 vessels',
+    description: 'Live AIS positions for vessels inside the Port of Rotterdam approaches, refreshed from the coastal receiver network every few seconds. Includes vessel type, flag and declared destination for each track.',
+    sharing: 'public', owner: 'Dana Ellis', tags: ['maritime', 'ais', 'europe', 'live', 'ports', 'netherlands'], updated: 'Updated 5m ago',
+  },
+  {
+    id: 'baltic', kind: 'workspace', title: 'Baltic shipping picture', subtitle: 'Workspace · 6 layers',
+    description: 'Shared analysis workspace for the Baltic approaches.',
+    sharing: 'workspace', owner: 'Sam Okafor', tags: ['maritime', 'baltic'], updated: 'Updated 2h ago',
+  },
+  {
+    id: 'airfields', kind: 'layer', title: 'Regional airfields', subtitle: 'Vector layer · 312 features',
+    description: 'Airfield reference points with runway length and surface.',
+    sharing: 'private', owner: 'Dana Ellis', tags: ['air', 'reference'], updated: 'Updated 3d ago',
+  },
+]
+
+const SHARING_DEMO: Record<DemoItem['sharing'], { color: BadgeColor; icon: ReactElement }> = {
+  public: { color: 'blue', icon: <TbWorld /> },
+  workspace: { color: 'grey', icon: <TbUsers /> },
+  private: { color: 'grey', icon: <TbLock /> },
+}
+
+function ItemCardDemo() {
+  const { toast } = useToast()
+  const [layout, setLayout] = useState<'row' | 'tile'>('row')
+  const [text, setText] = useState('')
+  const [selected, setSelected] = useState<string | null>('rotterdam')
+  const [checked, setChecked] = useState<Set<string>>(new Set())
+  const [favorites, setFavorites] = useState<Set<string>>(new Set(['baltic']))
+  const toggle = (set: Set<string>, id: string, on: boolean) => {
+    const next = new Set(set)
+    if (on) next.add(id)
+    else next.delete(id)
+    return next
+  }
+  const q = text.trim().toLowerCase()
+  const items = DEMO_ITEMS.filter(i => !q || i.title.toLowerCase().includes(q) || i.tags.some(t => t.includes(q)))
+  return (
+    <div className="stack" style={{ gap: 'var(--space-md)' }}>
+      <div className="row" style={{ gap: 'var(--space-md)', alignItems: 'center' }}>
+        <SearchInput aria-label="Search items" placeholder="Search…" value={text} onChange={setText} style={{ maxWidth: 280 }} />
+        <SegmentedControl
+          aria-label="Layout"
+          value={layout}
+          onChange={setLayout}
+          options={[
+            { value: 'row', icon: <TbList />, ariaLabel: 'List' },
+            { value: 'tile', icon: <TbLayoutGrid />, ariaLabel: 'Grid' },
+          ]}
+        />
+      </div>
+      {items.length === 0 ? (
+        <EmptyState icon={<TbSearch />} title="No items match this search" description="Try another word or clear the search."
+          action={<Button variant="secondary" size="sm" onClick={() => setText('')}>Clear search</Button>} />
+      ) : (
+        <div style={layout === 'tile'
+          ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 'var(--space-md)' }
+          : { display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+          {items.map(i => (
+            <ItemCard
+              key={i.id}
+              layout={layout}
+              typeIcon={i.kind === 'layer' ? <TbMap2 /> : <TbLayoutGrid />}
+              typeLabel={i.kind === 'layer' ? 'Layer' : 'Workspace'}
+              title={i.title}
+              subtitle={i.subtitle}
+              description={i.description}
+              badges={<Badge size="sm" uppercase color={SHARING_DEMO[i.sharing].color} icon={SHARING_DEMO[i.sharing].icon}>{i.sharing}</Badge>}
+              owner={{ name: i.owner }}
+              tags={i.tags}
+              onTagClick={tag => setText(tag)}
+              meta={i.updated}
+              actions={<Button variant="ghost" size="xs" icon={<TbDotsVertical />} aria-label={`Actions for ${i.title}`} title="Actions"
+                onClick={() => toast({ variant: 'info', message: `Actions for ${i.title}` })} />}
+              onClick={() => setSelected(i.id)}
+              selected={selected === i.id}
+              selectable
+              checked={checked.has(i.id)}
+              onCheckedChange={on => setChecked(c => toggle(c, i.id, on))}
+              favorite={favorites.has(i.id)}
+              onFavoriteChange={on => setFavorites(f => toggle(f, i.id, on))}
+            />
+          ))}
+        </div>
+      )}
+      <span className="caption mono">selected: {JSON.stringify(selected)} · checked: {JSON.stringify([...checked])}</span>
+    </div>
+  )
+}
+
+function EmptyStateDemo() {
+  const { toast } = useToast()
+  return (
+    <div className="row" style={{ gap: 'var(--space-md)', alignItems: 'stretch' }}>
+      <div style={{ flex: 1, minWidth: 260, border: '1px solid var(--color-glass-border)', borderRadius: 8 }}>
+        <EmptyState icon={<TbFolderOpen />} title="No items yet" description="Upload a file or create a layer to start your catalog."
+          action={<Button variant="secondary" size="sm" icon={<TbUpload />} onClick={() => toast({ variant: 'info', message: 'Would open upload' })}>Upload</Button>} />
+      </div>
+      <div style={{ flex: 1, minWidth: 220, border: '1px solid var(--color-glass-border)', borderRadius: 8 }}>
+        <EmptyState size="sm" title="No sources" description="Add one to start onboarding a feed." />
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- data
 
 function DataTableDemo() {
@@ -1358,6 +1520,10 @@ export const DEMOS: Record<string, ComponentType> = {
   classifymodal: ClassifyModalDemo,
   draggablepopup: DraggablePopupDemo,
   appcard: AppCardDemo,
+  searchinput: SearchInputDemo,
+  segmentedcontrol: SegmentedControlDemo,
+  itemcard: ItemCardDemo,
+  emptystate: EmptyStateDemo,
   datatable: DataTableDemo,
   pagination: PaginationDemo,
   attributetable: AttributeTableDemo,

@@ -745,3 +745,50 @@ body {
 .ui-map-view__popup .maplibregl-popup-tip {
   display: none;
 }
+
+/* stareSDK SearchInput (0.2.25). The browser's own search-field clear glyph is hidden — the
+   component draws its own TbX button — and the clear button gets the same hover and keyboard
+   focus treatment as the other icon controls. */
+.ui-search-input input::-webkit-search-cancel-button,
+.ui-search-input input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+.ui-search-input__clear:hover {
+  color: var(--color-text-primary);
+  background: var(--color-glass-bg);
+}
+.ui-search-input__clear:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+/* stareSDK SegmentedControl (0.2.25). Keyboard focus ring on each option. */
+.ui-segmented__option:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* stareSDK ItemCard (0.2.25). The LEDGER card's cheap border-colour hover (no layout-triggering
+   property) on a clickable card, an accent focus ring for keyboard focus, and the same ring on
+   the card's own controls (favorite star, tag buttons). */
+.ui-item-card--interactive {
+  transition: border-color 0.15s;
+}
+.ui-item-card--interactive:hover {
+  border-color: var(--color-accent) !important;
+}
+.ui-item-card--interactive:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.ui-item-card__icon-button:hover {
+  color: var(--color-text-primary);
+  background: var(--color-glass-bg);
+}
+.ui-item-card__icon-button:focus-visible,
+.ui-item-card__tag:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
