@@ -627,6 +627,21 @@ durationToSeconds(2, 'h') // 7200</code></pre>
 &lt;/PageHeader&gt;</code></pre>
     </div>
 
+    <h3>Breadcrumbs <span class="since">Available in 0.2.26+</span></h3>
+    <p>The trail from the app's home to the current page, for the page header's <code>leading</code> slot. Every crumb
+      but the last is a real link (pass <code>onNavigate</code> to route plain clicks); the last is the current page
+      (<code>aria-current="page"</code>). <code>hideLabel</code> shows only a crumb's icon, named by its label. Long labels
+      truncate with the full label as a tooltip.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Breadcrumbs</code></div>
+      <div class="demo" data-demo="breadcrumbs"></div>
+<pre><code>&lt;Breadcrumbs onNavigate={navigate} items={[
+  { label: 'Home', href: '/', icon: &lt;TbHome /&gt;, hideLabel: true },
+  { label: 'LEDGER', href: '/ledger' },
+  { label: item.name },
+]} /&gt;</code></pre>
+    </div>
+
     <h3>Tabs <span class="since">Available in 0.2.0+</span></h3>
     <p><code>variant="bar"</code> is the page navigation directly under the header: uppercase, no icons. The inline
       variant switches views inside a panel or drawer, with optional icons, counts and notification bubbles. Both are

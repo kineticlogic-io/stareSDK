@@ -792,3 +792,16 @@ body {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/* stareSDK Breadcrumbs (0.2.26): a crumb link brightens on hover; keyboard focus gets the accent
+   ring. Colour only, no layout-triggering property. */
+.ui-breadcrumbs__link {
+  transition: color 0.15s;
+}
+.ui-breadcrumbs__link:hover {
+  color: var(--color-accent) !important;
+}
+.ui-breadcrumbs__link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

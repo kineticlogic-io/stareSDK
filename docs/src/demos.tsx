@@ -9,7 +9,7 @@ import {
   TbDotsVertical, TbFolderOpen, TbLayoutGrid, TbList, TbLock, TbTable, TbWorld,
 } from 'react-icons/tb'
 import {
-  AdminModal, AppCard, AssistantButton, Avatar, Badge, Button, ButtonPalette, ButtonPalettePopover, ClassificationBanner,
+  AdminModal, AppCard, AssistantButton, Avatar, Badge, Breadcrumbs, Button, ButtonPalette, ButtonPalettePopover, ClassificationBanner,
   Checkbox, ClassifyModal, ClockBadges, CollapsiblePanel, ColorPicker, ContextMenu, ContextMenuItem, DataTable,
   Disclosure, DraggablePopup, EmptyState, Facets, FieldSelect, FileDropZone, Flyout, HomeButton, InfoTip,
   Input, ItemCard, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader,
@@ -967,6 +967,19 @@ const SHARING_DEMO: Record<DemoItem['sharing'], { color: BadgeColor; icon: React
   private: { color: 'grey', icon: <TbLock /> },
 }
 
+function BreadcrumbsDemo() {
+  return (
+    <Breadcrumbs
+      onNavigate={() => {}}
+      items={[
+        { label: 'Home', href: '#', icon: <TbHome />, hideLabel: true },
+        { label: 'LEDGER', href: '#' },
+        { label: 'Port of Rotterdam AIS' },
+      ]}
+    />
+  )
+}
+
 function ItemCardDemo() {
   const { toast } = useToast()
   const [layout, setLayout] = useState<'row' | 'tile'>('row')
@@ -1511,6 +1524,7 @@ export const DEMOS: Record<string, ComponentType> = {
   itemclassificationbar: ItemClassificationBarDemo,
   classificationbanner: ClassificationBannerDemo,
   pageheader: PageHeaderDemo,
+  breadcrumbs: BreadcrumbsDemo,
   tabs: TabsDemo,
   collapsiblepanel: CollapsiblePanelDemo,
   disclosure: DisclosureDemo,
