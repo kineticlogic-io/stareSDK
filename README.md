@@ -146,6 +146,27 @@ and token rules:
   width): `null` heights break the line, with an optional dashed sight line and obstruction
   marker. Added 2026-10-06 (first consumer: ATLAS terrain analysis, #275).
 
+## Catalog components
+
+Added in 0.2.25 for OpenStare's LEDGER content-management overhaul (later FORGE and LOOM); data
+in through props only:
+
+- `SearchInput` — the search field: `Input`'s look with a leading search icon and a clear button
+  (Escape clears too); controlled `value`/`onChange`, optional `onDebouncedChange` after
+  `debounceMs` (default 250, immediate on clear), `placeholder`, `aria-label`, `autoFocus`,
+  `size` `sm`/`md`, `disabled`.
+- `EmptyState` — the quiet centered "nothing to show" state: optional `icon`, `title`, optional
+  `description` and `action` slot (pass a `Button`), `size` `sm`/`md`.
+- `SegmentedControl` — one choice from a few views or modes (grid / table): the `ButtonPalette`
+  row of ghost `Button`s with the chosen one `active`, as a `radiogroup` with arrow-key
+  navigation; options `{ value, label?, icon?, ariaLabel? }`, `size` `sm`/`md`, `disabled`.
+- `ItemCard` — a catalog item as a full-width `row` or a grid `tile` (thumbnail on top, or the
+  type icon in a neutral placeholder): type icon, title, `subtitle`, `description` (3 lines),
+  `badges` and `actions` slots, `owner`, `tags` (up to `maxTags`, then "+N"; `onTagClick`),
+  `meta`, `onClick` with Enter/Space, `selected`, a `selectable` checkbox and an optional
+  favorite star (`onFavoriteChange`). Clicks in the slots, checkbox, star and tags never reach
+  `onClick`.
+
 ## Optional entry points
 
 Five components live behind their own subpath so the main barrel never loads their heavy optional

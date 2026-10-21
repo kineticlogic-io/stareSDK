@@ -155,6 +155,10 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
         <tr><td>Status, count, category</td><td><a href="#badge"><code>Badge</code></a></td><td>coloured text, custom pills</td></tr>
         <tr><td>Actions</td><td><a href="#button"><code>Button</code></a> (one <code>primary</code> per view)</td><td>links styled as buttons</td></tr>
         <tr><td>Save with dirty/saving/saved states</td><td><a href="#savebutton"><code>SaveButton</code></a></td><td>ad-hoc state text</td></tr>
+        <tr><td>Search a list</td><td><a href="#searchinput"><code>SearchInput</code></a></td><td>an <code>Input</code> with a hand-placed icon</td></tr>
+        <tr><td>Switch between a few views or modes (grid / table)</td><td><a href="#segmentedcontrol"><code>SegmentedControl</code></a></td><td>a <code>ButtonPalette</code> of hand-wired <code>active</code> buttons</td></tr>
+        <tr><td>An item in a catalog (list row or grid tile)</td><td><a href="#itemcard"><code>ItemCard</code></a></td><td>a bespoke card per app</td></tr>
+        <tr><td>Nothing to show</td><td><a href="#emptystate"><code>EmptyState</code></a></td><td>an empty area, illustrations</td></tr>
         <tr><td>Text / number field</td><td><a href="#label-and-input"><code>Label</code> + <code>Input</code></a></td><td>bare <code>&lt;input&gt;</code></td></tr>
         <tr><td>Pick one of a list</td><td><a href="#fieldselect"><code>FieldSelect</code></a>, <a href="#select"><code>Select</code></a></td><td>bare <code>&lt;select&gt;</code></td></tr>
         <tr><td>Pick a unit or convention</td><td><a href="#unitselect"><code>UnitSelect</code></a></td><td>inline unit math</td></tr>
@@ -291,6 +295,23 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
 &lt;/ButtonPalette&gt;</code></pre>
     </div>
 
+    <h3>SegmentedControl <span class="since">Available in 0.2.25+</span></h3>
+    <p>One choice from a few views or modes, such as grid or table. It is the standard form of a <code>ButtonPalette</code>
+      row of ghost <code>Button</code>s with the chosen one <code>active</code>, with radio semantics: a
+      <code>radiogroup</code> with one tab stop, and arrow keys (or Home/End) that move to and choose an option. Options take a
+      <code>label</code>, an <code>icon</code>, or both; an icon-only option needs an <code>ariaLabel</code>, which is also its tooltip.
+      <code>size</code> is <code>sm</code> (default) or <code>md</code>.</p>
+    <div class="example">
+      <div class="example-label">Example <code>SegmentedControl</code></div>
+      <div class="demo" data-demo="segmentedcontrol"></div>
+<pre><code>&lt;SegmentedControl aria-label="View" value={view} onChange={setView} options={[
+  { value: 'grid', icon: &lt;TbLayoutGrid /&gt;, ariaLabel: 'Grid' },
+  { value: 'table', icon: &lt;TbTable /&gt;, ariaLabel: 'Table' },
+]} /&gt;
+&lt;SegmentedControl aria-label="Owner" value={owner} onChange={setOwner}
+  options={[{ value: 'all', label: 'All' }, { value: 'mine', label: 'Mine' }, { value: 'shared', label: 'Shared' }]} /&gt;</code></pre>
+    </div>
+
     <h3>SaveButton <span class="since">Available in 0.2.0+</span></h3>
     <p>A <code>Button</code> with built-in dirty, saving and saved states. It stays disabled until there is something to save.</p>
     <div class="example">
@@ -322,6 +343,19 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
 <pre><code>&lt;Label htmlFor="callsign"&gt;Callsign&lt;/Label&gt;
 &lt;Input id="callsign" value={value} onChange={e =&gt; setValue(e.target.value)} placeholder="e.g. VIPER 21" /&gt;
 &lt;Input error value="12.3.4" aria-invalid /&gt;</code></pre>
+    </div>
+
+    <h3>SearchInput <span class="since">Available in 0.2.25+</span></h3>
+    <p>The search field: an <code>Input</code> with a leading search icon and, once it holds text, a clear button. Escape
+      clears it (an Escape on an empty field still reaches the surrounding modal or drawer). <code>onChange</code> reports
+      every keystroke; <code>onDebouncedChange</code> reports the text once typing pauses for <code>debounceMs</code>
+      (default 250), and at once when the field is cleared. <code>size="sm"</code> fits a panel header.</p>
+    <div class="example">
+      <div class="example-label">Example <code>SearchInput</code></div>
+      <div class="demo" data-demo="searchinput"></div>
+<pre><code>&lt;SearchInput aria-label="Search the catalog" placeholder="Search…" value={text} onChange={setText}
+  onDebouncedChange={runQuery} debounceMs={300} /&gt;
+&lt;SearchInput size="sm" aria-label="Filter rows" value={filter} onChange={setFilter} /&gt;</code></pre>
     </div>
 
     <h3>Select <span class="since">Available in 0.2.0+</span></h3>
@@ -670,6 +704,28 @@ durationToSeconds(2, 'h') // 7200</code></pre>
 
     <div class="component-group" data-toc-group="Data display">Data display</div>
 
+    <h3>ItemCard <span class="since">Available in 0.2.25+</span></h3>
+    <p>A catalog item (LEDGER's layers and workspaces, later FORGE's tools and LOOM's feeds): the type icon, title and
+      sub-caption, status and sharing <code>badges</code>, an <code>actions</code> slot for a kebab menu, the description
+      clamped to three lines, the owner, up to <code>maxTags</code> tags (then "+N") and a caller-formatted <code>meta</code>
+      line. <code>layout="row"</code> is a full-width list row; <code>layout="tile"</code> is a grid tile with the thumbnail
+      on top, or the type icon in a neutral placeholder when there is none. With <code>onClick</code> the card is one
+      control (Enter or Space activates it); clicks in the actions slot, the <code>selectable</code> checkbox, the favorite
+      star (shown when <code>onFavoriteChange</code> is passed) and the tags (buttons when <code>onTagClick</code> is passed)
+      never reach it. <code>selected</code> marks the current item. Every value is a prop.</p>
+    <div class="example">
+      <div class="example-label">Example <code>ItemCard</code></div>
+      <div class="demo" data-demo="itemcard"></div>
+<pre><code>&lt;ItemCard layout="row" typeIcon={&lt;TbMap2 /&gt;} typeLabel="Layer" title="Port of Rotterdam AIS"
+  subtitle="Vector layer · 1,204 features" description={item.description}
+  badges={&lt;Badge size="sm" uppercase color="blue"&gt;Public&lt;/Badge&gt;}
+  owner={{ name: 'Dana Ellis', avatarSrc }} tags={item.tags} onTagClick={filterByTag}
+  meta="Updated 5m ago" actions={&lt;RowKebab item={item} /&gt;} onClick={() =&gt; open(item)}
+  selectable checked={picked} onCheckedChange={setPicked}
+  favorite={fav} onFavoriteChange={setFav} /&gt;
+&lt;ItemCard layout="tile" thumbnailSrc={thumb} thumbnailAlt="Port overview" … /&gt;</code></pre>
+    </div>
+
     <h3>DataTable <span class="since">Available in 0.2.0+</span></h3>
     <p>Sortable columns (stable, nulls last), row selection with keyboard activation, and a sticky header with
       virtualisation when <code>maxHeight</code> is set. Header rows stay neutral: weight, uppercase and a bottom border,
@@ -789,6 +845,18 @@ durationToSeconds(2, 'h') // 7200</code></pre>
       <div class="example-label">Example <code>Avatar</code></div>
       <div class="demo" data-demo="avatar"></div>
 <pre><code>&lt;Avatar size={32} username="jdoe" firstName="Jane" lastName="Doe" src={user.avatarUrl} /&gt;</code></pre>
+    </div>
+
+    <h3>EmptyState <span class="since">Available in 0.2.25+</span></h3>
+    <p>What a list, grid or panel shows when it has nothing to show: an optional muted icon, a title saying what is missing,
+      an optional <code>description</code> and an optional <code>action</code> (pass a <code>Button</code>). Quiet: no
+      fill, no border, no illustration. <code>size="sm"</code> fits a panel or drawer.</p>
+    <div class="example">
+      <div class="example-label">Example <code>EmptyState</code></div>
+      <div class="demo" data-demo="emptystate"></div>
+<pre><code>&lt;EmptyState icon={&lt;TbDatabase /&gt;} title="No items match these filters"
+  description="Clear a filter or search for something else."
+  action={&lt;Button variant="secondary" size="sm" onClick={clearFilters}&gt;Clear filters&lt;/Button&gt;} /&gt;</code></pre>
     </div>
 
     <h3>Tooltip <span class="since">Available in 0.2.0+</span></h3>
