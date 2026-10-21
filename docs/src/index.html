@@ -712,7 +712,9 @@ durationToSeconds(2, 'h') // 7200</code></pre>
       on top, or the type icon in a neutral placeholder when there is none. With <code>onClick</code> the card is one
       control (Enter or Space activates it); clicks in the actions slot, the <code>selectable</code> checkbox, the favorite
       star (shown when <code>onFavoriteChange</code> is passed) and the tags (buttons when <code>onTagClick</code> is passed)
-      never reach it. <code>selected</code> marks the current item. Every value is a prop.</p>
+      never reach it. <code>selected</code> marks the current item. Every value is a prop. From 0.2.26,
+      <code>size="lg"</code> makes a larger tile for a grid of few columns: a taller 3:2 thumbnail, larger type and four
+      lines of description.</p>
     <div class="example">
       <div class="example-label">Example <code>ItemCard</code></div>
       <div class="demo" data-demo="itemcard"></div>

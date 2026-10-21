@@ -17,7 +17,6 @@
  */
 import { useId, useRef, useState } from 'react'
 import type { ClipboardEvent, CSSProperties, KeyboardEvent } from 'react'
-import { TbX } from 'react-icons/tb'
 import { Badge } from './Badge.js'
 
 export interface TagInputProps {
@@ -75,19 +74,6 @@ const inputStyle: CSSProperties = {
   fontFamily: 'var(--font-sans)',
   fontSize: 13,
   padding: 0,
-}
-
-const removeStyle: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginLeft: 4,
-  padding: 0,
-  border: 'none',
-  background: 'transparent',
-  color: 'inherit',
-  cursor: 'pointer',
-  lineHeight: 1,
 }
 
 const listStyle: CSSProperties = {
@@ -260,22 +246,16 @@ export function TagInput({
         }}
       >
         {value.map((v) => (
-          <Badge key={v} color="grey" size="sm" style={{ textTransform: 'none', letterSpacing: 0, fontSize: 11 }}>
+          <Badge
+            key={v}
+            color="grey"
+            size="sm"
+            style={{ textTransform: 'none', letterSpacing: 0, fontSize: 11 }}
+            onRemove={readOnly ? undefined : () => remove(v)}
+            removeLabel={removeLabel(v)}
+            removeDisabled={disabled}
+          >
             {v}
-            {!readOnly && (
-              <button
-                type="button"
-                aria-label={removeLabel(v)}
-                disabled={disabled}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  remove(v)
-                }}
-                style={{ ...removeStyle, cursor: disabled ? 'not-allowed' : 'pointer' }}
-              >
-                <TbX size={10} aria-hidden />
-              </button>
-            )}
           </Badge>
         ))}
         {!readOnly && (

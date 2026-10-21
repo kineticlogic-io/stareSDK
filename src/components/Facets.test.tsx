@@ -128,4 +128,21 @@ describe('Facets', () => {
     const group = container.querySelector('[role="group"]')
     expect(group?.getAttribute('aria-label')).toBe('Sharing')
   })
+
+  it('children replace the option list under the same header and Clear', () => {
+    const { container, unmount, onClear } = renderFacets({
+      label: 'Owner',
+      options: undefined,
+      onToggle: undefined,
+      selected: ['u1'],
+      children: <input aria-label="Search owners" />,
+    })
+    unmountFns.push(unmount)
+    expect(container.querySelector('input[aria-label="Search owners"]')).not.toBeNull()
+    expect(container.querySelectorAll('button[aria-pressed]').length).toBe(0)
+    expect(container.textContent).not.toContain('None')
+    expect(container.textContent).toContain('Owner')
+    click(container.querySelector('button[aria-label="Clear Owner filters"]') as HTMLButtonElement)
+    expect(onClear).toHaveBeenCalledOnce()
+  })
 })

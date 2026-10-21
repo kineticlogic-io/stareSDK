@@ -167,6 +167,13 @@ in through props only:
   favorite star (`onFavoriteChange`). Clicks in the slots, checkbox, star and tags never reach
   `onClick`.
 
+0.2.26: `ItemCard` `size` `md`/`lg` scales a tile (taller 3:2 thumbnail, larger type, four
+description lines), and a tile clips with `overflow: clip` so a grid of tiles in a
+height-limited scroller no longer squeezes them to their thumbnails. `Badge` `onRemove` (with
+`removeLabel`, `removeDisabled`) makes a removable chip, the one `TagInput` uses. `Facets`
+`children` replaces the option list under the same header and Clear, for a facet chosen through a
+search field instead of a list.
+
 ## Optional entry points
 
 Five components live behind their own subpath so the main barrel never loads their heavy optional
