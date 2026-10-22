@@ -1527,10 +1527,10 @@ function TimelineDemo() {
   const entry = TIMELINE.find(e => e.id === selected)
   return (
     <div className="stack" style={{ gap: 'var(--space-sm)' }}>
-      <Timeline aria-label="Activity timeline" entries={TIMELINE} selectedId={selected} onSelect={setSelected} height={250} />
+      <Timeline aria-label="Activity timeline" entries={TIMELINE} selectedId={selected} onSelect={setSelected} />
       <span className="caption">{entry ? `Selected: ${entry.label}` : 'Nothing selected'}. Drag to pan, wheel or pinch to zoom; arrow keys move between entries.</span>
       <div style={{ maxWidth: 360 }}>
-        <Timeline aria-label="Empty timeline" entries={[]} emptyTitle="No dated entries" height={120} />
+        <Timeline aria-label="Empty timeline" entries={[]} emptyTitle="No dated entries" />
       </div>
     </div>
   )

@@ -11,7 +11,9 @@ import type { TimelineEntry, TimelineProps } from './Timeline.js'
 import {
   TIMELINE_DAY_MS,
   TIMELINE_MIN_SPAN_MS,
+  estimateTimelineLabelWidth,
   fitTimelineSpan,
+  layoutTimelineAxisLabels,
   packTimelineLanes,
   timelineTicks,
   zoomTimelineSpan,
@@ -474,5 +476,187 @@ describe('Timeline keyboard', () => {
     key(p, 'ArrowRight')
     const r = onRangeChange.mock.calls[0][0] as { start: Date; end: Date }
     expect(r.start.getTime()).toBeGreaterThan(T('2030-01-01'))
+  })
+})
+
+// ---------------------------------------------------------------- 0.2.31: labels, axis, height
+
+describe('label room (0.2.31)', () => {
+  it('packTimelineLanes honours an item footprint beyond its own extent', () => {
+    const items: TimelineLaneItem[] = [
+      { id: 'p1', start: 100, end: 100, footprint: 50 },
+      { id: 'p2', start: 120, end: 120 },
+      { id: 'p3', start: 160, end: 160 },
+    ]
+    const lanes = packTimelineLanes(items, 10)
+    expect(lanes.get('p2')).toBe(1)
+    expect(lanes.get('p3')).toBe(0)
+  })
+
+  it('estimates wider text as wider, and errs wide for capitals', () => {
+    expect(estimateTimelineLabelWidth('RAF Lakenheath', 11)).toBeGreaterThan(estimateTimelineLabelWidth('RAF', 11))
+    expect(estimateTimelineLabelWidth('WWWW', 11)).toBeGreaterThan(estimateTimelineLabelWidth('iiii', 11))
+    expect(estimateTimelineLabelWidth('', 11)).toBe(0)
+  })
+
+  it('shows a point label in full when a nearby entry can move to another lane', () => {
+    // RANGE is 213 days over 800 px: entries 10 days apart are ~38 px apart, less than a label.
+    const entries: TimelineEntry[] = [
+      { id: 'raf', label: 'RAF Lakenheath', start: '2024-03-01' },
+      { id: 'boeing', label: 'Boeing delivery', start: '2024-03-11' },
+      { id: 'later', label: 'Later', start: '2024-06-20' },
+    ]
+    const { container } = render({ entries, 'aria-label': 'Events', range: RANGE, now: null })
+    const lane = (id: string) => byId(container, id)!.dataset.lane
+    expect(lane('raf')).not.toBe(lane('boeing'))
+    // Free space is reused: the far entry goes back to the first lane, so only two lanes.
+    expect(lane('later')).toBe(lane('raf'))
+    for (const e of entries) {
+      const label = byId(container, e.id)!.querySelector('.ui-timeline__label') as HTMLElement
+      expect(label).not.toBeNull()
+      expect(parseFloat(label.style.maxWidth)).toBeGreaterThanOrEqual(estimateTimelineLabelWidth(e.label, 11))
+    }
+  })
+
+  it('puts a short bar\'s label beside it in full rather than truncated inside', () => {
+    const entries: TimelineEntry[] = [
+      { id: 'ex', label: 'BALTOPS exercise, phase two', start: '2024-03-01', end: '2024-03-20', tone: 'info' },
+      { id: 'next', label: 'Port visit', start: '2024-03-25' },
+    ]
+    const { container } = render({ entries, 'aria-label': 'Events', range: RANGE, now: null })
+    const ex = byId(container, 'ex')!
+    expect(ex.querySelector('.ui-timeline__bar .ui-timeline__label')).toBeNull()
+    const beside = ex.querySelector(':scope > .ui-timeline__label') as HTMLElement
+    expect(parseFloat(beside.style.maxWidth)).toBeGreaterThanOrEqual(estimateTimelineLabelWidth(entries[0].label, 11))
+    expect(byId(container, 'next')!.dataset.lane).not.toBe(ex.dataset.lane)
+  })
+
+  it('keeps every visible label clear of the next entry in its lane', () => {
+    const entries: TimelineEntry[] = Array.from({ length: 30 }, (_, i) => ({
+      id: `p${i}`,
+      label: `Reported event number ${i}`,
+      start: new Date(T('2024-01-05') + i * 6 * TIMELINE_DAY_MS),
+    }))
+    const { container } = render({ entries, 'aria-label': 'Events', range: RANGE, now: null })
+    for (const b of entryButtons(container)) {
+      const label = b.querySelector('.ui-timeline__label') as HTMLElement | null
+      if (!label) continue
+      // Away from the right edge, a label always has room for its whole text.
+      if (xOf(b) + 300 > WIDTH) continue
+      const text = label.textContent ?? ''
+      expect(parseFloat(label.style.maxWidth)).toBeGreaterThanOrEqual(estimateTimelineLabelWidth(text, 11))
+    }
+  })
+})
+
+describe('layoutTimelineAxisLabels (0.2.31)', () => {
+  const overlap = (a: { left: number; width: number }, b: { left: number; width: number }) =>
+    a.left < b.left + b.width && b.left < a.left + a.width
+
+  it('puts the today label right of the line when that side is clear', () => {
+    const r = layoutTimelineAxisLabels([{ left: 4, width: 30 }, { left: 304, width: 30 }], { x: 150, width: 46 }, 800)
+    expect(r).toEqual({ todayLeft: 152, hiddenTicks: [] })
+  })
+
+  it('moves the today label left of the line when a tick label is on its right', () => {
+    const r = layoutTimelineAxisLabels([{ left: 4, width: 30 }, { left: 164, width: 30 }], { x: 158, width: 46 }, 800)
+    expect(r.todayLeft).toBe(158 - 2 - 46)
+    expect(r.hiddenTicks).toEqual([])
+  })
+
+  it('keeps the label inside the plot at the right edge', () => {
+    const r = layoutTimelineAxisLabels([], { x: 790, width: 46 }, 800)
+    expect(r.todayLeft).toBe(790 - 2 - 46)
+  })
+
+  it('hides the tick label it would cover when neither side is clear ("202( TODAY")', () => {
+    // The today line 6 px right of a tick: its label covers both sides.
+    const ticks = [{ left: 84, width: 30 }, { left: 164, width: 30 }, { left: 244, width: 30 }]
+    const r = layoutTimelineAxisLabels(ticks, { x: 166, width: 46 }, 800)
+    expect(r.todayLeft).not.toBeNull()
+    expect(r.hiddenTicks).toEqual([1])
+    const today = { left: r.todayLeft!, width: 46 }
+    ticks.forEach((tk, i) => {
+      if (!r.hiddenTicks.includes(i)) expect(overlap(today, tk)).toBe(false)
+    })
+  })
+
+  it('never overlaps a shown tick label, wherever today falls', () => {
+    const ticks = Array.from({ length: 10 }, (_, i) => ({ left: i * 80 + 4, width: 26 + (i % 3) * 20 }))
+    for (let x = 0; x <= 800; x += 3) {
+      const r = layoutTimelineAxisLabels(ticks, { x, width: 46 }, 800)
+      const today = { left: r.todayLeft!, width: 46 }
+      expect(today.left).toBeGreaterThanOrEqual(0)
+      expect(today.left + today.width).toBeLessThanOrEqual(800)
+      ticks.forEach((tk, i) => {
+        if (!r.hiddenTicks.includes(i)) expect(overlap(today, tk)).toBe(false)
+      })
+    }
+  })
+
+  it('has nothing to place without a today label', () => {
+    expect(layoutTimelineAxisLabels([{ left: 0, width: 10 }], null, 800)).toEqual({ todayLeft: null, hiddenTicks: [] })
+  })
+
+  it('renders the today label clear of every shown axis label', () => {
+    for (const now of ['2019-12-20', '2020-02-01', '2020-01-01', '2023-12-31']) {
+      const { container } = render({ entries: ENTRIES, 'aria-label': 'Events', range: { start: '2014-07-01', end: '2024-07-01' }, now })
+      const label = container.querySelector('[data-timeline-today-label]') as HTMLElement
+      expect(label).not.toBeNull()
+      const today = { left: xOf(label), width: parseFloat(label.style.width) }
+      const ticks = Array.from(container.querySelectorAll<HTMLElement>('[data-tick]'))
+      expect(ticks.length).toBeGreaterThan(2)
+      for (const tk of ticks) {
+        const box = { left: xOf(tk), width: estimateTimelineLabelWidth(tk.textContent ?? '', 11) }
+        expect(overlap(today, box)).toBe(false)
+      }
+    }
+  })
+})
+
+describe('Timeline height (0.2.31)', () => {
+  const root = (c: HTMLElement) => c.querySelector('.ui-timeline') as HTMLElement
+  const stacked = (n: number): TimelineEntry[] =>
+    Array.from({ length: n }, (_, i) => ({ id: `s${i}`, label: `Entry ${i}`, start: '2024-01-02', end: '2024-07-30' }))
+  // 1 px border either side + 32 px toolbar + 24 px axis + 6 px lane padding either side.
+  const CHROME = 70
+  const LANE = 26
+
+  it('sizes to its lanes when no height is given', () => {
+    const { container } = render({ entries: stacked(5), 'aria-label': 'Events', range: RANGE, now: null })
+    expect(new Set(entryButtons(container).map((b) => b.dataset.lane)).size).toBe(5)
+    expect(root(container).style.height).toBe(`${CHROME + 5 * LANE}px`)
+  })
+
+  it('never shrinks below two lanes of room', () => {
+    const { container } = render({ entries: stacked(1), 'aria-label': 'Events', range: RANGE, now: null })
+    expect(root(container).style.height).toBe(`${CHROME + 2 * LANE}px`)
+  })
+
+  it('stops at the maximum and scrolls the lanes past it', () => {
+    const { container } = render({ entries: stacked(30), 'aria-label': 'Events', range: RANGE, now: null })
+    expect(root(container).style.height).toBe('320px')
+    const lanes = container.querySelector('.ui-timeline__lanes') as HTMLElement
+    expect(lanes.style.overflowY).toBe('auto')
+    expect(parseFloat((lanes.firstElementChild as HTMLElement).style.height)).toBe(12 + 30 * LANE)
+  })
+
+  it('honours minHeight and maxHeight', () => {
+    const tall = render({ entries: stacked(1), 'aria-label': 'Events', range: RANGE, now: null, minHeight: 180 })
+    expect(root(tall.container).style.height).toBe('180px')
+    const short = render({ entries: stacked(30), 'aria-label': 'Events', range: RANGE, now: null, maxHeight: 200 })
+    expect(root(short.container).style.height).toBe('200px')
+  })
+
+  it('keeps an explicit height whatever the lanes', () => {
+    const few = render({ entries: stacked(1), 'aria-label': 'Events', range: RANGE, height: 250 })
+    expect(root(few.container).style.height).toBe('250px')
+    const many = render({ entries: stacked(30), 'aria-label': 'Events', range: RANGE, height: 250 })
+    expect(root(many.container).style.height).toBe('250px')
+  })
+
+  it('gives the empty state a compact auto height', () => {
+    const { container } = render({ entries: [], 'aria-label': 'Events' })
+    expect(root(container).style.height).toBe('140px')
   })
 })

@@ -16,30 +16,40 @@ import { Button } from './Button.js'
 import { EmptyState } from './EmptyState.js'
 import {
   clampTimelineSpan,
+  estimateTimelineLabelWidth,
   fitTimelineSpan,
   formatTimelineDate,
   formatTimelineSpan,
+  layoutTimelineAxisLabels,
   packTimelineLanes,
   panTimelineSpan,
   parseTimelineTime,
   timelineTicks,
   zoomTimelineSpan,
+  type TimelineLaneItem,
   type TimelineSpan,
 } from './Timeline.helpers.js'
 
 /**
- * Timeline (0.2.30, operator-approved 2026-10-22 for the CODEX homepage, kineticlogic-io/OpenStare#392)
+ * Timeline (0.2.30, operator-approved 2026-10-22 for the CODEX homepage, kineticlogic-io/OpenStare#392;
+ * label-aware lanes, a today label clear of the axis labels and auto height 0.2.31)
  * — dated entries on a horizontal time axis, in non-overlapping lanes.
  *
  * - An entry with `end` is a **range**, drawn as a bar from start to end; without `end` it is a
  *   **point**, drawn as a diamond marker. `tone` picks a token colour, never a raw colour.
- * - **Lanes** are packed greedily (`packTimelineLanes`): ranges never overlap, and points keep room
- *   for their marker at the current zoom. A label sits inside its bar when the bar is wide enough,
- *   else beside it, truncated to the room before the next entry in its lane; the full label, dates
- *   and `meta` are the entry's tooltip and accessible name.
+ * - **Lanes** are packed greedily (`packTimelineLanes`): ranges never overlap, and every entry keeps
+ *   room for its marker and its label at the current zoom — a label beside a point or a short bar
+ *   reserves its measured width (estimated where text cannot be measured), so a nearby entry moves
+ *   to another lane rather than cutting the label short. A label sits inside its bar when the bar
+ *   is wide enough for it, else beside it; it is truncated only past `LABEL_MAX_PX` or at the edge
+ *   of the view. The full label, dates and `meta` are the entry's tooltip and accessible name.
  * - **Axis**: ticks adapt from centuries down to single days (`timelineTicks`), on calendar
  *   boundaries in UTC (a date-only string is UTC midnight, so it stays on the day it names). A
- *   "today" line marks the current date (`now` overrides it, `null` hides it).
+ *   "today" line marks the current date (`now` overrides it, `null` hides it); its label sits on
+ *   whichever side of the line clears the tick labels, hiding a tick label only when neither does
+ *   (`layoutTimelineAxisLabels`).
+ * - **Height**: `height` fixes it; without it the timeline is as tall as its lanes, between
+ *   `minHeight` and `maxHeight`, and more lanes than that scroll.
  * - **Pan and zoom**: drag to pan (vertical drag scrolls the lanes), wheel or pinch to zoom about
  *   the pointer, horizontal wheel to pan, and zoom-in / zoom-out / fit buttons. The visible window
  *   is uncontrolled (`initialRange`, else fitted to the entries and re-fitted as they change until
@@ -78,8 +88,15 @@ export interface TimelineProps {
   entries: TimelineEntry[]
   onSelect?: (id: string) => void
   selectedId?: string | null
-  /** Total height in px, toolbar and axis included (default 260). More lanes than fit scroll. */
+  /**
+   * Total height in px, toolbar and axis included. More lanes than fit scroll. Without it the
+   * timeline sizes to its lanes, between `minHeight` and `maxHeight` (0.2.31; 0.2.30 defaulted to 260).
+   */
   height?: number
+  /** Least auto height in px (default: room for two lanes). Ignored when `height` is set. */
+  minHeight?: number
+  /** Greatest auto height in px (default 320); more lanes scroll. Ignored when `height` is set. */
+  maxHeight?: number
   /** Uncontrolled starting window. Without it the window fits the entries. */
   initialRange?: TimelineRange
   /** Controlled window; pair with `onRangeChange`. */
@@ -112,6 +129,24 @@ const LANES_PAD = 6
 const MARKER = 10
 /** The least on-screen room an entry occupies in its lane: a marker and a gap. */
 const FOOTPRINT_PX = 24
+/**
+ * Room kept after a beside label so the next entry in the lane cannot cut it short: the 6 px the
+ * label stops before the next entry, half a marker (a point's diamond reaches left of its instant)
+ * and a pixel to spare.
+ */
+const LABEL_CLEAR_PX = 6 + 10 / 2 + 2
+/** An inside label's padding within its bar. */
+const INSIDE_LABEL_PAD = 12
+const ENTRY_FONT = '600 11px'
+const TICK_FONT = '400 11px'
+const TODAY_FONT = '600 10px'
+const TODAY_TEXT = 'Today'
+/** The today label's tracking (0.08em at 10 px) and its 4 px side padding. */
+const TODAY_EXTRA_PX = TODAY_TEXT.length * 0.8 + 8
+const AUTO_MAX_HEIGHT = 320
+/** Toolbar, axis, lane padding and the 1 px border either side: the height with no lanes. */
+const CHROME_H = 2 + TOOLBAR_H + AXIS_H + LANES_PAD * 2
+const EMPTY_AUTO_HEIGHT = 140
 /** A bar at least this wide carries its label inside. */
 const INSIDE_LABEL_MIN_PX = 56
 const LABEL_MAX_PX = 240
@@ -149,6 +184,35 @@ function parseRange(r: TimelineRange | undefined): TimelineSpan | null {
   return clampTimelineSpan({ start, end })
 }
 
+type MeasureText = (text: string, font: string, fontSizePx: number) => number
+
+/**
+ * Measures text with an `OffscreenCanvas` in the page's sans-serif (`--font-sans`), or estimates
+ * it where there is no canvas (server rendering, jsdom). Read once per mount; never in a frame loop.
+ */
+function createMeasure(): MeasureText {
+  const estimate: MeasureText = (text, _font, size) => estimateTimelineLabelWidth(text, size)
+  if (typeof OffscreenCanvas === 'undefined' || typeof document === 'undefined') return estimate
+  try {
+    const ctx = new OffscreenCanvas(1, 1).getContext('2d')
+    const family = getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim()
+    if (!ctx || !family) return estimate
+    const cache = new Map<string, number>()
+    return (text, font, size) => {
+      const key = `${font}|${text}`
+      let w = cache.get(key)
+      if (w === undefined) {
+        ctx.font = `${font} ${family}`
+        w = Math.ceil(ctx.measureText(text).width) + 2
+        cache.set(key, w)
+      }
+      return w ?? estimateTimelineLabelWidth(text, size)
+    }
+  } catch {
+    return estimate
+  }
+}
+
 function datesOf(it: Item): string {
   return it.point ? formatTimelineDate(it.start) : `${formatTimelineDate(it.start)} to ${formatTimelineDate(it.end)}`
 }
@@ -157,7 +221,9 @@ export function Timeline({
   entries,
   onSelect,
   selectedId = null,
-  height = 260,
+  height,
+  minHeight,
+  maxHeight,
   initialRange,
   range,
   onRangeChange,
@@ -181,6 +247,22 @@ export function Timeline({
   const [dragging, setDragging] = useState(false)
   const [focusId, setFocusId] = useState<string | null>(null)
   const [clock, setClock] = useState(() => Date.now())
+  const [measure, setMeasure] = useState(createMeasure)
+  // A web font that finishes loading after mount changes label widths: measure again once.
+  useEffect(() => {
+    const fonts = typeof document !== 'undefined' ? document.fonts : undefined
+    if (!fonts || fonts.status === 'loaded') return
+    let live = true
+    fonts.ready.then(
+      () => {
+        if (live) setMeasure(() => createMeasure())
+      },
+      () => {},
+    )
+    return () => {
+      live = false
+    }
+  }, [])
 
   // ---- entries, in time order
   const items = useMemo<Item[]>(() => {
@@ -274,7 +356,27 @@ export function Timeline({
 
   // ---- lanes: packed at the current scale rounded up to a doubling, so a pan never re-packs
   const packScale = 2 ** Math.ceil(Math.log2(Math.max(msPerPx, 1)))
-  const lanes = useMemo(() => packTimelineLanes(items, FOOTPRINT_PX * packScale), [items, packScale])
+  /** Each entry's label width in px (the selected weight, so selecting never needs more room). */
+  const labelW = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const it of items) m.set(it.id, Math.min(LABEL_MAX_PX, measure(it.entry.label, ENTRY_FONT, 11)))
+    return m
+  }, [items, measure])
+  const lanes = useMemo(() => {
+    const laneItems: TimelineLaneItem[] = items.map((it) => {
+      const lw = labelW.get(it.id) ?? 0
+      let reservePx = 0
+      if (it.point) reservePx = MARKER / 2 + 4 + lw + LABEL_CLEAR_PX
+      else {
+        // At the packing scale a bar is never wider than on screen, so a label packed beside it
+        // keeps its room whether it ends up beside or inside.
+        const barPx = (it.end - it.start) / packScale
+        if (barPx < lw + INSIDE_LABEL_PAD) reservePx = Math.max(3, barPx) + 4 + lw + LABEL_CLEAR_PX
+      }
+      return { id: it.id, start: it.start, end: it.end, footprint: reservePx * packScale }
+    })
+    return packTimelineLanes(laneItems, FOOTPRINT_PX * packScale)
+  }, [items, labelW, packScale])
   const laneCount = useMemo(() => {
     let n = 0
     for (const l of lanes.values()) n = Math.max(n, l + 1)
@@ -447,11 +549,14 @@ export function Timeline({
   }
 
   // ---- render
+  const autoMin = minHeight ?? CHROME_H + 2 * LANE_H
+  const autoMax = Math.max(autoMin, maxHeight ?? AUTO_MAX_HEIGHT)
+  const resolvedHeight = height ?? Math.min(autoMax, Math.max(autoMin, empty ? EMPTY_AUTO_HEIGHT : CHROME_H + laneCount * LANE_H))
   const rootStyle: CSSProperties = {
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
-    height,
+    height: resolvedHeight,
     boxSizing: 'border-box',
     background: 'var(--color-bg-secondary)',
     border: '1px solid var(--color-glass-border)',
@@ -470,6 +575,15 @@ export function Timeline({
   }
 
   const todayX = today == null ? null : xOf(today)
+  const todayPx = todayX != null && todayX >= 0 && todayX <= width ? Math.round(todayX) : null
+  const todayShown = todayPx != null
+  const todayW = Math.ceil(measure(TODAY_TEXT.toUpperCase(), TODAY_FONT, 10) + TODAY_EXTRA_PX)
+  const axis = layoutTimelineAxisLabels(
+    ticks.ticks.map((tk) => ({ left: Math.round(xOf(tk.t)) + 4, width: measure(tk.label, TICK_FONT, 11) })),
+    todayPx != null ? { x: todayPx, width: todayW } : null,
+    width,
+  )
+  const hiddenTicks = new Set(axis.hiddenTicks)
   const helpId = `${uid}-help`
 
   return (
@@ -540,10 +654,10 @@ export function Timeline({
               style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 1, background: 'var(--color-glass-border)', transform: `translateX(${Math.round(xOf(tk.t))}px)` }}
             />
           ))}
-          {todayX != null && todayX >= 0 && todayX <= width && (
+          {todayShown && (
             <div
               data-timeline-today=""
-              style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 0, borderLeft: '1px dashed var(--color-destructive)', transform: `translateX(${Math.round(todayX)}px)` }}
+              style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 0, borderLeft: '1px dashed var(--color-destructive)', transform: `translateX(${todayPx}px)` }}
             />
           )}
         </div>
@@ -553,7 +667,8 @@ export function Timeline({
           data-timeline-axis=""
           style={{ position: 'relative', height: AXIS_H, flexShrink: 0, borderBottom: '1px solid var(--color-glass-border)', overflow: 'hidden', pointerEvents: 'none' }}
         >
-          {ticks.ticks.map((tk) => (
+          {ticks.ticks.map((tk, i) =>
+            hiddenTicks.has(i) ? null : (
             <span
               key={tk.t}
               data-tick=""
@@ -570,13 +685,19 @@ export function Timeline({
             >
               {tk.label}
             </span>
-          ))}
-          {todayX != null && todayX >= 0 && todayX <= width && (
+            ),
+          )}
+          {todayShown && axis.todayLeft != null && (
             <span
+              data-timeline-today-label=""
               style={{
                 position: 'absolute',
                 left: 0,
                 top: 0,
+                width: todayW,
+                boxSizing: 'border-box',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
                 lineHeight: `${AXIS_H}px`,
                 padding: '0 4px',
                 fontSize: 10,
@@ -585,11 +706,11 @@ export function Timeline({
                 textTransform: 'uppercase',
                 color: 'var(--color-destructive)',
                 background: 'var(--color-bg-secondary)',
-                // Right of the line, or left of it near the right edge.
-                transform: todayX > width - 56 ? `translateX(${Math.round(todayX) - 2}px) translateX(-100%)` : `translateX(${Math.round(todayX) + 2}px)`,
+                // Whichever side of the line clears the tick labels (layoutTimelineAxisLabels).
+                transform: `translateX(${Math.round(axis.todayLeft)}px)`,
               }}
             >
-              Today
+              {TODAY_TEXT}
             </span>
           )}
         </div>
@@ -699,7 +820,10 @@ export function Timeline({
               const c1 = Math.min(x1, width + CLIP_PAD)
               const barW = Math.max(3, c1 - c0)
               const visibleW = Math.min(c1, width) - Math.max(c0, 0)
-              const inside = visibleW >= INSIDE_LABEL_MIN_PX
+              // Inside when the bar holds the whole label; a bar cut off by the view keeps its
+              // label inside (beside it would be out of view), truncated to the visible part.
+              const lw = labelW.get(it.id) ?? 0
+              const inside = visibleW >= INSIDE_LABEL_MIN_PX && (x1 - x0 >= lw + INSIDE_LABEL_PAD || visibleW < x1 - x0 - 1)
               const besideRoom = Math.min(LABEL_MAX_PX, roomEnd - (c0 + barW + 4))
               return (
                 <button
