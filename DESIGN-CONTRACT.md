@@ -101,6 +101,8 @@ Every page is a full-height column, top to bottom:
 | Search a list | `SearchInput` (`size="sm"` in a panel header; `onDebouncedChange` for server queries) | an `Input` with a hand-placed icon |
 | Switch between a few views or modes (grid / table) | `SegmentedControl` | a `ButtonPalette` of hand-wired `active` buttons |
 | An item in a catalog (list row or grid tile) | `ItemCard` (`layout="row"` or `"tile"`) | a bespoke card per app |
+| A person in a directory (list row or grid tile) | `PersonCard` (`layout="row"` or `"tile"`) | an `ItemCard` bent to fit a person |
+| A person named anywhere else (owner, author, "deleted by") | `PersonChip` (`onClick` opens their profile; `ItemCard` `onOwnerClick`) | an `Avatar` and a name as separate controls, a bare name |
 | Nothing to show | `EmptyState` (title says what is missing, `action` for the next step) | an empty area, illustrations |
 | Text / number field | `Label` + `Input` | bare `<input>` |
 | Pick one of a list | `FieldSelect` (`allowNone` when empty is valid) | bare `<select>` |

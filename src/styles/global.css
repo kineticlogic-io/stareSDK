@@ -773,13 +773,17 @@ body {
 /* stareSDK ItemCard (0.2.25). The LEDGER card's cheap border-colour hover (no layout-triggering
    property) on a clickable card, an accent focus ring for keyboard focus, and the same ring on
    the card's own controls (favorite star, tag buttons). */
-.ui-item-card--interactive {
+/* PersonCard (0.2.29) is in the ItemCard family and shares every one of these rules. */
+.ui-item-card--interactive,
+.ui-person-card--interactive {
   transition: border-color 0.15s;
 }
-.ui-item-card--interactive:hover {
+.ui-item-card--interactive:hover,
+.ui-person-card--interactive:hover {
   border-color: var(--color-accent) !important;
 }
-.ui-item-card--interactive:focus-visible {
+.ui-item-card--interactive:focus-visible,
+.ui-person-card--interactive:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
@@ -788,7 +792,22 @@ body {
   background: var(--color-glass-bg);
 }
 .ui-item-card__icon-button:focus-visible,
-.ui-item-card__tag:focus-visible {
+.ui-item-card__tag:focus-visible,
+.ui-person-card__skill:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* stareSDK PersonChip (0.2.29): a clickable person reads as a link, the same treatment as a
+   Breadcrumbs crumb — the text brightens to the accent on hover, keyboard focus gets the accent
+   ring. Colour and outline only, no layout-triggering property. */
+.ui-person-chip--interactive {
+  transition: color 0.15s;
+}
+.ui-person-chip--interactive:hover {
+  color: var(--color-accent) !important;
+}
+.ui-person-chip--interactive:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }

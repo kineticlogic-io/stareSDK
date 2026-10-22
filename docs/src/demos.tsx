@@ -12,7 +12,7 @@ import {
   AdminModal, AppCard, AssistantButton, Avatar, Badge, Breadcrumbs, Button, ButtonPalette, ButtonPalettePopover, ClassificationBanner,
   Checkbox, ClassifyModal, ClockBadges, CollapsiblePanel, ColorPicker, ContextMenu, ContextMenuItem, DataTable,
   Disclosure, DraggablePopup, EmptyState, Facets, FieldSelect, FileDropZone, Flyout, HomeButton, InfoTip,
-  Input, ItemCard, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader,
+  Input, ItemCard, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader, PersonCard, PersonChip,
   Pagination, Popover, PopoverMenuButton, ProfileChart, RadioGroup, RampPicker, SaveButton, SearchInput, SegmentedControl, Select, SideNav, Slider,
   SortableList, Stepper, TabPanel, Tabs, TagInput, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
   VirtualList, ZoomRangeSlider, distanceToMeters, durationToSeconds, sortRows, speedToMetersPerSecond, useTheme, useToast, useTypeaheadKeyboard,
@@ -566,6 +566,71 @@ function AvatarDemo() {
   )
 }
 
+function PersonChipDemo() {
+  const { toast } = useToast()
+  const show = (name: string) => () => toast({ variant: 'info', message: `Would show ${name}'s profile` })
+  return (
+    <div className="stack" style={{ gap: 'var(--space-sm)' }}>
+      <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-primary)' }}>
+        Deleted by <PersonChip name="Dana Ellis" onClick={show('Dana Ellis')} /> on 12 Oct, restored
+        by <PersonChip name="Marek Kowalski" onClick={show('Marek Kowalski')} />.
+      </p>
+      <div className="row" style={{ gap: 'var(--space-lg)', alignItems: 'center' }}>
+        <PersonChip size="md" name="Jane Doe" subtitle="Senior Analyst" onClick={show('Jane Doe')} />
+        <span className="caption">Created by <PersonChip name="operator7" /></span>
+      </div>
+    </div>
+  )
+}
+
+const DEMO_PEOPLE = [
+  { id: 'dana', name: 'Dana Ellis', position: 'Senior Analyst', organization: 'J2 Intelligence', site: 'Norfolk', skills: ['GEOINT', 'Maritime', 'AIS', 'Python', 'ArcGIS', 'Arabic'] },
+  { id: 'marek', name: 'Marek Kowalski', position: 'Targeting Officer', organization: 'J3 Operations', site: 'Ramstein', skills: ['SIGINT', 'ELINT', 'Polish'] },
+  { id: 'jane', name: 'Jane Doe', position: 'Data Engineer', organization: 'J6 Systems', site: 'Tampa', skills: ['Elasticsearch', 'Rust'] },
+]
+
+function PersonCardDemo() {
+  const [layout, setLayout] = useState<'row' | 'tile'>('tile')
+  const [selected, setSelected] = useState<string | null>('dana')
+  const [skill, setSkill] = useState<string | null>(null)
+  const people = DEMO_PEOPLE.filter(p => !skill || p.skills.includes(skill))
+  return (
+    <div className="stack" style={{ gap: 'var(--space-md)' }}>
+      <div className="row" style={{ gap: 'var(--space-md)', alignItems: 'center' }}>
+        <SegmentedControl
+          aria-label="Layout"
+          value={layout}
+          onChange={setLayout}
+          options={[
+            { value: 'row', icon: <TbList />, ariaLabel: 'List' },
+            { value: 'tile', icon: <TbLayoutGrid />, ariaLabel: 'Grid' },
+          ]}
+        />
+        {skill && <Badge size="sm" color="grey" onRemove={() => setSkill(null)} removeLabel={`Clear ${skill}`}>{skill}</Badge>}
+      </div>
+      <div style={layout === 'tile'
+        ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-md)' }
+        : { display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+        {people.map(p => (
+          <PersonCard
+            key={p.id}
+            layout={layout}
+            name={p.name}
+            position={p.position}
+            organization={p.organization}
+            site={p.site}
+            skills={p.skills}
+            onSkillClick={setSkill}
+            onClick={() => setSelected(p.id)}
+            selected={selected === p.id}
+          />
+        ))}
+      </div>
+      <span className="caption mono">selected: {JSON.stringify(selected)} · skill: {JSON.stringify(skill)}</span>
+    </div>
+  )
+}
+
 function InfoTipDemo() {
   return (
     <div className="field" style={narrow}>
@@ -1027,6 +1092,7 @@ function ItemCardDemo() {
               description={i.description}
               badges={<Badge size="sm" uppercase color={SHARING_DEMO[i.sharing].color} icon={SHARING_DEMO[i.sharing].icon}>{i.sharing}</Badge>}
               owner={{ name: i.owner }}
+              onOwnerClick={() => toast({ variant: 'info', message: `Would show ${i.owner}'s profile` })}
               tags={i.tags}
               onTagClick={tag => setText(tag)}
               meta={i.updated}
@@ -1519,6 +1585,7 @@ export const DEMOS: Record<string, ComponentType> = {
   typeahead: TypeaheadDemo,
   badge: BadgeDemo,
   avatar: AvatarDemo,
+  personchip: PersonChipDemo,
   infotip: InfoTipDemo,
   tooltip: TooltipDemo,
   itemclassificationbar: ItemClassificationBarDemo,
@@ -1537,6 +1604,7 @@ export const DEMOS: Record<string, ComponentType> = {
   searchinput: SearchInputDemo,
   segmentedcontrol: SegmentedControlDemo,
   itemcard: ItemCardDemo,
+  personcard: PersonCardDemo,
   emptystate: EmptyStateDemo,
   datatable: DataTableDemo,
   pagination: PaginationDemo,

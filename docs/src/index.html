@@ -158,6 +158,8 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
         <tr><td>Search a list</td><td><a href="#searchinput"><code>SearchInput</code></a></td><td>an <code>Input</code> with a hand-placed icon</td></tr>
         <tr><td>Switch between a few views or modes (grid / table)</td><td><a href="#segmentedcontrol"><code>SegmentedControl</code></a></td><td>a <code>ButtonPalette</code> of hand-wired <code>active</code> buttons</td></tr>
         <tr><td>An item in a catalog (list row or grid tile)</td><td><a href="#itemcard"><code>ItemCard</code></a></td><td>a bespoke card per app</td></tr>
+        <tr><td>A person in a directory (list row or grid tile)</td><td><a href="#personcard"><code>PersonCard</code></a></td><td>an <code>ItemCard</code> bent to fit a person</td></tr>
+        <tr><td>A person named anywhere else (owner, author, "deleted by")</td><td><a href="#personchip"><code>PersonChip</code></a></td><td>an <code>Avatar</code> and a name as separate controls, a bare name</td></tr>
         <tr><td>Nothing to show</td><td><a href="#emptystate"><code>EmptyState</code></a></td><td>an empty area, illustrations</td></tr>
         <tr><td>Text / number field</td><td><a href="#label-and-input"><code>Label</code> + <code>Input</code></a></td><td>bare <code>&lt;input&gt;</code></td></tr>
         <tr><td>Pick one of a list</td><td><a href="#fieldselect"><code>FieldSelect</code></a>, <a href="#select"><code>Select</code></a></td><td>bare <code>&lt;select&gt;</code></td></tr>
@@ -742,6 +744,25 @@ durationToSeconds(2, 'h') // 7200</code></pre>
   favorite={fav} onFavoriteChange={setFav} /&gt;
 &lt;ItemCard layout="tile" thumbnailSrc={thumb} thumbnailAlt="Port overview" … /&gt;</code></pre>
     </div>
+    <p>From 0.2.29, <code>onOwnerClick</code> turns the owner into a <a href="#personchip"><code>PersonChip</code></a> button
+      whose clicks never reach the card's <code>onClick</code>; without it the owner is plain text as before.</p>
+
+    <h3>PersonCard <span class="since">Available in 0.2.29+</span></h3>
+    <p>A person's directory entry, in the <code>ItemCard</code> family: a large avatar in place of the thumbnail, the name,
+      <code>position</code>, <code>organization</code> · <code>site</code>, and up to <code>maxSkills</code> skills (then
+      "+N", whose tooltip lists the rest). <code>layout="row"</code> is a list row with a 48&nbsp;px avatar;
+      <code>layout="tile"</code> a grid tile with an 80&nbsp;px avatar over centred text. It behaves as ItemCard does:
+      with <code>onClick</code> the card is one control (Enter or Space activates it), skill buttons (when
+      <code>onSkillClick</code> is passed) never reach it, <code>selected</code> marks the current entry and
+      <code>banner</code> is a strip across the top edge.</p>
+    <div class="example">
+      <div class="example-label">Example <code>PersonCard</code></div>
+      <div class="demo" data-demo="personcard"></div>
+<pre><code>&lt;PersonCard layout="tile" name="Dana Ellis" avatarSrc={avatarUrl} username="dellis"
+  position="Senior Analyst" organization="J2 Intelligence" site="Norfolk"
+  skills={['GEOINT', 'Maritime', 'AIS', 'Python', 'ArcGIS']} onSkillClick={filterBySkill}
+  onClick={() =&gt; openProfile(user.id)} selected={selectedId === user.id} /&gt;</code></pre>
+    </div>
 
     <h3>DataTable <span class="since">Available in 0.2.0+</span></h3>
     <p>Sortable columns (stable, nulls last), row selection with keyboard activation, and a sticky header with
@@ -862,6 +883,21 @@ durationToSeconds(2, 'h') // 7200</code></pre>
       <div class="example-label">Example <code>Avatar</code></div>
       <div class="demo" data-demo="avatar"></div>
 <pre><code>&lt;Avatar size={32} username="jdoe" firstName="Jane" lastName="Doe" src={user.avatarUrl} /&gt;</code></pre>
+    </div>
+
+    <h3>PersonChip <span class="since">Available in 0.2.29+</span></h3>
+    <p>The one clickable way to show a person anywhere: the <code>Avatar</code> and display name as one button, named
+      "Show &lt;name&gt;'s profile" (or <code>ariaLabel</code>), that reads as a link (accent on hover, accent focus ring).
+      Without <code>onClick</code> it is plain text. It inherits the surrounding font and colour, so it sits inline in a
+      sentence. <code>size="sm"</code> (default) is a 16&nbsp;px avatar, <code>"md"</code> 20&nbsp;px; <code>subtitle</code>
+      adds a small second line such as a position.</p>
+    <div class="example">
+      <div class="example-label">Example <code>PersonChip</code></div>
+      <div class="demo" data-demo="personchip"></div>
+<pre><code>Deleted by &lt;PersonChip name={user.displayName} avatarSrc={user.avatarUrl} username={user.username}
+  onClick={() =&gt; openProfile(user.id)} /&gt;
+&lt;PersonChip size="md" name="Jane Doe" subtitle="Senior Analyst" onClick={…} /&gt;
+&lt;PersonChip name="operator7" /&gt;  {/* plain text */}</code></pre>
     </div>
 
     <h3>EmptyState <span class="since">Available in 0.2.25+</span></h3>

@@ -116,6 +116,48 @@ describe('ItemCard', () => {
     expect(img.getAttribute('src')).toBe('/avatars/dana.png')
   })
 
+  describe('onOwnerClick', () => {
+    it('without it the owner is plain text, exactly as before: no button, the avatar named by the owner', () => {
+      const onClick = vi.fn()
+      const c = render({ owner: { name: 'Dana Analyst' }, onClick })
+      const owner = c.querySelector('.ui-item-card__owner') as HTMLElement
+      expect(owner.tagName).toBe('SPAN')
+      expect(owner.querySelector('button')).toBeNull()
+      expect(owner.querySelector('.ui-person-chip')).toBeNull()
+      expect(owner.querySelector('[role="img"]')!.getAttribute('aria-label')).toBe('Dana Analyst')
+      expect((owner.querySelector('[role="img"]') as HTMLElement).style.width).toBe('18px')
+      act(() => owner.click())
+      expect(onClick).toHaveBeenCalledTimes(1)
+    })
+
+    it('with it the owner is a PersonChip button that never triggers the card onClick', () => {
+      const onClick = vi.fn()
+      const onOwnerClick = vi.fn()
+      const c = render({ owner: { name: 'Dana Analyst', avatarSrc: '/avatars/dana.png' }, onClick, onOwnerClick })
+      const button = c.querySelector('.ui-item-card__owner button.ui-person-chip') as HTMLButtonElement
+      expect(button).not.toBeNull()
+      expect(button.getAttribute('aria-label')).toBe("Show Dana Analyst's profile")
+      expect(button.textContent).toBe('Dana Analyst')
+      expect(button.querySelector('img')!.getAttribute('src')).toBe('/avatars/dana.png')
+      act(() => button.click())
+      expect(onOwnerClick).toHaveBeenCalledTimes(1)
+      expect(onClick).not.toHaveBeenCalled()
+      key(button, 'Enter')
+      key(button, ' ')
+      expect(onClick).not.toHaveBeenCalled()
+    })
+
+    it('works in a tile too, and does nothing without an owner', () => {
+      const onClick = vi.fn()
+      const onOwnerClick = vi.fn()
+      const c = render({ layout: 'tile', owner: { name: 'Dana' }, onClick, onOwnerClick })
+      act(() => (c.querySelector('.ui-item-card__owner button') as HTMLButtonElement).click())
+      expect(onOwnerClick).toHaveBeenCalledTimes(1)
+      expect(onClick).not.toHaveBeenCalled()
+      expect(render({ onOwnerClick }).querySelector('.ui-item-card__owner')).toBeNull()
+    })
+  })
+
   it('renders meta as given', () => {
     const c = render({ meta: 'Updated 5m ago' })
     expect(c.querySelector('.ui-item-card__meta')!.textContent).toBe('Updated 5m ago')
