@@ -219,6 +219,22 @@ marked from `subSelected`.
   the view are rendered, placed with transforms. The pure parts (`packTimelineLanes`,
   `timelineTicks`, `fitTimelineSpan`, `zoomTimelineSpan`, `panTimelineSpan`) are exported too.
 
+0.2.31, `Timeline` polish for the CODEX homepage:
+
+- Labels show in full where there is room: lane packing reserves each label's width (measured
+  with an `OffscreenCanvas` in `--font-sans`, estimated where it cannot measure) beside a point or
+  a bar too short to hold it, so a nearby entry takes another lane instead of cutting the label
+  short. A bar holds its label inside only when the whole label fits; otherwise it sits beside.
+  Truncation (with the tooltip) is the last resort: past 240 px or at the edge of the view.
+  `TimelineLaneItem` gains an optional `footprint` (ms) for this, and
+  `estimateTimelineLabelWidth(text, fontSizePx?, letterSpacingEm?)` is exported.
+- The "today" label never overlaps an axis label: it sits right of the line, else left of it,
+  and only when neither side is clear does it hide the one tick label it covers
+  (`layoutTimelineAxisLabels(ticks, today, plotWidth)`, exported).
+- Auto height: without `height` the timeline is as tall as its lanes, between `minHeight`
+  (default: room for two lanes) and `maxHeight` (default 320), and more lanes scroll; an empty
+  timeline is 140 px. An explicit `height` works as before (0.2.30 defaulted to 260).
+
 ## Optional entry points
 
 Five components live behind their own subpath so the main barrel never loads their heavy optional

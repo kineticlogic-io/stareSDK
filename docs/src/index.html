@@ -1015,6 +1015,10 @@ import 'uplot/dist/uPlot.min.css'
       in time order (arrow keys move, Enter selects, <code>+</code>/<code>-</code> zoom). The window is uncontrolled
       (<code>initialRange</code>, else fitted to the entries) or controlled (<code>range</code> + <code>onRangeChange</code>).
       Only entries near the view are rendered, so hundreds stay smooth.</p>
+    <p>Since 0.2.31 a label beside a point or a short bar reserves its width when the lanes are packed, so labels show
+      in full wherever another lane has room; the "today" label moves to whichever side of its line clears the axis labels;
+      and without <code>height</code> the timeline is as tall as its lanes, between <code>minHeight</code> and
+      <code>maxHeight</code> (default 320), scrolling past that.</p>
     <div class="example">
       <div class="example-label">Example <code>Timeline</code></div>
       <div class="demo" data-demo="timeline"></div>

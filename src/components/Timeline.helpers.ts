@@ -1,6 +1,7 @@
 /**
- * Timeline helpers (0.2.30) — the pure parts of `Timeline`: date parsing, lane packing, the
- * adaptive axis, and the pan/zoom range arithmetic. Exported so an app can reuse the same packing
+ * Timeline helpers (0.2.30; label-aware packing, axis label layout and label widths 0.2.31) — the
+ * pure parts of `Timeline`: date parsing, lane packing, the adaptive axis, label geometry, and the
+ * pan/zoom range arithmetic. Exported so an app can reuse the same packing
  * or axis outside the component, and so each part is tested on its own.
  *
  * All calendar arithmetic is in UTC: a date-only string such as `'2024-03-12'` is UTC midnight in
@@ -57,6 +58,12 @@ export interface TimelineLaneItem {
   start: number
   /** Equal to `start` for a point. */
   end: number
+  /**
+   * The least time (ms, from `start`) this item occupies in its lane, when more than its own
+   * extent and `minFootprint` — `Timeline` sets it to the room its label needs beside the marker
+   * or bar (0.2.31), so a label is never cut short by the next entry in its lane.
+   */
+  footprint?: number
 }
 
 /**
@@ -66,14 +73,16 @@ export interface TimelineLaneItem {
  *
  * `minFootprint` (ms) is the least time an item is treated as occupying, so a point (or a very
  * short range) keeps room for its marker: two items closer than that never share a lane.
- * `Timeline` derives it from the current scale so markers never overlap on screen.
+ * `Timeline` derives it from the current scale so markers never overlap on screen. An item's own
+ * `footprint` widens that further (its label's room), so the next entry starts a lane only where
+ * the label has ended and a crowded instant spreads over other lanes instead of truncating labels.
  */
 export function packTimelineLanes(items: readonly TimelineLaneItem[], minFootprint = 0): Map<string, number> {
   const sorted = [...items].sort((a, b) => a.start - b.start || b.end - a.end || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   const laneEnds: number[] = []
   const lanes = new Map<string, number>()
   for (const it of sorted) {
-    const end = Math.max(it.end, it.start + minFootprint)
+    const end = Math.max(it.end, it.start + Math.max(minFootprint, it.footprint ?? 0))
     let lane = laneEnds.findIndex((e) => e < it.start)
     if (lane === -1) {
       lane = laneEnds.length
@@ -154,6 +163,77 @@ export function timelineTicks(span: TimelineSpan, widthPx: number, minSpacingPx 
     else t += step * TIMELINE_DAY_MS
   }
   return { unit, step, ticks }
+}
+
+// ---------------------------------------------------------------- label geometry
+
+/**
+ * An estimate of a label's rendered width in px at `fontSizePx` in a proportional sans-serif,
+ * from per-character widths (narrow, wide, capital, digit) rounded up so it errs wide. `Timeline`
+ * uses it to reserve label room when the text cannot be measured (no `OffscreenCanvas`, as in
+ * jsdom); `letterSpacingEm` adds tracking per character.
+ */
+export function estimateTimelineLabelWidth(text: string, fontSizePx = 11, letterSpacingEm = 0): number {
+  let em = 0
+  for (const ch of text) {
+    if (/[iljtfI.,:;'|!() ]/.test(ch)) em += 0.32
+    else if (/[mwMW@%]/.test(ch)) em += 0.92
+    else if (/[A-Z]/.test(ch)) em += 0.7
+    else if (/[0-9]/.test(ch)) em += 0.6
+    else em += 0.58
+    em += letterSpacingEm
+  }
+  return Math.ceil(em * fontSizePx)
+}
+
+/** A label's horizontal extent on the axis, in px from the plot's left edge. */
+export interface TimelineAxisLabelBox {
+  left: number
+  width: number
+}
+
+export interface TimelineAxisLabelLayout {
+  /** Left edge of the "today" label, or `null` when there is no today label. */
+  todayLeft: number | null
+  /** Indexes of tick labels hidden because the today label had to cover them. */
+  hiddenTicks: number[]
+}
+
+/** Least gap between two axis labels, in px. */
+const AXIS_LABEL_GAP = 4
+
+/**
+ * Places the "today" label on the axis so it never overlaps a tick label: right of the today line
+ * (`todayX`), else left of it, whichever side stays inside the plot (`plotWidth`) and clear of
+ * every tick label. When neither side is clear the label takes the side that stays in the plot
+ * (right first) and the tick labels it would overlap are hidden — "today" wins, since the gridline
+ * still marks the tick and the neighbouring labels name it.
+ */
+export function layoutTimelineAxisLabels(
+  ticks: readonly TimelineAxisLabelBox[],
+  today: { x: number; width: number } | null,
+  plotWidth: number,
+): TimelineAxisLabelLayout {
+  if (!today) return { todayLeft: null, hiddenTicks: [] }
+  const right = today.x + 2
+  const left = today.x - 2 - today.width
+  const fits = (l: number) => l >= 0 && l + today.width <= plotWidth
+  const hits = (l: number) =>
+    ticks.flatMap((tk, i) => (tk.left < l + today.width + AXIS_LABEL_GAP && l < tk.left + tk.width + AXIS_LABEL_GAP ? [i] : []))
+  const sides = [right, left].filter(fits)
+  if (sides.length === 0) sides.push(Math.min(Math.max(0, right), Math.max(0, plotWidth - today.width)))
+  for (const l of sides) if (hits(l).length === 0) return { todayLeft: l, hiddenTicks: [] }
+  // Neither side is clear: take the side that hides the fewest tick labels (right on a tie).
+  let best = sides[0]
+  let bestHits = hits(best)
+  for (const l of sides.slice(1)) {
+    const h = hits(l)
+    if (h.length < bestHits.length) {
+      best = l
+      bestHits = h
+    }
+  }
+  return { todayLeft: best, hiddenTicks: bestHits }
 }
 
 // ---------------------------------------------------------------- range arithmetic

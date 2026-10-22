@@ -18,14 +18,14 @@
     document.documentElement.dataset.theme = t
   })()
 </script>
-  <script type="module" crossorigin src="./assets/index-BjJJZT2g.js"></script>
+  <script type="module" crossorigin src="./assets/index-DlXUbJyr.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-B0Z9INg1.js">
   <link rel="stylesheet" crossorigin href="./assets/index-DUBrAota.css">
 </head>
 <body>
 <header class="guide-header">
   <a class="guide-brand" href="#overview">stare<span>SDK</span></a>
-  <span class="guide-version">v0.2.30</span>
+  <span class="guide-version">v0.2.31</span>
   <nav class="guide-nav" aria-label="Site">
     <a href="#getting-started">Start</a>
     <a href="#foundations">Foundations</a>
@@ -1017,6 +1017,10 @@ import 'uplot/dist/uPlot.min.css'
       in time order (arrow keys move, Enter selects, <code>+</code>/<code>-</code> zoom). The window is uncontrolled
       (<code>initialRange</code>, else fitted to the entries) or controlled (<code>range</code> + <code>onRangeChange</code>).
       Only entries near the view are rendered, so hundreds stay smooth.</p>
+    <p>Since 0.2.31 a label beside a point or a short bar reserves its width when the lanes are packed, so labels show
+      in full wherever another lane has room; the "today" label moves to whichever side of its line clears the axis labels;
+      and without <code>height</code> the timeline is as tall as its lanes, between <code>minHeight</code> and
+      <code>maxHeight</code> (default 320), scrolling past that.</p>
     <div class="example">
       <div class="example-label">Example <code>Timeline</code></div>
       <div class="demo" data-demo="timeline"></div>
@@ -1099,7 +1103,7 @@ npm run docs      # this guide, into docs/</code></pre>
     <p><a href="https://github.com/kineticlogic-io/stareSDK/blob/main/LICENSE">MIT</a>. © 2026 kineticlogic.io. For consulting
       or support, email <a href="mailto:admin@kineticlogic.io">admin@kineticlogic.io</a>.</p>
 
-    <footer class="guide-footer">stareSDK v0.2.30 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
+    <footer class="guide-footer">stareSDK v0.2.31 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
   </main>
 </div>
 </body>
