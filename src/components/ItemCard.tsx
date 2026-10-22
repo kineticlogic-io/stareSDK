@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode, SyntheticEvent } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { TbStar, TbStarFilled } from 'react-icons/tb'
 import { Avatar } from './Avatar.js'
-import { Badge } from './Badge.js'
 import { Checkbox } from './Checkbox.js'
+import { PersonChip } from './PersonChip.js'
+import { CardBanner, ChipList, Isolated, cardKeyDownHandler, cardShellStyle, ellipsis } from '../internal/cardParts.js'
 
 /**
  * ItemCard — the catalog item card (0.2.25, for OpenStare's LEDGER content-management overhaul,
@@ -45,6 +46,8 @@ import { Checkbox } from './Checkbox.js'
  * - `onFavoriteChange` adds a star toggle (`TbStar`/`TbStarFilled`, `aria-pressed`).
  * - `tags` show up to `maxTags` (default 4) then a "+N" badge; with `onTagClick` each tag is a
  *   button.
+ * - `onOwnerClick` (0.2.29) turns the owner into a `PersonChip` button ("Show <name>'s profile")
+ *   whose clicks and keys never reach `onClick`; without it the owner is plain text as before.
  *
  * Hover and keyboard focus follow the shared tokens (accent border on hover, accent focus ring);
  * design tokens only, so it follows the dark and light themes.
@@ -73,6 +76,8 @@ export interface ItemCardProps {
   /** Status and sharing badges, shown beside the title (row) or under it (tile). */
   badges?: ReactNode
   owner?: ItemCardOwner
+  /** Makes the owner a `PersonChip` button (e.g. open their profile); never triggers `onClick`. */
+  onOwnerClick?: () => void
   tags?: string[]
   /** How many tags show before a "+N" badge (default 4). */
   maxTags?: number
@@ -105,19 +110,6 @@ export interface ItemCardProps {
   id?: string
   style?: CSSProperties
 }
-
-const stop = (e: SyntheticEvent) => e.stopPropagation()
-
-/** Wraps an interactive slot so neither its clicks nor its keys reach the card's `onClick`. */
-function Isolated({ children, style }: { children: ReactNode; style?: CSSProperties }) {
-  return (
-    <span onClick={stop} onKeyDown={stop} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, ...style }}>
-      {children}
-    </span>
-  )
-}
-
-const ellipsis: CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }
 
 function Thumbnail({
   src,
@@ -179,6 +171,7 @@ export function ItemCard({
   thumbnailAlt,
   badges,
   owner,
+  onOwnerClick,
   tags = [],
   maxTags = 4,
   onTagClick,
@@ -203,16 +196,7 @@ export function ItemCard({
   const tile = layout === 'tile'
   const large = tile && size === 'lg'
   const interactive = onClick != null
-  const shown = tags.slice(0, Math.max(0, maxTags))
-  const hidden = tags.slice(shown.length)
-
-  const onCardKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (!onClick || e.target !== e.currentTarget) return
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      onClick()
-    }
-  }
+  const onCardKeyDown = cardKeyDownHandler(onClick)
 
   const checkbox = selectable ? (
     <Isolated
@@ -327,34 +311,22 @@ export function ItemCard({
     </div>
   ) : null
 
-  const tagList = shown.length > 0 ? (
-    <span className="ui-item-card__tags" style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>
-      {shown.map((tag) =>
-        onTagClick ? (
-          <button
-            key={tag}
-            type="button"
-            className="ui-item-card__tag"
-            onClick={(e: MouseEvent) => {
-              e.stopPropagation()
-              onTagClick(tag)
-            }}
-            onKeyDown={stop}
-            style={{ background: 'none', border: 'none', padding: 0, borderRadius: 999, cursor: 'pointer', display: 'inline-flex' }}
-          >
-            <Badge color="grey" size="sm">{tag}</Badge>
-          </button>
-        ) : (
-          <Badge key={tag} color="grey" size="sm">{tag}</Badge>
-        ),
-      )}
-      {hidden.length > 0 && (
-        <Badge color="grey" size="sm" outline title={hidden.join(', ')}>{`+${hidden.length}`}</Badge>
-      )}
-    </span>
-  ) : null
+  const tagList = (
+    <ChipList chips={tags} max={maxTags} onChipClick={onTagClick} listClassName="ui-item-card__tags" chipClassName="ui-item-card__tag" />
+  )
+  const hasTags = tags.length > 0 && maxTags > 0
 
-  const ownerBlock = owner ? (
+  const ownerBlock = owner && onOwnerClick ? (
+    <Isolated className="ui-item-card__owner" style={{ flexShrink: 1, minWidth: 0 }}>
+      <PersonChip
+        name={owner.name}
+        avatarSrc={owner.avatarSrc}
+        size="md"
+        onClick={onOwnerClick}
+        style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--color-text-primary)' }}
+      />
+    </Isolated>
+  ) : owner ? (
     <span className="ui-item-card__owner" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
       <Avatar size={18} src={owner.avatarSrc} username={owner.name} alt={owner.name} />
       <span style={{ ...ellipsis, fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--color-text-primary)' }}>{owner.name}</span>
@@ -370,10 +342,10 @@ export function ItemCard({
     </span>
   ) : null
 
-  const footer = ownerBlock || tagList || metaBlock ? (
+  const footer = ownerBlock || hasTags || metaBlock ? (
     tile ? (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)', marginTop: 'auto' }}>
-        {tagList}
+        {hasTags && tagList}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-sm)', minWidth: 0 }}>
           {ownerBlock ?? <span />}
           {metaBlock}
@@ -383,7 +355,7 @@ export function ItemCard({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-sm)', marginTop: 'auto' }}>
         {ownerBlock ?? <span />}
         <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 'var(--space-sm)', minWidth: 0 }}>
-          {tagList}
+          {hasTags && tagList}
           {metaBlock}
         </span>
       </div>
@@ -399,21 +371,7 @@ export function ItemCard({
   ].filter(Boolean).join(' ')
 
   const cardStyle: CSSProperties = {
-    position: 'relative',
-    display: 'flex',
-    flexDirection: tile || banner != null ? 'column' : 'row',
-    gap: tile ? 0 : 'var(--space-sm)',
-    padding: tile ? 0 : 'var(--space-md)',
-    borderRadius: 8,
-    background: 'var(--color-glass-bg)',
-    border: `1px solid ${selected ? 'var(--color-accent)' : 'var(--color-glass-border)'}`,
-    boxShadow: selected ? 'inset 0 0 0 1px var(--color-accent)' : undefined,
-    // `clip`, never `hidden`: see the note on `tile` above.
-    overflow: tile ? 'clip' : undefined,
-    height: tile ? '100%' : undefined,
-    boxSizing: 'border-box',
-    cursor: interactive ? 'pointer' : undefined,
-    fontFamily: 'var(--font-sans)',
+    ...cardShellStyle({ tile, column: tile || banner != null, selected, interactive }),
     ...style,
   }
 
@@ -451,14 +409,7 @@ export function ItemCard({
     </>
   )
 
-  const bannerBlock = banner != null ? (
-    <div
-      className="ui-item-card__banner"
-      style={{ flexShrink: 0, padding: tile ? 'var(--space-sm) var(--space-md)' : 0, borderBottom: tile ? '1px solid var(--color-glass-border)' : undefined }}
-    >
-      {banner}
-    </div>
-  ) : null
+  const bannerBlock = <CardBanner banner={banner} tile={tile} className="ui-item-card__banner" />
 
   return (
     <div

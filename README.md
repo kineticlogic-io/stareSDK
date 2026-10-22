@@ -177,6 +177,21 @@ search field instead of a list.
 0.2.28: `ItemCard` `banner` is a strip across the card's top edge in both layouts (above a tile's
 thumbnail, above a row's content), e.g. an `ItemClassificationBar` for the item's classification.
 
+0.2.29, for OpenStare's user directory (kineticlogic-io/OpenStare#391):
+
+- `PersonChip` — the one clickable way to show a person anywhere: `Avatar` + display name as ONE
+  button (`name`, `avatarSrc`, `username` for the initials fallback, `size` `sm`/`md` = 16/20 px
+  avatar, `onClick`, `ariaLabel` default "Show <name>'s profile", `subtitle` second line, `style`).
+  Without `onClick` it is plain text. It inherits typography, so it sits inline in a sentence
+  ("deleted by <PersonChip/>"); accent on hover and an accent focus ring, like a link.
+- `PersonCard` — a directory entry in the `ItemCard` family, built on the same card internals: a
+  large avatar in place of the thumbnail, `name`, `position`, `organization` · `site`, `skills`
+  (up to `maxSkills`, default 4, then "+N" with the rest as its tooltip; `onSkillClick`),
+  `onClick` with Enter/Space, `layout` `row`/`tile`, `selected`, `banner`, `ariaLabel`. Skill
+  clicks never reach `onClick`.
+- `ItemCard` `onOwnerClick` makes the owner a `PersonChip` button whose clicks never reach the
+  card's `onClick`; without it the card is unchanged.
+
 0.2.27: a `Facets` option may carry `subOptions` (with `subLabel`), a second level rendered
 directly beneath that option — not after the whole list — toggled through `onToggleSub` and
 marked from `subSelected`.
