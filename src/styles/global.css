@@ -824,3 +824,29 @@ body {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/* stareSDK Timeline (0.2.30): an entry brightens on hover (filter only, compositor-safe) and
+   keyboard focus gets the accent ring; the plot itself gets the ring when it is the tab stop
+   (no entry in view). */
+.ui-timeline__bar,
+.ui-timeline__mark {
+  transition: filter 0.15s;
+}
+.ui-timeline__entry:hover .ui-timeline__bar,
+.ui-timeline__entry:hover .ui-timeline__mark {
+  filter: brightness(1.2);
+}
+.ui-timeline__entry:focus-visible,
+.ui-timeline__plot:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.ui-timeline__plot:focus-visible {
+  outline-offset: -2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-timeline__bar,
+  .ui-timeline__mark {
+    transition: none;
+  }
+}
