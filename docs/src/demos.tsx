@@ -14,11 +14,11 @@ import {
   Disclosure, DraggablePopup, EmptyState, Facets, FieldSelect, FileDropZone, Flyout, HomeButton, InfoTip,
   Input, ItemCard, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader, PersonCard, PersonChip,
   Pagination, Popover, PopoverMenuButton, ProfileChart, RadioGroup, RampPicker, SaveButton, SearchInput, SegmentedControl, Select, SideNav, Slider,
-  SortableList, Stepper, TabPanel, Tabs, TagInput, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
+  SortableList, Stepper, TabPanel, Tabs, TagInput, Timeline, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
   VirtualList, ZoomRangeSlider, distanceToMeters, durationToSeconds, sortRows, speedToMetersPerSecond, useTheme, useToast, useTypeaheadKeyboard,
   type BadgeColor, type ClassificationMarking, type ClassifyOptions, type DataTableColumn,
   type DataTableSort,
-  type DistanceUnit, type FlyoutItem, type SpeedUnit, type StepItem, type TimeUnit, type TreeNode,
+  type DistanceUnit, type FlyoutItem, type TimelineEntry, type SpeedUnit, type StepItem, type TimeUnit, type TreeNode,
 } from '../../src/index'
 import {
   BadgeSwatches, CanonicalSwatches, ClassificationSwatches, ExtendedSwatches, IntelSwatches, Scales,
@@ -1507,6 +1507,35 @@ function ProfileChartDemo() {
   )
 }
 
+const TIMELINE: TimelineEntry[] = [
+  { id: 'ex-baltops', label: 'BALTOPS exercise', start: '2026-06-02', end: '2026-06-20', tone: 'info', meta: 'Exercise' },
+  { id: 'dep-1', label: 'Carrier strike group deployment', start: '2026-02-10', end: '2026-08-28', tone: 'accent', meta: 'Deployment' },
+  { id: 'port-1', label: 'Port visit, Gdynia', start: '2026-06-24', meta: 'Port call' },
+  { id: 'rep-1', label: 'Assessment published', start: '2026-09-15', tone: 'neutral', meta: 'Report' },
+  { id: 'inc-1', label: 'GNSS interference reported', start: '2026-04-03', tone: 'warning', meta: 'Incident' },
+  { id: 'inc-2', label: 'Cable damage, Gulf of Finland', start: '2025-12-25', tone: 'warning', meta: 'Incident' },
+  { id: 'ex-2', label: 'Northern Coasts', start: '2026-09-08', end: '2026-09-26', tone: 'info', meta: 'Exercise' },
+  { id: 'sur-1', label: 'Survey vessel loitering', start: '2026-01-14', end: '2026-03-02', tone: 'warning', meta: 'Activity' },
+  { id: 'dep-2', label: 'Patrol rotation', start: '2026-10-01', end: '2027-03-31', tone: 'accent', meta: 'Deployment' },
+  { id: 'rep-2', label: 'Quarterly summary', start: '2026-12-19', tone: 'neutral', meta: 'Report' },
+  { id: 'port-2', label: 'Port visit, Tallinn', start: '2026-11-06', meta: 'Port call' },
+  { id: 'ex-3', label: 'Cold Response', start: '2027-03-02', end: '2027-03-20', tone: 'info', meta: 'Exercise' },
+]
+
+function TimelineDemo() {
+  const [selected, setSelected] = useState<string | null>('ex-baltops')
+  const entry = TIMELINE.find(e => e.id === selected)
+  return (
+    <div className="stack" style={{ gap: 'var(--space-sm)' }}>
+      <Timeline aria-label="Activity timeline" entries={TIMELINE} selectedId={selected} onSelect={setSelected} height={250} />
+      <span className="caption">{entry ? `Selected: ${entry.label}` : 'Nothing selected'}. Drag to pan, wheel or pinch to zoom; arrow keys move between entries.</span>
+      <div style={{ maxWidth: 360 }}>
+        <Timeline aria-label="Empty timeline" entries={[]} emptyTitle="No dated entries" height={120} />
+      </div>
+    </div>
+  )
+}
+
 const TimeSeriesChartDemo = lazy(() => import('./views').then(m => ({ default: m.TimeSeriesChartDemo })))
 const GraphViewDemo = lazy(() => import('./views').then(m => ({ default: m.GraphViewDemo })))
 const FlowCanvasDemo = lazy(() => import('./views').then(m => ({ default: m.FlowCanvasDemo })))
@@ -1621,6 +1650,7 @@ export const DEMOS: Record<string, ComponentType> = {
   toast: ToastDemo,
   mdtext: MDTextDemo,
   profilechart: ProfileChartDemo,
+  timeline: TimelineDemo,
   timeserieschart: TimeSeriesChartDemo,
   graphview: GraphViewDemo,
   flowcanvas: FlowCanvasDemo,

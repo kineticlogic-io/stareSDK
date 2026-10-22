@@ -202,6 +202,23 @@ marked from `subSelected`.
   `TbArrowBadgeRight` separators; `hideLabel` shows only the icon with the label as its name and
   tooltip; labels before the last truncate past `maxItemWidth` with the full label as a tooltip.
 
+0.2.30, for OpenStare's CODEX homepage (kineticlogic-io/OpenStare#392):
+
+- `Timeline` — dated entries on a horizontal time axis in greedily packed, never-overlapping
+  lanes: `entries` `{ id, label, start, end?, tone?, meta? }[]` (`start`/`end` an ISO string or
+  `Date`; with `end` a bar, without it a point marker; `tone` `accent`/`info`/`warning`/`neutral`;
+  `meta` joins the label and dates in the tooltip and accessible name), `onSelect(id)` /
+  `selectedId`, `height` (default 260; extra lanes scroll), the visible window uncontrolled
+  (`initialRange`, else fitted to the entries) or controlled (`range` + `onRangeChange`, which
+  reports `{ start: Date, end: Date }`), `aria-label`, `now` (the "today" line; `null` hides it),
+  `emptyTitle` / `emptyDescription`. The axis adapts from centuries to days (UTC); drag pans,
+  wheel or pinch zooms about the pointer, and zoom-in / zoom-out / fit buttons sit above the axis.
+  Entries are buttons in time order with one tab stop: arrow keys move (panning off-screen entries
+  into view), Home / End jump, Enter selects, `+` / `-` zoom. Labels sit inside a wide bar or
+  beside it, truncated before the next entry with the full text as a tooltip. Only entries near
+  the view are rendered, placed with transforms. The pure parts (`packTimelineLanes`,
+  `timelineTicks`, `fitTimelineSpan`, `zoomTimelineSpan`, `panTimelineSpan`) are exported too.
+
 ## Optional entry points
 
 Five components live behind their own subpath so the main barrel never loads their heavy optional

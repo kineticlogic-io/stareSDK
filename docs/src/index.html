@@ -176,6 +176,7 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
         <tr><td>Lineage or a pipeline</td><td><a href="#graphview"><code>GraphView</code></a></td><td>hand-drawn SVG</td></tr>
         <tr><td>Editing a flow (drag-and-drop steps)</td><td><a href="#flowcanvas"><code>FlowCanvas</code></a></td><td>a second flow library</td></tr>
         <tr><td>Values over time</td><td><a href="#timeserieschart"><code>TimeSeriesChart</code></a></td><td>a second chart library</td></tr>
+        <tr><td>Dated events and periods</td><td><a href="#timeline"><code>Timeline</code></a></td><td>a hand-built Gantt</td></tr>
         <tr><td>Rendered Markdown</td><td><a href="#mdtext"><code>MDText</code></a></td><td></td></tr>
       </tbody>
     </table></div>
@@ -1005,6 +1006,23 @@ import 'uplot/dist/uPlot.min.css'
 <pre><code>&lt;ProfileChart aria-label="Terrain profile" samples={samples}
   sightLine={[{ distance_m: 0, height_m: 412 }, { distance_m: 18000, height_m: 260 }]}
   obstruction={{ distance_m: 9400, height_m: 351 }} /&gt;</code></pre>
+    </div>
+
+    <h3>Timeline <span class="since">Available in 0.2.30+</span></h3>
+    <p>Dated entries on a horizontal time axis, in lanes that never overlap: an entry with an <code>end</code> is a bar,
+      one without is a point. The axis adapts from centuries down to days, a dashed line marks today, and each entry's
+      <code>tone</code> picks a token colour. Drag to pan, wheel or pinch to zoom, or use the buttons; entries are buttons
+      in time order (arrow keys move, Enter selects, <code>+</code>/<code>-</code> zoom). The window is uncontrolled
+      (<code>initialRange</code>, else fitted to the entries) or controlled (<code>range</code> + <code>onRangeChange</code>).
+      Only entries near the view are rendered, so hundreds stay smooth.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Timeline</code></div>
+      <div class="demo" data-demo="timeline"></div>
+<pre><code>&lt;Timeline aria-label="Activity timeline" selectedId={selected} onSelect={setSelected}
+  entries={[
+    { id: 'dep', label: 'Deployment', start: '2025-02-10', end: '2025-08-28', meta: 'Deployment' },
+    { id: 'port', label: 'Port visit, Gdynia', start: '2025-06-24', tone: 'info' },
+  ]} /&gt;</code></pre>
     </div>
 
     <h3>GraphView <span class="since">Available in 0.2.0+</span></h3>

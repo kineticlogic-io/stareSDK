@@ -1,0 +1,752 @@
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react'
+import { TbArrowAutofitWidth, TbZoomIn, TbZoomOut } from 'react-icons/tb'
+import { Button } from './Button.js'
+import { EmptyState } from './EmptyState.js'
+import {
+  clampTimelineSpan,
+  fitTimelineSpan,
+  formatTimelineDate,
+  formatTimelineSpan,
+  packTimelineLanes,
+  panTimelineSpan,
+  parseTimelineTime,
+  timelineTicks,
+  zoomTimelineSpan,
+  type TimelineSpan,
+} from './Timeline.helpers.js'
+
+/**
+ * Timeline (0.2.30, operator-approved 2026-10-22 for the CODEX homepage, kineticlogic-io/OpenStare#392)
+ * — dated entries on a horizontal time axis, in non-overlapping lanes.
+ *
+ * - An entry with `end` is a **range**, drawn as a bar from start to end; without `end` it is a
+ *   **point**, drawn as a diamond marker. `tone` picks a token colour, never a raw colour.
+ * - **Lanes** are packed greedily (`packTimelineLanes`): ranges never overlap, and points keep room
+ *   for their marker at the current zoom. A label sits inside its bar when the bar is wide enough,
+ *   else beside it, truncated to the room before the next entry in its lane; the full label, dates
+ *   and `meta` are the entry's tooltip and accessible name.
+ * - **Axis**: ticks adapt from centuries down to single days (`timelineTicks`), on calendar
+ *   boundaries in UTC (a date-only string is UTC midnight, so it stays on the day it names). A
+ *   "today" line marks the current date (`now` overrides it, `null` hides it).
+ * - **Pan and zoom**: drag to pan (vertical drag scrolls the lanes), wheel or pinch to zoom about
+ *   the pointer, horizontal wheel to pan, and zoom-in / zoom-out / fit buttons. The visible window
+ *   is uncontrolled (`initialRange`, else fitted to the entries and re-fitted as they change until
+ *   the user moves it) or controlled (`range` + `onRangeChange`).
+ * - **Keyboard**: entries are buttons in time order with one tab stop; arrow keys move to the
+ *   previous / next entry (panning it into view), Home / End to the first / last, Enter selects,
+ *   `+` / `-` zoom.
+ * - **Performance**: only entries in or near the view are rendered, each placed with a transform;
+ *   lanes re-pack only when the zoom crosses a doubling, so panning never reshuffles them.
+ * - **Empty**: no entries renders an `EmptyState` and no controls.
+ *
+ * Data comes in through props only; design tokens only, so it follows the dark and light themes.
+ * Interaction feedback animates only `filter`, `opacity` and `transform`.
+ */
+export type TimelineTone = 'accent' | 'info' | 'warning' | 'neutral'
+
+export interface TimelineEntry {
+  id: string
+  label: string
+  /** An ISO date / date-time string or a `Date`. An entry whose start does not parse is left out. */
+  start: string | Date
+  /** Makes the entry a range. Omitted (or unparseable) makes it a point. */
+  end?: string | Date
+  tone?: TimelineTone
+  /** Secondary text for the tooltip and accessible name (a type, a place, a source). */
+  meta?: string
+}
+
+/** A visible window as the caller gives it. */
+export interface TimelineRange {
+  start: string | Date
+  end: string | Date
+}
+
+export interface TimelineProps {
+  entries: TimelineEntry[]
+  onSelect?: (id: string) => void
+  selectedId?: string | null
+  /** Total height in px, toolbar and axis included (default 260). More lanes than fit scroll. */
+  height?: number
+  /** Uncontrolled starting window. Without it the window fits the entries. */
+  initialRange?: TimelineRange
+  /** Controlled window; pair with `onRangeChange`. */
+  range?: TimelineRange
+  /** Every pan, zoom and fit reports the new window. */
+  onRangeChange?: (range: { start: Date; end: Date }) => void
+  'aria-label': string
+  /** Where the "today" line sits (default the current date); `null` hides it. */
+  now?: string | Date | null
+  /** Empty-state title (default "No entries to show"). */
+  emptyTitle?: ReactNode
+  emptyDescription?: ReactNode
+  style?: CSSProperties
+}
+
+const TONE_TOKEN: Record<TimelineTone, string> = {
+  accent: '--color-accent',
+  info: '--status-info',
+  warning: '--status-warning',
+  neutral: '--text-muted',
+}
+
+/** Width used until the plot has been measured (and where ResizeObserver is unavailable). */
+const FALLBACK_WIDTH = 800
+const TOOLBAR_H = 32
+const AXIS_H = 24
+const LANE_H = 26
+const BAR_H = 18
+const LANES_PAD = 6
+const MARKER = 10
+/** The least on-screen room an entry occupies in its lane: a marker and a gap. */
+const FOOTPRINT_PX = 24
+/** A bar at least this wide carries its label inside. */
+const INSIDE_LABEL_MIN_PX = 56
+const LABEL_MAX_PX = 240
+/** Bars are clipped this far beyond the view, so a deep zoom never asks for a giant element. */
+const CLIP_PAD = 400
+const DRAG_THRESHOLD_PX = 4
+const ZOOM_STEP = 0.5
+
+const SR_ONLY: CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+}
+
+interface Item {
+  entry: TimelineEntry
+  id: string
+  start: number
+  end: number
+  point: boolean
+  index: number
+}
+
+function parseRange(r: TimelineRange | undefined): TimelineSpan | null {
+  if (!r) return null
+  const start = parseTimelineTime(r.start)
+  const end = parseTimelineTime(r.end)
+  if (start == null || end == null || end <= start) return null
+  return clampTimelineSpan({ start, end })
+}
+
+function datesOf(it: Item): string {
+  return it.point ? formatTimelineDate(it.start) : `${formatTimelineDate(it.start)} to ${formatTimelineDate(it.end)}`
+}
+
+export function Timeline({
+  entries,
+  onSelect,
+  selectedId = null,
+  height = 260,
+  initialRange,
+  range,
+  onRangeChange,
+  'aria-label': ariaLabel,
+  now,
+  emptyTitle = 'No entries to show',
+  emptyDescription,
+  style,
+}: TimelineProps) {
+  const uid = useId()
+  const plotRef = useRef<HTMLDivElement>(null)
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const entryEls = useRef(new Map<string, HTMLButtonElement>())
+  const pendingFocus = useRef<string | null>(null)
+  const suppressClick = useRef(false)
+  const drag = useRef<{ x: number; y: number; span: TimelineSpan; msPerPx: number; scrollTop: number; moved: boolean; mouse: boolean } | null>(null)
+  const pointers = useRef(new Map<number, number>())
+  const pinch = useRef<{ d0: number; span: TimelineSpan; anchor: number } | null>(null)
+
+  const [width, setWidth] = useState(FALLBACK_WIDTH)
+  const [dragging, setDragging] = useState(false)
+  const [focusId, setFocusId] = useState<string | null>(null)
+  const [clock, setClock] = useState(() => Date.now())
+
+  // ---- entries, in time order
+  const items = useMemo<Item[]>(() => {
+    const out: Omit<Item, 'index'>[] = []
+    for (const entry of entries) {
+      const a = parseTimelineTime(entry.start)
+      if (a == null) continue
+      const b = parseTimelineTime(entry.end)
+      const point = b == null || b === a
+      const start = point ? a : Math.min(a, b)
+      const end = point ? a : Math.max(a, b)
+      out.push({ entry, id: entry.id, start, end, point })
+    }
+    out.sort((p, q) => p.start - q.start || q.end - p.end || (p.id < q.id ? -1 : p.id > q.id ? 1 : 0))
+    return out.map((it, index) => ({ ...it, index }))
+  }, [entries])
+  const fitted = useMemo(() => fitTimelineSpan(items), [items])
+  const empty = items.length === 0
+
+  // ---- the visible window: controlled, else the user's, else fitted to the entries
+  const controlledStart = parseTimelineTime(range?.start)
+  const controlledEnd = parseTimelineTime(range?.end)
+  const controlled = range !== undefined
+  const controlledSpan = useMemo(
+    () => (controlledStart != null && controlledEnd != null ? parseRange({ start: new Date(controlledStart), end: new Date(controlledEnd) }) : null),
+    [controlledStart, controlledEnd],
+  )
+  const [internal, setInternal] = useState<TimelineSpan | null>(() => parseRange(initialRange))
+  const span: TimelineSpan =
+    (controlled ? controlledSpan : internal) ?? fitted ?? { start: clock - 180 * 86_400_000, end: clock + 180 * 86_400_000 }
+  const msPerPx = (span.end - span.start) / width
+
+  const commit = useCallback(
+    (next: TimelineSpan | null) => {
+      // `null` = follow the fitted window again (the fit button).
+      const target = next ? clampTimelineSpan(next) : fitted
+      if (!controlled) setInternal(next ? target : null)
+      if (target) onRangeChange?.({ start: new Date(target.start), end: new Date(target.end) })
+    },
+    [controlled, fitted, onRangeChange],
+  )
+
+  // Handlers attached outside React (wheel) read the latest values through this ref.
+  const latest = useRef({ span, msPerPx, commit })
+  useLayoutEffect(() => {
+    latest.current = { span, msPerPx, commit }
+  })
+
+  // ---- measure
+  useEffect(() => {
+    const el = plotRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([entry]) => {
+      const w = Math.floor(entry.contentRect.width)
+      if (w > 0) setWidth(w)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [empty])
+
+  // ---- today, refreshed each minute unless the caller fixes it
+  useEffect(() => {
+    if (now !== undefined) return
+    const id = setInterval(() => setClock(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [now])
+  const today = now === null ? null : now === undefined ? clock : parseTimelineTime(now)
+
+  // ---- wheel: zoom about the pointer (pinch on a trackpad arrives as ctrl+wheel); sideways pans
+  useEffect(() => {
+    const el = plotRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      const { span: s, msPerPx: mpp, commit: c } = latest.current
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1
+      const dx = e.deltaX * unit
+      const dy = e.deltaY * unit
+      if (dx === 0 && dy === 0) return
+      e.preventDefault()
+      if (Math.abs(dx) > Math.abs(dy) || e.shiftKey) {
+        c(panTimelineSpan(s, (Math.abs(dx) > Math.abs(dy) ? dx : dy) * mpp))
+        return
+      }
+      const rect = el.getBoundingClientRect()
+      const anchor = s.start + (e.clientX - rect.left) * mpp
+      c(zoomTimelineSpan(s, Math.exp(dy * (e.ctrlKey ? 0.01 : 0.002)), anchor))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [empty])
+
+  // ---- lanes: packed at the current scale rounded up to a doubling, so a pan never re-packs
+  const packScale = 2 ** Math.ceil(Math.log2(Math.max(msPerPx, 1)))
+  const lanes = useMemo(() => packTimelineLanes(items, FOOTPRINT_PX * packScale), [items, packScale])
+  const laneCount = useMemo(() => {
+    let n = 0
+    for (const l of lanes.values()) n = Math.max(n, l + 1)
+    return n
+  }, [lanes])
+  /** Start of the next entry in the same lane (where a beside-label must stop). */
+  const nextInLane = useMemo(() => {
+    const last = new Map<number, Item>()
+    const next = new Map<string, number>()
+    for (const it of items) {
+      const lane = lanes.get(it.id) ?? 0
+      const prev = last.get(lane)
+      if (prev) next.set(prev.id, it.start)
+      last.set(lane, it)
+    }
+    return next
+  }, [items, lanes])
+
+  const ticks = useMemo(() => timelineTicks({ start: span.start, end: span.end }, width), [span.start, span.end, width])
+
+  const xOf = (t: number) => (t - span.start) / msPerPx
+  const visible = items.filter((it) => xOf(it.end) >= -(LABEL_MAX_PX + FOOTPRINT_PX) && xOf(it.start) <= width)
+  const visibleIds = new Set(visible.map((it) => it.id))
+  const tabStop =
+    (focusId && visibleIds.has(focusId) && focusId) ||
+    (selectedId && visibleIds.has(selectedId) && selectedId) ||
+    visible.find((it) => xOf(it.start) >= 0)?.id ||
+    visible[0]?.id ||
+    null
+
+  /** Focuses a rendered entry without letting the browser scroll the clipped plot sideways. */
+  const focusEntry = useCallback(
+    (id: string) => {
+      const el = entryEls.current.get(id)
+      if (!el) return false
+      el.focus({ preventScroll: true })
+      const scroller = scrollerRef.current
+      if (scroller) {
+        const top = LANES_PAD + (lanes.get(id) ?? 0) * LANE_H
+        if (top < scroller.scrollTop) scroller.scrollTop = top
+        else if (top + LANE_H > scroller.scrollTop + scroller.clientHeight) scroller.scrollTop = top + LANE_H - scroller.clientHeight
+      }
+      return true
+    },
+    [lanes],
+  )
+
+  // ---- keyboard focus that had to wait for a pan to bring its entry into the DOM
+  useEffect(() => {
+    const id = pendingFocus.current
+    if (id && focusEntry(id)) pendingFocus.current = null
+  })
+
+  const moveTo = (index: number) => {
+    const it = items[Math.max(0, Math.min(items.length - 1, index))]
+    if (!it) return
+    setFocusId(it.id)
+    if (it.start < span.start || it.start > span.end) {
+      pendingFocus.current = it.id
+      const len = span.end - span.start
+      commit({ start: it.start - len / 2, end: it.start + len / 2 })
+    } else if (!focusEntry(it.id)) {
+      pendingFocus.current = it.id
+    }
+  }
+
+  const zoomBy = (factor: number, anchor?: number) => commit(zoomTimelineSpan(span, factor, anchor))
+
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.altKey || e.metaKey || e.ctrlKey) return
+    const target = e.target as HTMLElement
+    const entryId = target.dataset?.entryId
+    const current = entryId != null ? items.find((it) => it.id === entryId) : undefined
+    if (e.key === '+' || e.key === '=' || e.key === 'Add') {
+      e.preventDefault()
+      zoomBy(ZOOM_STEP, current?.start)
+      return
+    }
+    if (e.key === '-' || e.key === '_' || e.key === 'Subtract') {
+      e.preventDefault()
+      zoomBy(1 / ZOOM_STEP, current?.start)
+      return
+    }
+    if (current) {
+      const go = (i: number) => {
+        e.preventDefault()
+        moveTo(i)
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(current.index + 1)
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go(current.index - 1)
+      else if (e.key === 'Home') go(0)
+      else if (e.key === 'End') go(items.length - 1)
+      else if (e.key === 'Enter') {
+        e.preventDefault()
+        onSelect?.(current.id)
+      }
+      return
+    }
+    if (target === plotRef.current && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault()
+      const len = span.end - span.start
+      commit(panTimelineSpan(span, (e.key === 'ArrowLeft' ? -0.1 : 0.1) * len))
+    }
+  }
+
+  // ---- pointer: drag pans, two pointers pinch
+  const capture = (pointerId: number) => {
+    try {
+      plotRef.current?.setPointerCapture?.(pointerId)
+    } catch {
+      /* not capturable (a synthetic event, or the pointer is already gone) */
+    }
+  }
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    suppressClick.current = false
+    // A mouse has one pointer; a release outside the plot before a drag began left no pointerup here.
+    if (!e.pointerType || e.pointerType === 'mouse') pointers.current.clear()
+    pointers.current.set(e.pointerId ?? 0, e.clientX)
+    if (pointers.current.size === 2) {
+      capture(e.pointerId)
+      const [a, b] = [...pointers.current.values()]
+      const rect = plotRef.current?.getBoundingClientRect()
+      pinch.current = { d0: Math.max(1, Math.abs(a - b)), span, anchor: span.start + ((a + b) / 2 - (rect?.left ?? 0)) * msPerPx }
+      drag.current = null
+      return
+    }
+    drag.current = {
+      x: e.clientX,
+      y: e.clientY,
+      span,
+      msPerPx,
+      scrollTop: scrollerRef.current?.scrollTop ?? 0,
+      moved: false,
+      mouse: !e.pointerType || e.pointerType === 'mouse',
+    }
+  }
+
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(e.pointerId ?? 0)) return
+    pointers.current.set(e.pointerId ?? 0, e.clientX)
+    const p = pinch.current
+    if (p && pointers.current.size >= 2) {
+      const [a, b] = [...pointers.current.values()]
+      suppressClick.current = true
+      commit(zoomTimelineSpan(p.span, p.d0 / Math.max(1, Math.abs(a - b)), p.anchor))
+      return
+    }
+    const d = drag.current
+    if (!d) return
+    const dx = e.clientX - d.x
+    const dy = e.clientY - d.y
+    if (!d.moved && Math.abs(dx) < DRAG_THRESHOLD_PX && Math.abs(dy) < DRAG_THRESHOLD_PX) return
+    if (!d.moved) {
+      // Capture only once it is a drag: a captured press would retarget the click off the entry.
+      d.moved = true
+      capture(e.pointerId)
+      setDragging(true)
+    }
+    commit(panTimelineSpan(d.span, -dx * d.msPerPx))
+    if (d.mouse && scrollerRef.current) scrollerRef.current.scrollTop = d.scrollTop - dy
+  }
+
+  const endPointer = (e: ReactPointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(e.pointerId ?? 0)
+    if (drag.current?.moved) suppressClick.current = true
+    drag.current = null
+    if (pointers.current.size < 2) pinch.current = null
+    if (dragging) setDragging(false)
+  }
+
+  // ---- render
+  const rootStyle: CSSProperties = {
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    height,
+    boxSizing: 'border-box',
+    background: 'var(--color-bg-secondary)',
+    border: '1px solid var(--color-glass-border)',
+    borderRadius: 'var(--radius-md)',
+    fontFamily: 'var(--font-sans)',
+    overflow: 'hidden',
+    ...style,
+  }
+
+  if (items.length === 0) {
+    return (
+      <div role="region" aria-label={ariaLabel} className="ui-timeline" style={{ ...rootStyle, justifyContent: 'center' }}>
+        <EmptyState size="sm" title={emptyTitle} description={emptyDescription} />
+      </div>
+    )
+  }
+
+  const todayX = today == null ? null : xOf(today)
+  const helpId = `${uid}-help`
+
+  return (
+    <div role="region" aria-label={ariaLabel} aria-describedby={helpId} className="ui-timeline" style={rootStyle} onKeyDown={onKeyDown}>
+      <div id={helpId} style={SR_ONLY}>
+        Arrow keys move between entries in time order. Enter selects. Plus and minus zoom.
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-sm)',
+          height: TOOLBAR_H,
+          flexShrink: 0,
+          padding: '0 var(--space-xs) 0 var(--space-sm)',
+          borderBottom: '1px solid var(--color-glass-border)',
+        }}
+      >
+        <span
+          data-timeline-span=""
+          style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+        >
+          {formatTimelineSpan(span, ticks.unit)}
+        </span>
+        <span style={{ display: 'inline-flex', gap: 2, flexShrink: 0 }}>
+          <Button size="xs" variant="ghost" icon={<TbZoomIn />} aria-label="Zoom in" title="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} />
+          <Button size="xs" variant="ghost" icon={<TbZoomOut />} aria-label="Zoom out" title="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} />
+          <Button size="xs" variant="ghost" icon={<TbArrowAutofitWidth />} aria-label="Fit all entries" title="Fit all entries" onClick={() => commit(null)} />
+        </span>
+      </div>
+
+      <div
+        ref={plotRef}
+        data-timeline-plot=""
+        tabIndex={tabStop == null ? 0 : undefined}
+        role={tabStop == null ? 'group' : undefined}
+        aria-label={tabStop == null ? `${ariaLabel}: no entries in view` : undefined}
+        className="ui-timeline__plot"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endPointer}
+        onPointerCancel={endPointer}
+        onClickCapture={(e) => {
+          if (suppressClick.current) {
+            suppressClick.current = false
+            e.stopPropagation()
+            e.preventDefault()
+          }
+        }}
+        style={{
+          position: 'relative',
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          cursor: dragging ? 'grabbing' : 'grab',
+          touchAction: 'pan-y',
+          userSelect: 'none',
+        }}
+      >
+        {/* Grid lines and the today line sit behind the lanes, full height. */}
+        <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          {ticks.ticks.map((tk) => (
+            <div
+              key={tk.t}
+              style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 1, background: 'var(--color-glass-border)', transform: `translateX(${Math.round(xOf(tk.t))}px)` }}
+            />
+          ))}
+          {todayX != null && todayX >= 0 && todayX <= width && (
+            <div
+              data-timeline-today=""
+              style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 0, borderLeft: '1px dashed var(--color-destructive)', transform: `translateX(${Math.round(todayX)}px)` }}
+            />
+          )}
+        </div>
+
+        <div
+          aria-hidden
+          data-timeline-axis=""
+          style={{ position: 'relative', height: AXIS_H, flexShrink: 0, borderBottom: '1px solid var(--color-glass-border)', overflow: 'hidden', pointerEvents: 'none' }}
+        >
+          {ticks.ticks.map((tk) => (
+            <span
+              key={tk.t}
+              data-tick=""
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                lineHeight: `${AXIS_H}px`,
+                fontSize: 11,
+                color: 'var(--color-text-secondary)',
+                whiteSpace: 'nowrap',
+                transform: `translateX(${Math.round(xOf(tk.t)) + 4}px)`,
+              }}
+            >
+              {tk.label}
+            </span>
+          ))}
+          {todayX != null && todayX >= 0 && todayX <= width && (
+            <span
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                lineHeight: `${AXIS_H}px`,
+                padding: '0 4px',
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--color-destructive)',
+                background: 'var(--color-bg-secondary)',
+                // Right of the line, or left of it near the right edge.
+                transform: todayX > width - 56 ? `translateX(${Math.round(todayX) - 2}px) translateX(-100%)` : `translateX(${Math.round(todayX) + 2}px)`,
+              }}
+            >
+              Today
+            </span>
+          )}
+        </div>
+
+        <div
+          ref={scrollerRef}
+          className="ui-timeline__lanes"
+          onScroll={(e) => {
+            // Focus can scroll a clipped box sideways; the axis would no longer line up.
+            if (e.currentTarget.scrollLeft !== 0) e.currentTarget.scrollLeft = 0
+          }}
+          style={{ position: 'relative', flex: 1, minHeight: 0, overflowX: 'hidden', overflowY: 'auto' }}
+        >
+          <div style={{ position: 'relative', height: LANES_PAD * 2 + laneCount * LANE_H }}>
+            {visible.map((it) => {
+              const lane = lanes.get(it.id) ?? 0
+              const tone = `var(${TONE_TOKEN[it.entry.tone ?? 'accent']})`
+              const selected = it.id === selectedId
+              const x0 = xOf(it.start)
+              const x1 = xOf(it.end)
+              const nextStart = nextInLane.get(it.id)
+              const roomEnd = Math.min(width, nextStart == null ? Infinity : xOf(nextStart)) - 6
+              const y = LANES_PAD + lane * LANE_H + (LANE_H - BAR_H) / 2
+              const dates = datesOf(it)
+              const name = it.entry.meta ? `${it.entry.label}, ${dates}, ${it.entry.meta}` : `${it.entry.label}, ${dates}`
+              const tip = [it.entry.label, dates, it.entry.meta].filter(Boolean).join('\n')
+              const common = {
+                ref: (el: HTMLButtonElement | null) => {
+                  if (el) entryEls.current.set(it.id, el)
+                  else entryEls.current.delete(it.id)
+                },
+                type: 'button' as const,
+                className: 'ui-timeline__entry',
+                'data-entry-id': it.id,
+                'data-kind': it.point ? 'point' : 'range',
+                'data-lane': lane,
+                'aria-label': name,
+                'aria-pressed': onSelect ? selected : undefined,
+                title: tip,
+                tabIndex: it.id === tabStop ? 0 : -1,
+                onFocus: () => setFocusId(it.id),
+                onClick: () => {
+                  setFocusId(it.id)
+                  onSelect?.(it.id)
+                },
+              }
+              const buttonBase: CSSProperties = {
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                height: BAR_H,
+                display: 'flex',
+                alignItems: 'center',
+                padding: 0,
+                margin: 0,
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--color-text-primary)',
+                font: 'inherit',
+                fontSize: 11,
+                fontWeight: selected ? 600 : 500,
+                cursor: 'inherit',
+                borderRadius: 'var(--radius-sm)',
+                whiteSpace: 'nowrap',
+              }
+              const labelStyle = (maxWidth: number): CSSProperties => ({
+                display: 'block',
+                maxWidth: Math.max(0, maxWidth),
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+              })
+
+              if (it.point) {
+                const besideRoom = Math.min(LABEL_MAX_PX, roomEnd - (x0 + MARKER / 2 + 4))
+                return (
+                  <button
+                    key={it.id}
+                    {...common}
+                    style={{ ...buttonBase, gap: 4, transform: `translate(${Math.round(x0 - MARKER / 2)}px, ${y}px)` }}
+                  >
+                    <span
+                      aria-hidden
+                      className="ui-timeline__mark"
+                      style={{
+                        flexShrink: 0,
+                        width: MARKER,
+                        height: MARKER,
+                        background: tone,
+                        borderRadius: 2,
+                        transform: `rotate(45deg)${selected ? ' scale(1.3)' : ''}`,
+                        boxShadow: selected ? `0 0 0 2px var(--color-bg-secondary), 0 0 0 3px ${tone}` : undefined,
+                      }}
+                    />
+                    {besideRoom >= 20 && (
+                      <span className="ui-timeline__label" style={labelStyle(besideRoom)}>
+                        {it.entry.label}
+                      </span>
+                    )}
+                  </button>
+                )
+              }
+
+              // A range: clip the bar to near the view; keep an inside label at the visible part.
+              const c0 = Math.max(x0, -CLIP_PAD)
+              const c1 = Math.min(x1, width + CLIP_PAD)
+              const barW = Math.max(3, c1 - c0)
+              const visibleW = Math.min(c1, width) - Math.max(c0, 0)
+              const inside = visibleW >= INSIDE_LABEL_MIN_PX
+              const besideRoom = Math.min(LABEL_MAX_PX, roomEnd - (c0 + barW + 4))
+              return (
+                <button
+                  key={it.id}
+                  {...common}
+                  style={{ ...buttonBase, gap: 4, transform: `translate(${Math.round(c0)}px, ${y}px)` }}
+                >
+                  <span
+                    className="ui-timeline__bar"
+                    style={{
+                      position: 'relative',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: barW,
+                      height: BAR_H,
+                      boxSizing: 'border-box',
+                      background: `color-mix(in srgb, ${tone} ${selected ? 42 : 22}%, transparent)`,
+                      // Longhands only: React warns when a shorthand and its longhand change together.
+                      borderTop: `1px solid ${selected ? tone : 'transparent'}`,
+                      borderRight: `1px solid ${selected ? tone : 'transparent'}`,
+                      borderBottom: `1px solid ${selected ? tone : 'transparent'}`,
+                      borderLeft: `3px solid ${tone}`,
+                      borderRadius: 'var(--radius-sm)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {inside && (
+                      <span
+                        className="ui-timeline__label"
+                        style={{ ...labelStyle(visibleW - 12), position: 'absolute', left: Math.max(0, -c0) + 5 }}
+                      >
+                        {it.entry.label}
+                      </span>
+                    )}
+                  </span>
+                  {!inside && besideRoom >= 20 && (
+                    <span className="ui-timeline__label" style={labelStyle(besideRoom)}>
+                      {it.entry.label}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
