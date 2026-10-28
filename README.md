@@ -246,6 +246,12 @@ marked from `subSelected`.
 
 0.2.32, for OpenTrack's source workspace samples (kineticlogic-io/OpenTrack#104):
 
+  Since 0.2.36 it also spans short recordings and picks times: `minSpanMs` (down to a second;
+  below three days the axis gains hour, minute, second and sub-second ticks and tooltips carry the
+  time), `nowLabel` (the `now` line's label; default "Today", `null` for none), `onTimePick` (a
+  click on the plot outside an entry reports the time under it) and `interaction: 'scrub'`
+  (press-and-drag picks times, Shift+drag pans, arrow keys on the focused plot step the time from
+  the `now` line). Without them nothing changes.
 - `Tray` — a panel docked to the bottom of its container, like a browser's developer tools:
   `open` / `onOpenChange`, `title`, `actions` (header controls whose clicks never toggle it),
   `height` (default 260) within `minHeight` / `maxHeight` (120–640), `storageKey` to keep the

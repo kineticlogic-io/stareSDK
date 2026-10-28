@@ -19,11 +19,14 @@ import {
   estimateTimelineLabelWidth,
   fitTimelineSpan,
   formatTimelineDate,
+  formatTimelineInstant,
   formatTimelineSpan,
   layoutTimelineAxisLabels,
   packTimelineLanes,
   panTimelineSpan,
   parseTimelineTime,
+  resolveTimelineMinSpan,
+  TIMELINE_MIN_SPAN_MS,
   timelineTicks,
   zoomTimelineSpan,
   type TimelineLaneItem,
@@ -60,6 +63,14 @@ import {
  * - **Performance**: only entries in or near the view are rendered, each placed with a transform;
  *   lanes re-pack only when the zoom crosses a doubling, so panning never reshuffles them.
  * - **Empty**: no entries renders an `EmptyState` and no controls.
+ *
+ * - **Short spans and picking a time** (0.2.36): `minSpanMs` lets the view zoom in below the
+ *   default three days (down to a second); the axis then gains hour, minute, second and sub-second
+ *   ticks and tooltips carry the time. `onTimePick` reports a time picked on the plot — a click
+ *   outside an entry; with `interaction: 'scrub'` also a press-and-drag anywhere on the plot
+ *   (Shift+drag still pans) and the arrow keys while the plot has focus (a hundredth of the view
+ *   per press, a tenth with Shift, from the `now` line). `nowLabel` names the `now` line (default
+ *   "Today"; `null` draws the line without a label).
  *
  * Data comes in through props only; design tokens only, so it follows the dark and light themes.
  * Interaction feedback animates only `filter`, `opacity` and `transform`.
@@ -106,6 +117,18 @@ export interface TimelineProps {
   'aria-label': string
   /** Where the "today" line sits (default the current date); `null` hides it. */
   now?: string | Date | null
+  /** The `now` line's label (0.2.36; default "Today", shown upper-case); `null` draws the line
+   *  without a label. */
+  nowLabel?: string | null
+  /** The narrowest span the view zooms in to, in ms (0.2.36; default three days, at least one
+   *  second). Below three days the axis gains hour, minute, second and sub-second ticks. */
+  minSpanMs?: number
+  /** A time picked on the plot, in epoch ms (0.2.36): a click outside an entry; with
+   *  `interaction: 'scrub'`, also a press-and-drag and the arrow keys on the focused plot. */
+  onTimePick?: (ms: number) => void
+  /** What dragging the plot does (0.2.36): `'pan'` (default) moves the view; `'scrub'` picks times
+   *  through `onTimePick`, and Shift+drag moves the view. */
+  interaction?: 'pan' | 'scrub'
   /** Empty-state title (default "No entries to show"). */
   emptyTitle?: ReactNode
   emptyDescription?: ReactNode
@@ -141,8 +164,8 @@ const ENTRY_FONT = '600 11px'
 const TICK_FONT = '400 11px'
 const TODAY_FONT = '600 10px'
 const TODAY_TEXT = 'Today'
-/** The today label's tracking (0.08em at 10 px) and its 4 px side padding. */
-const TODAY_EXTRA_PX = TODAY_TEXT.length * 0.8 + 8
+/** A now label's tracking (0.08em at 10 px per character) and its 4 px side padding. */
+const nowLabelExtraPx = (text: string) => text.length * 0.8 + 8
 const AUTO_MAX_HEIGHT = 320
 /** Toolbar, axis, lane padding and the 1 px border either side: the height with no lanes. */
 const CHROME_H = 2 + TOOLBAR_H + AXIS_H + LANES_PAD * 2
@@ -176,12 +199,12 @@ interface Item {
   index: number
 }
 
-function parseRange(r: TimelineRange | undefined): TimelineSpan | null {
+function parseRange(r: TimelineRange | undefined, minSpanMs: number): TimelineSpan | null {
   if (!r) return null
   const start = parseTimelineTime(r.start)
   const end = parseTimelineTime(r.end)
   if (start == null || end == null || end <= start) return null
-  return clampTimelineSpan({ start, end })
+  return clampTimelineSpan({ start, end }, minSpanMs)
 }
 
 type MeasureText = (text: string, font: string, fontSizePx: number) => number
@@ -213,8 +236,9 @@ function createMeasure(): MeasureText {
   }
 }
 
-function datesOf(it: Item): string {
-  return it.point ? formatTimelineDate(it.start) : `${formatTimelineDate(it.start)} to ${formatTimelineDate(it.end)}`
+function datesOf(it: Item, withTime: boolean): string {
+  const f = withTime ? formatTimelineInstant : formatTimelineDate
+  return it.point ? f(it.start) : `${f(it.start)} to ${f(it.end)}`
 }
 
 export function Timeline({
@@ -229,17 +253,24 @@ export function Timeline({
   onRangeChange,
   'aria-label': ariaLabel,
   now,
+  nowLabel,
+  minSpanMs,
+  onTimePick,
+  interaction = 'pan',
   emptyTitle = 'No entries to show',
   emptyDescription,
   style,
 }: TimelineProps) {
   const uid = useId()
+  const minSpan = resolveTimelineMinSpan(minSpanMs)
+  const subDay = minSpan < TIMELINE_MIN_SPAN_MS
+  const scrub = interaction === 'scrub' && onTimePick !== undefined
   const plotRef = useRef<HTMLDivElement>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
   const entryEls = useRef(new Map<string, HTMLButtonElement>())
   const pendingFocus = useRef<string | null>(null)
   const suppressClick = useRef(false)
-  const drag = useRef<{ x: number; y: number; span: TimelineSpan; msPerPx: number; scrollTop: number; moved: boolean; mouse: boolean } | null>(null)
+  const drag = useRef<{ x: number; y: number; span: TimelineSpan; msPerPx: number; scrollTop: number; moved: boolean; mouse: boolean; scrubbing: boolean } | null>(null)
   const pointers = useRef(new Map<number, number>())
   const pinch = useRef<{ d0: number; span: TimelineSpan; anchor: number } | null>(null)
 
@@ -279,7 +310,7 @@ export function Timeline({
     out.sort((p, q) => p.start - q.start || q.end - p.end || (p.id < q.id ? -1 : p.id > q.id ? 1 : 0))
     return out.map((it, index) => ({ ...it, index }))
   }, [entries])
-  const fitted = useMemo(() => fitTimelineSpan(items), [items])
+  const fitted = useMemo(() => fitTimelineSpan(items, minSpan), [items, minSpan])
   const empty = items.length === 0
 
   // ---- the visible window: controlled, else the user's, else fitted to the entries
@@ -287,10 +318,10 @@ export function Timeline({
   const controlledEnd = parseTimelineTime(range?.end)
   const controlled = range !== undefined
   const controlledSpan = useMemo(
-    () => (controlledStart != null && controlledEnd != null ? parseRange({ start: new Date(controlledStart), end: new Date(controlledEnd) }) : null),
-    [controlledStart, controlledEnd],
+    () => (controlledStart != null && controlledEnd != null ? parseRange({ start: new Date(controlledStart), end: new Date(controlledEnd) }, minSpan) : null),
+    [controlledStart, controlledEnd, minSpan],
   )
-  const [internal, setInternal] = useState<TimelineSpan | null>(() => parseRange(initialRange))
+  const [internal, setInternal] = useState<TimelineSpan | null>(() => parseRange(initialRange, minSpan))
   const span: TimelineSpan =
     (controlled ? controlledSpan : internal) ?? fitted ?? { start: clock - 180 * 86_400_000, end: clock + 180 * 86_400_000 }
   const msPerPx = (span.end - span.start) / width
@@ -298,17 +329,17 @@ export function Timeline({
   const commit = useCallback(
     (next: TimelineSpan | null) => {
       // `null` = follow the fitted window again (the fit button).
-      const target = next ? clampTimelineSpan(next) : fitted
+      const target = next ? clampTimelineSpan(next, minSpan) : fitted
       if (!controlled) setInternal(next ? target : null)
       if (target) onRangeChange?.({ start: new Date(target.start), end: new Date(target.end) })
     },
-    [controlled, fitted, onRangeChange],
+    [controlled, fitted, onRangeChange, minSpan],
   )
 
   // Handlers attached outside React (wheel) read the latest values through this ref.
-  const latest = useRef({ span, msPerPx, commit })
+  const latest = useRef({ span, msPerPx, commit, minSpan })
   useLayoutEffect(() => {
-    latest.current = { span, msPerPx, commit }
+    latest.current = { span, msPerPx, commit, minSpan }
   })
 
   // ---- measure
@@ -336,7 +367,7 @@ export function Timeline({
     const el = plotRef.current
     if (!el) return
     const onWheel = (e: WheelEvent) => {
-      const { span: s, msPerPx: mpp, commit: c } = latest.current
+      const { span: s, msPerPx: mpp, commit: c, minSpan: ms } = latest.current
       const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1
       const dx = e.deltaX * unit
       const dy = e.deltaY * unit
@@ -348,7 +379,7 @@ export function Timeline({
       }
       const rect = el.getBoundingClientRect()
       const anchor = s.start + (e.clientX - rect.left) * mpp
-      c(zoomTimelineSpan(s, Math.exp(dy * (e.ctrlKey ? 0.01 : 0.002)), anchor))
+      c(zoomTimelineSpan(s, Math.exp(dy * (e.ctrlKey ? 0.01 : 0.002)), anchor, ms))
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
@@ -395,7 +426,7 @@ export function Timeline({
     return next
   }, [items, lanes])
 
-  const ticks = useMemo(() => timelineTicks({ start: span.start, end: span.end }, width), [span.start, span.end, width])
+  const ticks = useMemo(() => timelineTicks({ start: span.start, end: span.end }, width, 80, subDay), [span.start, span.end, width, subDay])
 
   const xOf = (t: number) => (t - span.start) / msPerPx
   const visible = items.filter((it) => xOf(it.end) >= -(LABEL_MAX_PX + FOOTPRINT_PX) && xOf(it.start) <= width)
@@ -443,7 +474,7 @@ export function Timeline({
     }
   }
 
-  const zoomBy = (factor: number, anchor?: number) => commit(zoomTimelineSpan(span, factor, anchor))
+  const zoomBy = (factor: number, anchor?: number) => commit(zoomTimelineSpan(span, factor, anchor, minSpan))
 
   const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.altKey || e.metaKey || e.ctrlKey) return
@@ -478,8 +509,21 @@ export function Timeline({
     if (target === plotRef.current && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       e.preventDefault()
       const len = span.end - span.start
-      commit(panTimelineSpan(span, (e.key === 'ArrowLeft' ? -0.1 : 0.1) * len))
+      const dir = e.key === 'ArrowLeft' ? -1 : 1
+      if (scrub) {
+        // Step the picked time from the `now` line (a hundredth of the view; Shift, a tenth).
+        const from = today ?? (span.start + span.end) / 2
+        onTimePick?.(Math.round(from + dir * len * (e.shiftKey ? 0.1 : 0.01)))
+        return
+      }
+      commit(panTimelineSpan(span, dir * 0.1 * len))
     }
+  }
+
+  /** The instant under a pointer at `clientX`. */
+  const timeAt = (clientX: number) => {
+    const rect = plotRef.current?.getBoundingClientRect()
+    return Math.round(span.start + (clientX - (rect?.left ?? 0)) * msPerPx)
   }
 
   // ---- pointer: drag pans, two pointers pinch
@@ -504,6 +548,7 @@ export function Timeline({
       drag.current = null
       return
     }
+    const scrubbing = scrub && !e.shiftKey
     drag.current = {
       x: e.clientX,
       y: e.clientY,
@@ -512,7 +557,9 @@ export function Timeline({
       scrollTop: scrollerRef.current?.scrollTop ?? 0,
       moved: false,
       mouse: !e.pointerType || e.pointerType === 'mouse',
+      scrubbing,
     }
+    if (scrubbing) onTimePick?.(timeAt(e.clientX))
   }
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -522,7 +569,7 @@ export function Timeline({
     if (p && pointers.current.size >= 2) {
       const [a, b] = [...pointers.current.values()]
       suppressClick.current = true
-      commit(zoomTimelineSpan(p.span, p.d0 / Math.max(1, Math.abs(a - b)), p.anchor))
+      commit(zoomTimelineSpan(p.span, p.d0 / Math.max(1, Math.abs(a - b)), p.anchor, minSpan))
       return
     }
     const d = drag.current
@@ -536,12 +583,22 @@ export function Timeline({
       capture(e.pointerId)
       setDragging(true)
     }
+    if (d.scrubbing) {
+      onTimePick?.(timeAt(e.clientX))
+      return
+    }
     commit(panTimelineSpan(d.span, -dx * d.msPerPx))
     if (d.mouse && scrollerRef.current) scrollerRef.current.scrollTop = d.scrollTop - dy
   }
 
   const endPointer = (e: ReactPointerEvent<HTMLDivElement>) => {
     pointers.current.delete(e.pointerId ?? 0)
+    // A click (no drag) on the plot outside an entry picks a time; in scrub mode the press already did.
+    const d = drag.current
+    if (e.type === 'pointerup' && d && !d.moved && !d.scrubbing && !pinch.current && onTimePick) {
+      const onEntry = (e.target as Element | null)?.closest?.('[data-entry-id]')
+      if (!onEntry) onTimePick(timeAt(e.clientX))
+    }
     if (drag.current?.moved) suppressClick.current = true
     drag.current = null
     if (pointers.current.size < 2) pinch.current = null
@@ -577,10 +634,11 @@ export function Timeline({
   const todayX = today == null ? null : xOf(today)
   const todayPx = todayX != null && todayX >= 0 && todayX <= width ? Math.round(todayX) : null
   const todayShown = todayPx != null
-  const todayW = Math.ceil(measure(TODAY_TEXT.toUpperCase(), TODAY_FONT, 10) + TODAY_EXTRA_PX)
+  const nowText = nowLabel === undefined ? TODAY_TEXT : nowLabel
+  const todayW = nowText ? Math.ceil(measure(nowText.toUpperCase(), TODAY_FONT, 10) + nowLabelExtraPx(nowText)) : 0
   const axis = layoutTimelineAxisLabels(
     ticks.ticks.map((tk) => ({ left: Math.round(xOf(tk.t)) + 4, width: measure(tk.label, TICK_FONT, 11) })),
-    todayPx != null ? { x: todayPx, width: todayW } : null,
+    todayPx != null && nowText ? { x: todayPx, width: todayW } : null,
     width,
   )
   const hiddenTicks = new Set(axis.hiddenTicks)
@@ -590,6 +648,7 @@ export function Timeline({
     <div role="region" aria-label={ariaLabel} aria-describedby={helpId} className="ui-timeline" style={rootStyle} onKeyDown={onKeyDown}>
       <div id={helpId} style={SR_ONLY}>
         Arrow keys move between entries in time order. Enter selects. Plus and minus zoom.
+        {scrub ? ' On the timeline itself, left and right arrow keys move the time.' : ''}
       </div>
       <div
         style={{
@@ -619,9 +678,9 @@ export function Timeline({
       <div
         ref={plotRef}
         data-timeline-plot=""
-        tabIndex={tabStop == null ? 0 : undefined}
-        role={tabStop == null ? 'group' : undefined}
-        aria-label={tabStop == null ? `${ariaLabel}: no entries in view` : undefined}
+        tabIndex={tabStop == null || scrub ? 0 : undefined}
+        role={tabStop == null || scrub ? 'group' : undefined}
+        aria-label={tabStop == null ? `${ariaLabel}: no entries in view` : scrub ? ariaLabel : undefined}
         className="ui-timeline__plot"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -641,7 +700,7 @@ export function Timeline({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          cursor: dragging ? 'grabbing' : 'grab',
+          cursor: scrub ? 'ew-resize' : dragging ? 'grabbing' : 'grab',
           touchAction: 'pan-y',
           userSelect: 'none',
         }}
@@ -687,7 +746,7 @@ export function Timeline({
             </span>
             ),
           )}
-          {todayShown && axis.todayLeft != null && (
+          {todayShown && nowText && axis.todayLeft != null && (
             <span
               data-timeline-today-label=""
               style={{
@@ -710,7 +769,7 @@ export function Timeline({
                 transform: `translateX(${Math.round(axis.todayLeft)}px)`,
               }}
             >
-              {TODAY_TEXT}
+              {nowText}
             </span>
           )}
         </div>
@@ -734,7 +793,7 @@ export function Timeline({
               const nextStart = nextInLane.get(it.id)
               const roomEnd = Math.min(width, nextStart == null ? Infinity : xOf(nextStart)) - 6
               const y = LANES_PAD + lane * LANE_H + (LANE_H - BAR_H) / 2
-              const dates = datesOf(it)
+              const dates = datesOf(it, subDay)
               const name = it.entry.meta ? `${it.entry.label}, ${dates}, ${it.entry.meta}` : `${it.entry.label}, ${dates}`
               const tip = [it.entry.label, dates, it.entry.meta].filter(Boolean).join('\n')
               const common = {
