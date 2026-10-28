@@ -235,6 +235,23 @@ marked from `subSelected`.
   (default: room for two lanes) and `maxHeight` (default 320), and more lanes scroll; an empty
   timeline is 140 px. An explicit `height` works as before (0.2.30 defaulted to 260).
 
+0.2.32, for OpenTrack's source workspace samples (kineticlogic-io/OpenTrack#104):
+
+- `Tray` — a panel docked to the bottom of its container, like a browser's developer tools:
+  `open` / `onOpenChange`, `title`, `actions` (header controls whose clicks never toggle it),
+  `height` (default 260) within `minHeight` / `maxHeight` (120–640), `storageKey` to keep the
+  user's height, `aria-label`. The header bar is always there; open, the body scrolls on its own
+  and is resized by dragging its top edge, or with the arrow keys, Home and End there (a
+  `separator` with its value). Place it last in a flex column so the content above gives way.
+- `RecordTable` — records side by side: `rows` `{ id, label?, value?, before?, dropped? }[]`, one
+  column per field (nested fields as dotted paths, arrays whole), `pinned` paths first. With a
+  row's `before`, added and changed fields are tinted (`--color-accent`, `--status-warning`) and
+  removed ones struck through, unless `showChanges={false}`; a `dropped` row shows its reason
+  across the row, dimmed. `selectedId` / `onRowClick` (click, Enter or Space), `maxCellWidth`
+  (default 240; longer values are cut, with a tooltip), `empty`. The header and first column stay
+  in view as it scrolls. `flattenRecord`, `recordColumns`, `cellChange` and `formatCell` are
+  exported.
+
 ## Optional entry points
 
 Five components live behind their own subpath so the main barrel never loads their heavy optional

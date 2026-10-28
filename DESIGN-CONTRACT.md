@@ -122,6 +122,8 @@ Every page is a full-height column, top to bottom:
 | A pipeline or topology with data moving through it | `GraphView` with `animated` edges (left to right; narrow `width` on stage nodes and a smaller `layerGap` so long chains stay legible; `tone` `warning`/`danger` on failing nodes, `muted` on switched-off ones) | CSS-animated divs, GIFs |
 | Values over time (rates, lag, sizes) | `TimeSeriesChart` (`staresdk/chart`; series pick a `tone`, never a colour) | a second chart library, hand-drawn sparklines |
 | Dated events and periods (a chronology, a history) | `Timeline` (entries pick a `tone`, never a colour; `onSelect` opens the detail) | a `TimeSeriesChart` bent to show events, a hand-built Gantt |
+| Records side by side, and what a step changed in them (samples, a preview) | `RecordTable` (`before` per row for the changes; `dropped` for a record a step dropped) | JSON blocks one after another, a `DataTable` with hand-made columns per field |
+| A panel docked to the bottom of a workspace (samples, a log, results) | `Tray` (last in a flex column; `storageKey` keeps its height) | a fixed-height div, a `Modal` |
 | Rendered Markdown | `MDText` | |
 
 Buttons: at most one `primary` per panel or drawer; `size="sm"` in panel headers and drawers.
