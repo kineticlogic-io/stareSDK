@@ -111,6 +111,13 @@ and token rules:
   pins it, Escape or a press outside closes it.
 - `Tree` — collapsible tree in `none`/`single`/`multi` selection modes; since 0.2.17 a node's
   `description` shows in a `Tooltip` while its row is hovered or focused (`aria-describedby`).
+- `KeyValueTree` (0.2.34) — a read-only, collapsible tree of `key: value` rows for structured
+  metadata (file headers, decoded telemetry): caller-owned expansion, an optional interpreted
+  reading shown before the raw value, muted absent values, long payloads in a bounded monospace
+  block, rows that expand to caller-rendered content, a per-value copy button (hover or focus,
+  copies the raw value), query highlighting, and an indent cap. Its helpers —
+  `filterKeyValueTree` (prunes to matches, returns the ancestors to expand),
+  `keyValueMatchRanges` and `jsonToKeyValueNodes` — are exported too.
 - `DataTable` — sortable columns (stable, nulls last), optional row selection with keyboard
   activation, sticky header and row virtualisation when `maxHeight` is set. Header chrome follows
   the neutral-table rule (weight, uppercase, letter-spacing, bottom border; no fill, no colour).

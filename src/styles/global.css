@@ -666,6 +666,26 @@ body {
   border-radius: var(--radius-sm);
 }
 
+/* KeyValueTree (0.2.34): a leaf value's copy button shows while its row is hovered or the button
+   has keyboard focus (always Tab-reachable) — an inline style cannot express :hover. */
+.ui-key-value-tree__copy {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.ui-key-value-tree__row--copy:hover .ui-key-value-tree__copy,
+.ui-key-value-tree__copy:focus-visible {
+  opacity: 1;
+}
+.ui-key-value-tree__copy:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
+}
+.ui-key-value-tree__row[role='treeitem']:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
 /* stareSDK DataTable (2026-09-25). Hover and keyboard focus for interactive rows and sortable
    headers — an inline style cannot express :hover / :focus-visible, same reason as .ui-toggle.
    Rows are only interactive when the table has an onRowClick; read-only tables get no hover. */
