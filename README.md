@@ -252,6 +252,10 @@ marked from `subSelected`.
   in view as it scrolls. `flattenRecord`, `recordColumns`, `cellChange` and `formatCell` are
   exported.
 
+0.2.33: `RecordTable` `draggableColumns` — a column's header can be dragged out, carrying its
+field path as `RECORD_FIELD_MIME` (`application/x-staresdk-record-field`, exported) and as text,
+for a drop target elsewhere (OpenTrack drops a sample's field onto a Map step to map it).
+
 ## Optional entry points
 
 Five components live behind their own subpath so the main barrel never loads their heavy optional
