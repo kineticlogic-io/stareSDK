@@ -72,6 +72,14 @@ import {
  *   per press, a tenth with Shift, from the `now` line). `nowLabel` names the `now` line (default
  *   "Today"; `null` draws the line without a label).
  *
+ * - **Density** (0.2.37): `density` draws a bar histogram of counts in equal time buckets between
+ *   the toolbar and the axis — `start`/`end` the buckets' span, each series' `counts` one per
+ *   bucket, the series stacked in their own token tones. A bar's height is its bucket's share of
+ *   the busiest bucket in view; hovering one shows its time span and each series' count. With
+ *   `density` and no entries the plot and its controls render (no empty state, no lanes, and no
+ *   fit button — there are no entries to fit); drag, wheel, pinch, the zoom buttons and the arrow
+ *   keys on the focused plot move the view, reported through `onRangeChange`.
+ *
  * Data comes in through props only; design tokens only, so it follows the dark and light themes.
  * Interaction feedback animates only `filter`, `opacity` and `transform`.
  */
@@ -90,6 +98,21 @@ export interface TimelineEntry {
 }
 
 /** A visible window as the caller gives it. */
+/** One series of a density histogram (0.2.37): a count per bucket, in the series' token tone. */
+export interface TimelineDensitySeries {
+  label: string
+  tone?: TimelineTone
+  /** One count per bucket; a missing or non-finite count is 0. */
+  counts: number[]
+}
+
+/** A density histogram (0.2.37): equal buckets from `start` to `end`, one count per bucket per series. */
+export interface TimelineDensity {
+  start: string | Date
+  end: string | Date
+  series: TimelineDensitySeries[]
+}
+
 export interface TimelineRange {
   start: string | Date
   end: string | Date
@@ -129,6 +152,9 @@ export interface TimelineProps {
   /** What dragging the plot does (0.2.36): `'pan'` (default) moves the view; `'scrub'` picks times
    *  through `onTimePick`, and Shift+drag moves the view. */
   interaction?: 'pan' | 'scrub'
+  /** A density histogram between the toolbar and the axis (0.2.37). With it, an empty `entries`
+   *  still renders the plot and its controls. */
+  density?: TimelineDensity
   /** Empty-state title (default "No entries to show"). */
   emptyTitle?: ReactNode
   emptyDescription?: ReactNode
@@ -146,6 +172,10 @@ const TONE_TOKEN: Record<TimelineTone, string> = {
 const FALLBACK_WIDTH = 800
 const TOOLBAR_H = 32
 const AXIS_H = 24
+/** The density band's least height (it grows into the room lanes would take). */
+const DENSITY_MIN_H = 24
+/** Room above the busiest bar. */
+const DENSITY_TOP_PAD = 4
 const LANE_H = 26
 const BAR_H = 18
 const LANES_PAD = 6
@@ -236,6 +266,33 @@ function createMeasure(): MeasureText {
   }
 }
 
+interface DensityBucket {
+  index: number
+  start: number
+  end: number
+  counts: number[]
+  total: number
+}
+
+/** The buckets of a density histogram, each with its per-series counts and their total. */
+function densityBuckets(density: TimelineDensity | undefined): DensityBucket[] {
+  if (!density) return []
+  const start = parseTimelineTime(density.start)
+  const end = parseTimelineTime(density.end)
+  const n = density.series.reduce((m, s) => Math.max(m, s.counts.length), 0)
+  if (start == null || end == null || end <= start || n === 0) return []
+  const w = (end - start) / n
+  const out: DensityBucket[] = []
+  for (let i = 0; i < n; i++) {
+    const counts = density.series.map((s) => {
+      const c = s.counts[i]
+      return typeof c === 'number' && Number.isFinite(c) && c > 0 ? c : 0
+    })
+    out.push({ index: i, start: start + i * w, end: start + (i + 1) * w, counts, total: counts.reduce((a, b) => a + b, 0) })
+  }
+  return out
+}
+
 function datesOf(it: Item, withTime: boolean): string {
   const f = withTime ? formatTimelineInstant : formatTimelineDate
   return it.point ? f(it.start) : `${f(it.start)} to ${f(it.end)}`
@@ -257,6 +314,7 @@ export function Timeline({
   minSpanMs,
   onTimePick,
   interaction = 'pan',
+  density,
   emptyTitle = 'No entries to show',
   emptyDescription,
   style,
@@ -311,7 +369,12 @@ export function Timeline({
     return out.map((it, index) => ({ ...it, index }))
   }, [entries])
   const fitted = useMemo(() => fitTimelineSpan(items, minSpan), [items, minSpan])
-  const empty = items.length === 0
+  const buckets = useMemo(() => densityBuckets(density), [density])
+  const hasDensity = density !== undefined
+  /** Nothing to draw at all: the empty state. */
+  const empty = items.length === 0 && !hasDensity
+  /** A density histogram and no entries: no lanes, nothing to fit. */
+  const densityOnly = items.length === 0 && hasDensity
 
   // ---- the visible window: controlled, else the user's, else fitted to the entries
   const controlledStart = parseTimelineTime(range?.start)
@@ -608,7 +671,12 @@ export function Timeline({
   // ---- render
   const autoMin = minHeight ?? CHROME_H + 2 * LANE_H
   const autoMax = Math.max(autoMin, maxHeight ?? AUTO_MAX_HEIGHT)
-  const resolvedHeight = height ?? Math.min(autoMax, Math.max(autoMin, empty ? EMPTY_AUTO_HEIGHT : CHROME_H + laneCount * LANE_H))
+  const densityH = hasDensity ? DENSITY_MIN_H : 0
+  const resolvedHeight =
+    height ??
+    (densityOnly
+      ? 2 + TOOLBAR_H + DENSITY_MIN_H * 2 + AXIS_H
+      : Math.min(autoMax, Math.max(autoMin, empty ? EMPTY_AUTO_HEIGHT : CHROME_H + densityH + laneCount * LANE_H)))
   const rootStyle: CSSProperties = {
     position: 'relative',
     display: 'flex',
@@ -623,7 +691,7 @@ export function Timeline({
     ...style,
   }
 
-  if (items.length === 0) {
+  if (empty) {
     return (
       <div role="region" aria-label={ariaLabel} className="ui-timeline" style={{ ...rootStyle, justifyContent: 'center' }}>
         <EmptyState size="sm" title={emptyTitle} description={emptyDescription} />
@@ -647,7 +715,9 @@ export function Timeline({
   return (
     <div role="region" aria-label={ariaLabel} aria-describedby={helpId} className="ui-timeline" style={rootStyle} onKeyDown={onKeyDown}>
       <div id={helpId} style={SR_ONLY}>
-        Arrow keys move between entries in time order. Enter selects. Plus and minus zoom.
+        {densityOnly
+          ? 'Left and right arrow keys move the view. Plus and minus zoom.'
+          : 'Arrow keys move between entries in time order. Enter selects. Plus and minus zoom.'}
         {scrub ? ' On the timeline itself, left and right arrow keys move the time.' : ''}
       </div>
       <div
@@ -671,7 +741,9 @@ export function Timeline({
         <span style={{ display: 'inline-flex', gap: 2, flexShrink: 0 }}>
           <Button size="xs" variant="ghost" icon={<TbZoomIn />} aria-label="Zoom in" title="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} />
           <Button size="xs" variant="ghost" icon={<TbZoomOut />} aria-label="Zoom out" title="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} />
-          <Button size="xs" variant="ghost" icon={<TbArrowAutofitWidth />} aria-label="Fit all entries" title="Fit all entries" onClick={() => commit(null)} />
+          {!densityOnly && (
+            <Button size="xs" variant="ghost" icon={<TbArrowAutofitWidth />} aria-label="Fit all entries" title="Fit all entries" onClick={() => commit(null)} />
+          )}
         </span>
       </div>
 
@@ -680,7 +752,7 @@ export function Timeline({
         data-timeline-plot=""
         tabIndex={tabStop == null || scrub ? 0 : undefined}
         role={tabStop == null || scrub ? 'group' : undefined}
-        aria-label={tabStop == null ? `${ariaLabel}: no entries in view` : scrub ? ariaLabel : undefined}
+        aria-label={densityOnly || scrub ? ariaLabel : tabStop == null ? `${ariaLabel}: no entries in view` : undefined}
         className="ui-timeline__plot"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -720,6 +792,17 @@ export function Timeline({
             />
           )}
         </div>
+
+        {hasDensity && (
+          <DensityBand
+            buckets={buckets}
+            series={density?.series ?? []}
+            xOf={xOf}
+            width={width}
+            withTime={subDay}
+            grow={densityOnly}
+          />
+        )}
 
         <div
           aria-hidden
@@ -774,6 +857,7 @@ export function Timeline({
           )}
         </div>
 
+        {!densityOnly && (
         <div
           ref={scrollerRef}
           className="ui-timeline__lanes"
@@ -929,7 +1013,89 @@ export function Timeline({
             })}
           </div>
         </div>
+        )}
       </div>
+    </div>
+  )
+}
+
+/** The density histogram (0.2.37): one stacked bar per bucket in view, each bar's height its share
+ *  of the busiest bucket in view; its native tooltip names the span and each series' count. */
+function DensityBand({
+  buckets,
+  series,
+  xOf,
+  width,
+  withTime,
+  grow,
+}: {
+  buckets: DensityBucket[]
+  series: TimelineDensitySeries[]
+  xOf: (t: number) => number
+  width: number
+  withTime: boolean
+  grow: boolean
+}) {
+  const inView = buckets.filter((b) => xOf(b.end) >= 0 && xOf(b.start) <= width)
+  const max = inView.reduce((m, b) => Math.max(m, b.total), 0)
+  const fmt = withTime ? formatTimelineInstant : formatTimelineDate
+  return (
+    <div
+      data-timeline-density=""
+      style={{
+        position: 'relative',
+        flex: grow ? 1 : undefined,
+        height: grow ? undefined : DENSITY_MIN_H,
+        minHeight: DENSITY_MIN_H,
+        flexShrink: 0,
+        borderBottom: '1px solid var(--color-glass-border)',
+        overflow: 'hidden',
+      }}
+    >
+      {max > 0 &&
+        inView.map((b) => {
+          if (b.total === 0) return null
+          const x0 = Math.max(0, xOf(b.start))
+          const x1 = Math.min(width, xOf(b.end))
+          const w = Math.max(1, x1 - x0 - (x1 - x0 > 3 ? 1 : 0))
+          const tip = [`${fmt(b.start)} to ${fmt(b.end)}`, ...series.map((s, i) => `${b.counts[i] ?? 0} ${s.label.toLowerCase()}`)].join(' · ')
+          return (
+            <div
+              key={b.index}
+              data-density-bucket={b.index}
+              title={tip}
+              style={{
+                position: 'absolute',
+                left: 0,
+                bottom: 0,
+                top: DENSITY_TOP_PAD,
+                width: w,
+                display: 'flex',
+                flexDirection: 'column-reverse',
+                justifyContent: 'flex-start',
+                transform: `translateX(${Math.round(x0)}px)`,
+              }}
+            >
+              {series.map((s, i) => {
+                const c = b.counts[i] ?? 0
+                if (c === 0) return null
+                return (
+                  <span
+                    key={i}
+                    data-density-series={i}
+                    style={{
+                      display: 'block',
+                      flexShrink: 0,
+                      height: `${(c / max) * 100}%`,
+                      minHeight: 1,
+                      background: `color-mix(in srgb, var(${TONE_TOKEN[s.tone ?? 'accent']}) 70%, transparent)`,
+                    }}
+                  />
+                )
+              })}
+            </div>
+          )
+        })}
     </div>
   )
 }
