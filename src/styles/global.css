@@ -666,14 +666,14 @@ body {
   border-radius: var(--radius-sm);
 }
 
-/* KeyValueTree (0.2.34): a leaf value's copy button shows while its row is hovered or the button
-   has keyboard focus (always Tab-reachable) — an inline style cannot express :hover. */
+/* KeyValueTree: a leaf value's copy button shows while its row is hovered or holds focus (always
+   Tab-reachable) — an inline style cannot express :hover. 0.2.35: :focus-within, as VANTAGE's. */
 .ui-key-value-tree__copy {
   opacity: 0;
   transition: opacity 0.12s ease;
 }
 .ui-key-value-tree__row--copy:hover .ui-key-value-tree__copy,
-.ui-key-value-tree__copy:focus-visible {
+.ui-key-value-tree__row--copy:focus-within .ui-key-value-tree__copy {
   opacity: 1;
 }
 .ui-key-value-tree__copy:focus-visible {
