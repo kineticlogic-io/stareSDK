@@ -10,11 +10,15 @@ import { Timeline } from './Timeline.js'
 import type { TimelineEntry, TimelineProps } from './Timeline.js'
 import {
   TIMELINE_DAY_MS,
+  TIMELINE_MIN_SPAN_FLOOR_MS,
   TIMELINE_MIN_SPAN_MS,
+  clampTimelineSpan,
   estimateTimelineLabelWidth,
   fitTimelineSpan,
+  formatTimelineSpan,
   layoutTimelineAxisLabels,
   packTimelineLanes,
+  resolveTimelineMinSpan,
   timelineTicks,
   zoomTimelineSpan,
   type TimelineLaneItem,
@@ -658,5 +662,127 @@ describe('Timeline height (0.2.31)', () => {
   it('gives the empty state a compact auto height', () => {
     const { container } = render({ entries: [], 'aria-label': 'Events' })
     expect(root(container).style.height).toBe('140px')
+  })
+})
+
+// ---------------------------------------------------------------- 0.2.36: short spans, picking a time
+
+describe('Timeline short spans (0.2.36)', () => {
+  it('a caller narrows the narrowest span to no less than a second, and the default is unchanged', () => {
+    expect(resolveTimelineMinSpan(undefined)).toBe(TIMELINE_MIN_SPAN_MS)
+    expect(resolveTimelineMinSpan(60_000)).toBe(60_000)
+    expect(resolveTimelineMinSpan(10)).toBe(TIMELINE_MIN_SPAN_FLOOR_MS)
+    expect(resolveTimelineMinSpan(30 * TIMELINE_DAY_MS)).toBe(TIMELINE_MIN_SPAN_MS)
+    const s = { start: T('2015-10-14T08:00:00Z'), end: T('2015-10-14T08:00:30Z') }
+    expect(clampTimelineSpan(s).end - clampTimelineSpan(s).start).toBe(TIMELINE_MIN_SPAN_MS)
+    expect(clampTimelineSpan(s, 10_000)).toEqual(s)
+    const z = zoomTimelineSpan(s, 0.01, undefined, 10_000)
+    expect(z.end - z.start).toBe(10_000)
+  })
+
+  it('fits a lone point to its own short span when the caller allows one', () => {
+    const p = [{ id: 'p', start: T('2015-10-14T08:00:00Z'), end: T('2015-10-14T08:00:00Z') }]
+    const fitted = fitTimelineSpan(p, 60_000)!
+    expect(fitted.end - fitted.start).toBe(120_000)
+    expect(fitTimelineSpan(p)!.end - fitTimelineSpan(p)!.start).toBe(60 * TIMELINE_DAY_MS)
+  })
+
+  it('ticks hours, minutes, seconds and tenths of a second below a day, the date where the day changes', () => {
+    const at = (s: string) => T(s)
+    const hours = timelineTicks({ start: at('2015-10-13T20:00:00Z'), end: at('2015-10-14T08:00:00Z') }, WIDTH, 80, true)
+    expect(hours.unit).toBe('hour')
+    expect(hours.ticks[0].label).toBe('13 Oct 20:00')
+    expect(hours.ticks.find((t) => t.t === at('2015-10-14T00:00:00Z'))?.label).toBe('14 Oct 00:00')
+    expect(hours.ticks.find((t) => t.t === at('2015-10-14T02:00:00Z'))?.label).toBe('02:00')
+    const minutes = timelineTicks({ start: at('2015-10-14T08:00:00Z'), end: at('2015-10-14T08:10:00Z') }, WIDTH, 80, true)
+    expect(minutes.unit).toBe('minute')
+    expect(minutes.ticks[1].label).toBe('08:01')
+    const seconds = timelineTicks({ start: at('2015-10-14T08:00:00Z'), end: at('2015-10-14T08:00:20Z') }, WIDTH, 80, true)
+    expect(seconds.unit).toBe('second')
+    expect(seconds.ticks[1].label).toMatch(/^08:00:0\d$/)
+    const tenths = timelineTicks({ start: at('2015-10-14T08:00:00Z'), end: at('2015-10-14T08:00:02Z') }, WIDTH, 80, true)
+    expect(tenths.unit).toBe('millisecond')
+    expect(tenths.ticks[1].label).toMatch(/^08:00:00\.\d{3}$/)
+    // Without sub-day the same window keeps days, as before.
+    expect(timelineTicks({ start: at('2015-10-13T20:00:00Z'), end: at('2015-10-14T08:00:00Z') }, WIDTH).unit).toBe('day')
+  })
+
+  it('shows the window to the axis precision and dates entries with their time', () => {
+    expect(formatTimelineSpan({ start: T('2015-10-14T08:00:00Z'), end: T('2015-10-14T08:10:00Z') }, 'minute')).toBe('14 Oct 2015 08:00 – 08:10')
+    const { container } = render({
+      'aria-label': 'Coverage',
+      entries: [{ id: 'r', label: 'Run', start: '2015-10-14T08:00:00Z', end: '2015-10-14T08:10:00Z' }],
+      minSpanMs: 1000,
+      now: null,
+    })
+    expect(byId(container, 'r')!.getAttribute('aria-label')).toBe('Run, 14 Oct 2015 08:00:00 to 14 Oct 2015 08:10:00')
+    expect(container.querySelector('[data-timeline-span]')!.textContent).toMatch(/^14 Oct 2015 \d\d:\d\d(:\d\d)? – \d\d:\d\d(:\d\d)?$/)
+  })
+})
+
+describe('Timeline now label and picking a time (0.2.36)', () => {
+  const RUN: TimelineEntry[] = [{ id: 'r', label: 'Run', start: '2015-10-14T08:00:00Z', end: '2015-10-14T08:10:00Z' }]
+  const VIEW = { start: '2015-10-14T08:00:00Z', end: '2015-10-14T08:10:00Z' }
+
+  it('names the now line, keeps "Today" by default and can draw the line without a label', () => {
+    const now = '2015-10-14T08:05:00Z'
+    const named = render({ 'aria-label': 'x', entries: RUN, minSpanMs: 1000, initialRange: VIEW, now, nowLabel: 'Frame' })
+    expect(named.container.querySelector('[data-timeline-today-label]')!.textContent).toBe('Frame')
+    const bare = render({ 'aria-label': 'x', entries: RUN, minSpanMs: 1000, initialRange: VIEW, now, nowLabel: null })
+    expect(bare.container.querySelector('[data-timeline-today]')).not.toBeNull()
+    expect(bare.container.querySelector('[data-timeline-today-label]')).toBeNull()
+    const old = render({ 'aria-label': 'x', entries: ENTRIES, initialRange: RANGE, now: '2024-04-01' })
+    expect(old.container.querySelector('[data-timeline-today-label]')!.textContent).toBe('Today')
+  })
+
+  it('pan mode: a click on the plot outside an entry picks the time under it; a drag still pans and picks nothing', () => {
+    const picked = vi.fn()
+    const moved = vi.fn()
+    const { container } = render({ 'aria-label': 'x', entries: RUN, minSpanMs: 1000, initialRange: VIEW, now: null, onTimePick: picked, onRangeChange: moved })
+    const p = plot(container)
+    pointer(p, 'pointerdown', 400)
+    pointer(p, 'pointerup', 400)
+    expect(picked).toHaveBeenCalledTimes(1)
+    expect(picked.mock.calls[0][0]).toBe(T('2015-10-14T08:05:00Z'))
+    pointer(p, 'pointerdown', 400)
+    pointer(p, 'pointermove', 300)
+    pointer(p, 'pointerup', 300)
+    expect(picked).toHaveBeenCalledTimes(1)
+    expect(moved).toHaveBeenCalled()
+  })
+
+  it('scrub mode: pressing and dragging pick times, Shift+drag pans, and the plot takes focus for arrow keys', () => {
+    const picked = vi.fn()
+    const moved = vi.fn()
+    const { container } = render({
+      'aria-label': 'Recording', entries: RUN, minSpanMs: 1000, initialRange: VIEW, now: '2015-10-14T08:05:00Z',
+      onTimePick: picked, onRangeChange: moved, interaction: 'scrub',
+    })
+    const p = plot(container)
+    expect(p.tabIndex).toBe(0)
+    expect(p.getAttribute('aria-label')).toBe('Recording')
+    pointer(p, 'pointerdown', 200)
+    pointer(p, 'pointermove', 600)
+    pointer(p, 'pointerup', 600)
+    expect(picked.mock.calls.map((c) => c[0])).toEqual([T('2015-10-14T08:02:30Z'), T('2015-10-14T08:07:30Z')])
+    expect(moved).not.toHaveBeenCalled()
+    act(() => {
+      p.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 400, shiftKey: true, button: 0 }))
+    })
+    pointer(p, 'pointermove', 300)
+    pointer(p, 'pointerup', 300)
+    expect(moved).toHaveBeenCalled()
+    picked.mockClear()
+    key(p, 'ArrowRight')
+    expect(picked).toHaveBeenCalledWith(T('2015-10-14T08:05:06Z'))
+    act(() => {
+      p.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', shiftKey: true, bubbles: true, cancelable: true }))
+    })
+    expect(picked).toHaveBeenLastCalledWith(T('2015-10-14T08:04:00Z'))
+  })
+
+  it('without onTimePick nothing changes: drag pans and the plot is not an extra tab stop', () => {
+    const { container } = render({ 'aria-label': 'x', entries: ENTRIES, initialRange: RANGE, interaction: 'scrub' })
+    expect(plot(container).getAttribute('tabindex')).toBeNull()
   })
 })
