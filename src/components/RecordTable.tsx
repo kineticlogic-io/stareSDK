@@ -1,5 +1,8 @@
 import { useMemo } from 'react'
-import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
+import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
+
+/** The drag data type of a column dragged out of a `RecordTable` (`draggableColumns`): its field path. */
+export const RECORD_FIELD_MIME = 'application/x-staresdk-record-field'
 import { cellChange, flattenRecord, formatCell, recordColumns, type CellChange } from './RecordTable.helpers.js'
 
 /**
@@ -11,6 +14,9 @@ import { cellChange, flattenRecord, formatCell, recordColumns, type CellChange }
  * removed shows its old value struck through. A row with `dropped` is the record a step dropped:
  * dimmed, with the reason across the row. Values longer than `maxCellWidth` are cut, with the
  * whole value as a tooltip. The header and the label column stay in view as the table scrolls.
+ *
+ * With `draggableColumns` (0.2.33) a column's header can be dragged out: the drag carries its field
+ * path as `RECORD_FIELD_MIME` (and as text), for a drop target elsewhere to take.
  */
 export interface RecordRow {
   id: string
@@ -37,6 +43,8 @@ export interface RecordTableProps {
   maxCellWidth?: number
   /** Shown when there are no rows. */
   empty?: ReactNode
+  /** Column headers can be dragged out, carrying their field path (`RECORD_FIELD_MIME`). */
+  draggableColumns?: boolean
   'aria-label': string
   style?: CSSProperties
 }
@@ -66,6 +74,7 @@ export function RecordTable({
   onRowClick,
   maxCellWidth = 240,
   empty,
+  draggableColumns = false,
   'aria-label': ariaLabel,
   style,
 }: RecordTableProps) {
@@ -88,6 +97,11 @@ export function RecordTable({
   }
 
   const choose = (id: string) => onRowClick?.(id)
+  const dragColumn = (path: string) => (e: ReactDragEvent<HTMLTableCellElement>) => {
+    e.dataTransfer.setData(RECORD_FIELD_MIME, path)
+    e.dataTransfer.setData('text/plain', path)
+    e.dataTransfer.effectAllowed = 'copy'
+  }
   const onKey = (id: string) => (e: ReactKeyboardEvent<HTMLTableRowElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -122,8 +136,10 @@ export function RecordTable({
             <th
               key={c}
               scope="col"
-              title={c || 'value'}
-              style={{ ...cellBase, maxWidth: maxCellWidth, position: 'sticky', top: 0, zIndex: 1, background: 'var(--color-bg-secondary)', textAlign: 'left', color: 'var(--color-text-secondary)', fontWeight: 600 }}
+              title={draggableColumns ? `${c || 'value'} (drag it out)` : c || 'value'}
+              draggable={draggableColumns || undefined}
+              onDragStart={draggableColumns ? dragColumn(c) : undefined}
+              style={{ ...cellBase, maxWidth: maxCellWidth, position: 'sticky', top: 0, zIndex: 1, background: 'var(--color-bg-secondary)', textAlign: 'left', color: 'var(--color-text-secondary)', fontWeight: 600, cursor: draggableColumns ? 'grab' : undefined }}
             >
               {c || 'value'}
             </th>

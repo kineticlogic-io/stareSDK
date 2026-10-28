@@ -5,7 +5,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { RecordTable } from './RecordTable.js'
+import { RECORD_FIELD_MIME, RecordTable } from './RecordTable.js'
 import type { RecordTableProps } from './RecordTable.js'
 import { cellChange, flattenRecord, formatCell, recordColumns } from './RecordTable.helpers.js'
 
@@ -107,6 +107,21 @@ describe('RecordTable', () => {
       rows[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     })
     expect(pick.mock.calls).toEqual([['a'], ['b']])
+  })
+
+  it('lets a column be dragged out, carrying its field path', () => {
+    const c = render({ rows: [{ id: 'a', value: { position: { latitude: 1 } } }], draggableColumns: true })
+    const th = c.querySelector<HTMLTableCellElement>('thead th[draggable="true"]')!
+    expect(th.textContent).toBe('position.latitude')
+    const data = new Map<string, string>()
+    const e = new Event('dragstart', { bubbles: true }) as Event & { dataTransfer: unknown }
+    e.dataTransfer = { setData: (k: string, v: string) => data.set(k, v), effectAllowed: '' }
+    act(() => {
+      th.dispatchEvent(e)
+    })
+    expect(data.get(RECORD_FIELD_MIME)).toBe('position.latitude')
+    expect(data.get('text/plain')).toBe('position.latitude')
+    expect(render({ rows: [{ id: 'a', value: { k: 1 } }] }).querySelector('th[draggable]')).toBeNull()
   })
 
   it('says when there is nothing to show', () => {

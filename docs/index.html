@@ -18,14 +18,14 @@
     document.documentElement.dataset.theme = t
   })()
 </script>
-  <script type="module" crossorigin src="./assets/index-BU8DKXg5.js"></script>
+  <script type="module" crossorigin src="./assets/index-EPlHeIsq.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-B0Z9INg1.js">
   <link rel="stylesheet" crossorigin href="./assets/index-DUBrAota.css">
 </head>
 <body>
 <header class="guide-header">
   <a class="guide-brand" href="#overview">stare<span>SDK</span></a>
-  <span class="guide-version">v0.2.32</span>
+  <span class="guide-version">v0.2.33</span>
   <nav class="guide-nav" aria-label="Site">
     <a href="#getting-started">Start</a>
     <a href="#foundations">Foundations</a>
@@ -1038,7 +1038,9 @@ import 'uplot/dist/uPlot.min.css'
       its <code>before</code> and the table shows what changed: added and changed fields are tinted, removed ones struck
       through. A row with <code>dropped</code> shows the reason instead of its fields. The header and the first column
       stay in view as it scrolls; <code>onRowClick</code> and <code>selectedId</code> pick a row. The helpers
-      (<code>flattenRecord</code>, <code>recordColumns</code>, <code>cellChange</code>, <code>formatCell</code>) are exported.</p>
+      (<code>flattenRecord</code>, <code>recordColumns</code>, <code>cellChange</code>, <code>formatCell</code>) are exported.
+      From 0.2.33, <code>draggableColumns</code> lets a column's header be dragged out, carrying its field path as
+      <code>RECORD_FIELD_MIME</code>.</p>
     <div class="example">
       <div class="example-label">Example <code>RecordTable</code></div>
       <div class="demo" data-demo="recordtable"></div>
@@ -1132,7 +1134,7 @@ npm run docs      # this guide, into docs/</code></pre>
     <p><a href="https://github.com/kineticlogic-io/stareSDK/blob/main/LICENSE">MIT</a>. © 2026 kineticlogic.io. For consulting
       or support, email <a href="mailto:admin@kineticlogic.io">admin@kineticlogic.io</a>.</p>
 
-    <footer class="guide-footer">stareSDK v0.2.32 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
+    <footer class="guide-footer">stareSDK v0.2.33 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
   </main>
 </div>
 </body>
