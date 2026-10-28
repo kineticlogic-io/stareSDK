@@ -177,6 +177,8 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
         <tr><td>Editing a flow (drag-and-drop steps)</td><td><a href="#flowcanvas"><code>FlowCanvas</code></a></td><td>a second flow library</td></tr>
         <tr><td>Values over time</td><td><a href="#timeserieschart"><code>TimeSeriesChart</code></a></td><td>a second chart library</td></tr>
         <tr><td>Dated events and periods</td><td><a href="#timeline"><code>Timeline</code></a></td><td>a hand-built Gantt</td></tr>
+        <tr><td>Records side by side, with what changed</td><td><a href="#recordtable"><code>RecordTable</code></a></td><td>JSON blocks one after another</td></tr>
+        <tr><td>A panel docked to the bottom of a workspace</td><td><a href="#tray"><code>Tray</code></a></td><td>a fixed-height div, a modal</td></tr>
         <tr><td>Rendered Markdown</td><td><a href="#mdtext"><code>MDText</code></a></td><td></td></tr>
       </tbody>
     </table></div>
@@ -1027,6 +1029,33 @@ import 'uplot/dist/uPlot.min.css'
     { id: 'dep', label: 'Deployment', start: '2025-02-10', end: '2025-08-28', meta: 'Deployment' },
     { id: 'port', label: 'Port visit, Gdynia', start: '2025-06-24', tone: 'info' },
   ]} /&gt;</code></pre>
+    </div>
+
+    <h3>RecordTable <span class="since">Available in 0.2.32+</span></h3>
+    <p>Records (JSON objects) side by side: one row each, one column per field, nested fields as dotted paths. Give a row
+      its <code>before</code> and the table shows what changed: added and changed fields are tinted, removed ones struck
+      through. A row with <code>dropped</code> shows the reason instead of its fields. The header and the first column
+      stay in view as it scrolls; <code>onRowClick</code> and <code>selectedId</code> pick a row. The helpers
+      (<code>flattenRecord</code>, <code>recordColumns</code>, <code>cellChange</code>, <code>formatCell</code>) are exported.</p>
+    <div class="example">
+      <div class="example-label">Example <code>RecordTable</code></div>
+      <div class="demo" data-demo="recordtable"></div>
+<pre><code>&lt;RecordTable aria-label="Samples after the Map" pinned={['source_track_key']}
+  selectedId={selected} onRowClick={setSelected}
+  rows={[{ id: 's1', value: after, before }, { id: 's2', dropped: 'dropped by Filter: drop_if matched' }]} /&gt;</code></pre>
+    </div>
+
+    <h3>Tray <span class="since">Available in 0.2.32+</span></h3>
+    <p>A panel docked to the bottom of its container, like a browser's developer tools. Its header bar (title,
+      <code>actions</code>, chevron) is always there; open, its body scrolls on its own and is resized by dragging its
+      top edge or with the arrow keys there. <code>storageKey</code> keeps the height. Place it last in a flex column.</p>
+    <div class="example">
+      <div class="example-label">Example <code>Tray</code></div>
+      <div class="demo" data-demo="tray"></div>
+<pre><code>&lt;Tray aria-label="Samples" title="Samples · Map" open={open} onOpenChange={setOpen}
+  storageKey="app.samples.height" actions={&lt;Badge size="sm"&gt;3&lt;/Badge&gt;}&gt;
+  &lt;RecordTable aria-label="Samples" rows={rows} /&gt;
+&lt;/Tray&gt;</code></pre>
     </div>
 
     <h3>GraphView <span class="since">Available in 0.2.0+</span></h3>

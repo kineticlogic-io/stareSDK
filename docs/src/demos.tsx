@@ -14,11 +14,11 @@ import {
   Disclosure, DraggablePopup, EmptyState, Facets, FieldSelect, FileDropZone, Flyout, HomeButton, InfoTip,
   Input, ItemCard, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader, PersonCard, PersonChip,
   Pagination, Popover, PopoverMenuButton, ProfileChart, RadioGroup, RampPicker, SaveButton, SearchInput, SegmentedControl, Select, SideNav, Slider,
-  SortableList, Stepper, TabPanel, Tabs, TagInput, Timeline, Toggle, Tooltip, Tree, TypeaheadPicker, UnitSelect,
+  SortableList, Stepper, TabPanel, Tabs, TagInput, Timeline, Toggle, Tooltip, Tray, Tree, TypeaheadPicker, UnitSelect, RecordTable,
   VirtualList, ZoomRangeSlider, distanceToMeters, durationToSeconds, sortRows, speedToMetersPerSecond, useTheme, useToast, useTypeaheadKeyboard,
   type BadgeColor, type ClassificationMarking, type ClassifyOptions, type DataTableColumn,
   type DataTableSort,
-  type DistanceUnit, type FlyoutItem, type TimelineEntry, type SpeedUnit, type StepItem, type TimeUnit, type TreeNode,
+  type DistanceUnit, type FlyoutItem, type RecordRow, type TimelineEntry, type SpeedUnit, type StepItem, type TimeUnit, type TreeNode,
 } from '../../src/index'
 import {
   BadgeSwatches, CanonicalSwatches, ClassificationSwatches, ExtendedSwatches, IntelSwatches, Scales,
@@ -1536,6 +1536,47 @@ function TimelineDemo() {
   )
 }
 
+const RECORDS: RecordRow[] = [
+  {
+    id: 's1',
+    value: { source_track_key: '366000001', name: 'ALPHA', position: { latitude: 32.71, longitude: -117.17 }, kinematics: { speed_mps: 7.4 } },
+    before: { source_track_key: '366000001', position: { latitude: 32.71, longitude: -117.17 }, kinematics: { speed_mps: 7.1 }, raw: 'AIVDM' },
+  },
+  {
+    id: 's2',
+    value: { source_track_key: '366000002', name: 'BRAVO', position: { latitude: 32.69, longitude: -117.2 }, kinematics: { speed_mps: 0 } },
+    before: { source_track_key: '366000002', name: 'BRAVO', position: { latitude: 32.69, longitude: -117.2 }, kinematics: { speed_mps: 0 } },
+  },
+  { id: 's3', dropped: 'dropped by Filter: drop_if matched' },
+]
+
+function RecordTableDemo() {
+  const [selected, setSelected] = useState<string | null>('s1')
+  const [changes, setChanges] = useState(true)
+  return (
+    <div className="stack" style={{ gap: 'var(--space-sm)' }}>
+      <Toggle size="sm" value={changes} onChange={setChanges} aria-label="Show changes" />
+      <div style={{ maxHeight: 200, overflow: 'auto', border: '1px solid var(--color-glass-border)' }}>
+        <RecordTable aria-label="Samples after the Map" rows={RECORDS} showChanges={changes} pinned={['source_track_key']} selectedId={selected} onRowClick={setSelected} />
+      </div>
+      <span className="caption">Selected: {selected}. Tinted cells were added or changed; struck-through ones were removed.</span>
+    </div>
+  )
+}
+
+function TrayDemo() {
+  const [open, setOpen] = useState(true)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: 320, border: '1px solid var(--color-glass-border)' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center', color: 'var(--text-muted)', fontSize: 12 }}>The workspace gives way to the tray.</div>
+      <Tray aria-label="Samples" title="Samples · Map" open={open} onOpenChange={setOpen} height={160} minHeight={80} maxHeight={260}
+        actions={<Badge size="sm">3</Badge>}>
+        <RecordTable aria-label="Samples after the Map" rows={RECORDS} pinned={['source_track_key']} />
+      </Tray>
+    </div>
+  )
+}
+
 const TimeSeriesChartDemo = lazy(() => import('./views').then(m => ({ default: m.TimeSeriesChartDemo })))
 const GraphViewDemo = lazy(() => import('./views').then(m => ({ default: m.GraphViewDemo })))
 const FlowCanvasDemo = lazy(() => import('./views').then(m => ({ default: m.FlowCanvasDemo })))
@@ -1651,6 +1692,8 @@ export const DEMOS: Record<string, ComponentType> = {
   mdtext: MDTextDemo,
   profilechart: ProfileChartDemo,
   timeline: TimelineDemo,
+  recordtable: RecordTableDemo,
+  tray: TrayDemo,
   timeserieschart: TimeSeriesChartDemo,
   graphview: GraphViewDemo,
   flowcanvas: FlowCanvasDemo,
