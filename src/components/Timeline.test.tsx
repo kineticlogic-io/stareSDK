@@ -786,3 +786,88 @@ describe('Timeline now label and picking a time (0.2.36)', () => {
     expect(plot(container).getAttribute('tabindex')).toBeNull()
   })
 })
+
+// ---------------------------------------------------------------- 0.2.37: density
+
+describe('Timeline density (0.2.37)', () => {
+  const DENSITY = {
+    start: '2024-01-01T00:00:00Z',
+    end: '2024-01-05T00:00:00Z',
+    series: [
+      { label: 'Images', tone: 'accent' as const, counts: [2, 0, 6, 1] },
+      { label: 'Recordings', tone: 'info' as const, counts: [2, 0, 0, Number.NaN] },
+    ],
+  }
+  const WINDOW = { start: '2024-01-01T00:00:00Z', end: '2024-01-05T00:00:00Z' }
+  const bars = (c: HTMLElement) => Array.from(c.querySelectorAll<HTMLElement>('[data-density-bucket]'))
+
+  it('with density and no entries: the plot, the axis and the zoom controls, no empty state, no lanes, no fit', () => {
+    const { container } = render({ entries: [], density: DENSITY, range: WINDOW, 'aria-label': 'Acquisition timeline', height: 96 })
+    expect(container.textContent).not.toContain('No entries to show')
+    expect(container.querySelector('[data-timeline-density]')).not.toBeNull()
+    expect(container.querySelector('[data-timeline-axis]')).not.toBeNull()
+    expect(container.querySelector('.ui-timeline__lanes')).toBeNull()
+    expect(button(container, 'Zoom in')).not.toBeNull()
+    expect(button(container, 'Zoom out')).not.toBeNull()
+    expect(button(container, 'Fit all entries')).toBeNull()
+    const p = plot(container)
+    expect(p.getAttribute('aria-label')).toBe('Acquisition timeline')
+    expect(p.tabIndex).toBe(0)
+  })
+
+  it('one stacked bar per non-empty bucket, its height its share of the busiest bucket in view', () => {
+    const { container } = render({ entries: [], density: DENSITY, range: WINDOW, 'aria-label': 'Acquisition timeline' })
+    const b = bars(container)
+    expect(b.map((el) => el.dataset.densityBucket)).toEqual(['0', '2', '3'])
+    // Each bucket is a quarter of the 800 px view.
+    expect(b.map((el) => xOf(el))).toEqual([0, 400, 600])
+    const heights = (el: HTMLElement) => Array.from(el.querySelectorAll<HTMLElement>('[data-density-series]')).map((s) => s.style.height)
+    expect(heights(b[0])).toEqual(['33.33333333333333%', '33.33333333333333%'])
+    expect(heights(b[1])).toEqual(['100%'])
+    // A non-finite count is 0.
+    expect(heights(b[2]).length).toBe(1)
+    // Each series in its own tone token.
+    const tones = Array.from(b[0].querySelectorAll<HTMLElement>('[data-density-series]')).map((s) => s.style.background)
+    expect(tones[0]).toContain('--color-accent')
+    expect(tones[1]).toContain('--status-info')
+  })
+
+  it('names each bucket by its span and each series count', () => {
+    const { container } = render({ entries: [], density: DENSITY, range: WINDOW, 'aria-label': 'Acquisition timeline' })
+    const tip = bars(container)[0].title
+    expect(tip).toMatch(/ · 2 images · 2 recordings$/)
+    expect(tip).toContain(' to ')
+  })
+
+  it('scales to the busiest bucket in view and draws only buckets in view', () => {
+    const { container } = render({ entries: [], density: DENSITY, range: { start: '2024-01-01T00:00:00Z', end: '2024-01-02T00:00:00Z' }, minSpanMs: 1000, 'aria-label': 'Acquisition timeline' })
+    const b = bars(container)
+    expect(b.map((el) => el.dataset.densityBucket)).toEqual(['0'])
+    const h = Array.from(b[0].querySelectorAll<HTMLElement>('[data-density-series]')).map((s) => s.style.height)
+    expect(h).toEqual(['50%', '50%'])
+  })
+
+  it('the arrow keys on the plot and the zoom buttons move the view, reported', () => {
+    const onRangeChange = vi.fn()
+    const { container } = render({ entries: [], density: DENSITY, range: WINDOW, onRangeChange, 'aria-label': 'Acquisition timeline' })
+    key(plot(container), 'ArrowRight')
+    expect((onRangeChange.mock.calls[0][0] as { start: Date }).start.getTime()).toBeGreaterThan(T('2024-01-01T00:00:00Z'))
+    act(() => button(container, 'Zoom in').click())
+    expect(onRangeChange).toHaveBeenCalledTimes(2)
+  })
+
+  it('with entries too, the lanes and the fit button stay, the density above the axis', () => {
+    const { container } = render({ entries: ENTRIES, density: DENSITY, 'aria-label': 'Events' })
+    expect(container.querySelector('.ui-timeline__lanes')).not.toBeNull()
+    expect(button(container, 'Fit all entries')).not.toBeNull()
+    const density = container.querySelector('[data-timeline-density]')!
+    const axis = container.querySelector('[data-timeline-axis]')!
+    expect(density.compareDocumentPosition(axis) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('an empty or malformed density draws no bars', () => {
+    const { container } = render({ entries: [], density: { start: 'x', end: '2024-01-02', series: [{ label: 'Images', counts: [1] }] }, range: WINDOW, 'aria-label': 'A' })
+    expect(bars(container)).toEqual([])
+    expect(container.querySelector('[data-timeline-density]')).not.toBeNull()
+  })
+})

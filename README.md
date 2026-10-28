@@ -252,6 +252,11 @@ marked from `subSelected`.
   click on the plot outside an entry reports the time under it) and `interaction: 'scrub'`
   (press-and-drag picks times, Shift+drag pans, arrow keys on the focused plot step the time from
   the `now` line). Without them nothing changes.
+  Since 0.2.37 it also draws a density histogram: `density` (`start`, `end` and `series`, each
+  `{ label, tone, counts }` with one count per equal bucket) stacks the series' bars between the
+  toolbar and the axis, each bar its bucket's share of the busiest bucket in view, with the span and
+  each count as its tooltip. With `density` and no entries the plot and the zoom controls render
+  (no empty state, no lanes, no fit button).
 - `Tray` — a panel docked to the bottom of its container, like a browser's developer tools:
   `open` / `onOpenChange`, `title`, `actions` (header controls whose clicks never toggle it),
   `height` (default 260) within `minHeight` / `maxHeight` (120–640), `storageKey` to keep the
