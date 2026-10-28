@@ -117,7 +117,9 @@ and token rules:
   block, rows that expand to caller-rendered content, a per-value copy button (hover or focus,
   copies the raw value), query highlighting, and an indent cap. Its helpers —
   `filterKeyValueTree` (prunes to matches, returns the ancestors to expand),
-  `keyValueMatchRanges` and `jsonToKeyValueNodes` — are exported too.
+  `keyValueMatchRanges` and `jsonToKeyValueNodes` — are exported too. Since 0.2.35 its copy
+  button matches the VANTAGE inspector's ("Copy value", 14px icons, an accent check, "Copied" /
+  "Couldn't copy" announced politely, revealed on row hover or focus).
 - `DataTable` — sortable columns (stable, nulls last), optional row selection with keyboard
   activation, sticky header and row virtualisation when `maxHeight` is set. Header chrome follows
   the neutral-table rule (weight, uppercase, letter-spacing, bottom border; no fill, no colour).

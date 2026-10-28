@@ -117,10 +117,24 @@ describe('KeyValueTree', () => {
     expect(item(c, 'Title').querySelector('button')).toBeNull()
     expect(item(c, 'Header').querySelector('button')).toBeNull()
     const copy = item(c, 'Class').querySelector<HTMLButtonElement>('button')!
-    expect(copy.getAttribute('aria-label')).toBe('Copy Class')
+    expect(copy.getAttribute('aria-label')).toBe('Copy value')
+    expect(copy.getAttribute('title')).toBeNull()
     await act(async () => copy.click())
     expect(writeText).toHaveBeenCalledWith('U')
-    expect(item(c, 'Class').querySelector('[role="status"]')!.textContent).toBe('Copied')
+    expect(item(c, 'Class').querySelector('[aria-live="polite"]')!.textContent).toBe('Copied')
+    // A copy never toggles the row (click or Enter on the button).
+    expect(item(c, 'Header').getAttribute('aria-expanded')).toBe('true')
+  })
+
+  it('announces a failed copy and keeps the copy icon', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('denied'))
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const c = render(<Harness initial={['hdr']} />)
+    const copy = item(c, 'Version').querySelector<HTMLButtonElement>('button')!
+    const before = copy.innerHTML
+    await act(async () => copy.click())
+    expect(item(c, 'Version').querySelector('[aria-live="polite"]')!.textContent).toBe("Couldn't copy")
+    expect(copy.innerHTML).toBe(before)
   })
 
   it('omits copy buttons with copyValues={false}', () => {

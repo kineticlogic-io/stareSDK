@@ -9,9 +9,10 @@
  *   (its body comes from `renderExpanded`, e.g. a part fetched on demand).
  * - **Values.** `label: value`; a row with `interpreted` shows `INTERPRETED (value)`. `muted`
  *   values (absent, sentinel) are dimmed. A `block` shows in a bounded, scrollable monospace box.
- * - **Copy.** Each leaf value row reveals a copy button on hover or keyboard focus (always
- *   Tab-reachable); it copies the raw `value`, never the interpreted reading. `copyValues={false}`
- *   turns it off.
+ * - **Copy.** Each leaf value row reveals a "Copy value" button while the row is hovered or holds
+ *   focus (always Tab-reachable); it copies the raw `value`, never the interpreted reading, shows a
+ *   confirmed icon for a moment, and announces "Copied" or "Couldn't copy" politely.
+ *   `copyValues={false}` turns it off. (0.2.35: matches the VANTAGE inspector's copy affordance.)
  * - **Highlight.** `query` highlights every occurrence in keys and values (filtering is the
  *   caller's, with `filterKeyValueTree`, so it can keep its own expansion state). Built from React
  *   children only, never markup.
@@ -126,35 +127,43 @@ function highlighted(text: string, lowerQuery: string): ReactNode {
   return parts
 }
 
-function CopyButton({ value, label }: { value: string; label: string }) {
+function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false)
+  const [announcement, setAnnouncement] = useState('')
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current)
   }, [])
   const copy = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
-    void navigator.clipboard?.writeText(value).then(() => {
+    const failed = () => setAnnouncement("Couldn't copy")
+    if (!navigator.clipboard) {
+      failed()
+      return
+    }
+    navigator.clipboard.writeText(value).then(() => {
       setCopied(true)
+      setAnnouncement('Copied')
       if (timer.current) clearTimeout(timer.current)
       timer.current = setTimeout(() => setCopied(false), COPIED_MS)
-    })
+    }, failed)
   }
   return (
     <>
       <button
         type="button"
         className="ui-key-value-tree__copy"
-        aria-label={`Copy ${label}`}
-        title={`Copy ${label}`}
+        aria-label="Copy value"
         onClick={copy}
-        onKeyDown={(e: KeyboardEvent) => e.stopPropagation()}
+        onKeyDown={(e: KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') e.stopPropagation()
+        }}
         style={COPY_STYLE}
       >
-        {copied ? <TbCopyCheck /> : <TbCopy />}
+        {copied ? <TbCopyCheck size={14} style={{ color: 'var(--color-accent)' }} /> : <TbCopy size={14} />}
       </button>
-      <span role="status" style={LIVE_REGION_STYLE}>
-        {copied ? 'Copied' : ''}
+      <span aria-live="polite" style={LIVE_REGION_STYLE}>
+        {announcement}
       </span>
     </>
   )
@@ -196,7 +205,6 @@ function Row({ node, depth, tree, lowerQuery }: RowProps) {
         style={{
           ...ROW_STYLE,
           paddingLeft: Math.min(depth, KEY_VALUE_MAX_INDENT_DEPTH) * KEY_VALUE_INDENT_PX,
-          paddingRight: copy ? 20 : 0,
           background: hovered && expandable ? 'var(--color-glass-bg)' : 'transparent',
           cursor: expandable ? 'pointer' : 'default',
         }}
@@ -220,7 +228,7 @@ function Row({ node, depth, tree, lowerQuery }: RowProps) {
             </>
           )}
         </div>
-        {copy && <CopyButton value={node.value as string} label={node.label} />}
+        {copy && <CopyButton value={node.value as string} />}
       </div>
       {expanded && node.block !== undefined && <div style={BLOCK_STYLE}>{node.block}</div>}
       {expanded && node.block === undefined && children.length === 0 && tree.renderExpanded && tree.renderExpanded(node, depth + 1)}
