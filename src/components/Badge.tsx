@@ -15,6 +15,11 @@ import { useTheme } from '../theme/useTheme.js'
  * This is the single source of truth for small status/label pills (roles,
  * statuses, counts, etc.). Prefer it over hand-rolled inline pill styles.
  *
+ * `fill` (0.2.38) takes a fill colour of the caller's own as hex (`#RRGGBB` or `#RGB`) — a
+ * data-viz class colour, say — in place of `color`; the text is chosen against it exactly as for
+ * the standard fills. Hex only, for the same reason as BADGE_BG: `contrastText()` must parse it. A
+ * value that is not hex falls back to `color`.
+ *
  * `onRemove` (0.2.26) makes it a removable chip: a trailing × button (`TbX`) named by
  * `removeLabel` (default "Remove"), the same chip `TagInput` shows for each value — e.g. a
  * chosen filter value shown under its search field.
@@ -54,12 +59,16 @@ function contrastText(hex: string): string {
   return contrastWhite >= contrastBlack ? LIGHT_TEXT : DARK_TEXT
 }
 
+const HEX_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i
+
 // Gap between the optional left icon and the label, per size.
 const ICON_GAP: Record<BadgeSize, number> = { sm: 4, md: 5, lg: 6 }
 
 interface BadgeProps {
   children: ReactNode
   color?: BadgeColor
+  /** A fill of the caller's own, as hex (0.2.38); overrides `color`. Not hex: `color` is used. */
+  fill?: string
   size?: BadgeSize
   /** Uppercase the label (typical for role/status pills). */
   uppercase?: boolean
@@ -92,6 +101,7 @@ const removeStyle: CSSProperties = {
 export function Badge({
   children,
   color = 'grey',
+  fill,
   size = 'md',
   uppercase = false,
   icon,
@@ -103,7 +113,7 @@ export function Badge({
   style,
 }: BadgeProps) {
   const { theme } = useTheme()
-  const bg = BADGE_BG[theme][color]
+  const bg = fill !== undefined && HEX_RE.test(fill) ? fill : BADGE_BG[theme][color]
   return (
     <span
       title={title}

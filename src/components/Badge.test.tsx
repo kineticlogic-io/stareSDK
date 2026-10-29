@@ -198,3 +198,51 @@ describe('Badge onRemove (0.2.26)', () => {
     unmount()
   })
 })
+
+describe('Badge fill (0.2.38)', () => {
+  ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+  function span(node: ReactNode): { el: HTMLSpanElement; unmount: () => void } {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    act(() => root.render(node))
+    return { el: container.firstElementChild as HTMLSpanElement, unmount: () => { act(() => root.unmount()); container.remove() } }
+  }
+  // jsdom serializes colours as rgb(); compare through a probe element.
+  const rgb = (hex: string) => {
+    const probe = document.createElement('span')
+    probe.style.color = hex
+    return probe.style.color
+  }
+
+  it('fills with the given hex and picks the higher-contrast text, as for the standard fills', () => {
+    const light = span(<Badge fill="#F0E442">PAN</Badge>)
+    expect(light.el.style.background).toBe(rgb('#F0E442'))
+    expect(light.el.style.color).toBe(rgb('#0B0F14'))
+    light.unmount()
+    const dark = span(<Badge fill="#0072B2">SAR</Badge>)
+    expect(dark.el.style.color).toBe(rgb('#FFFFFF'))
+    dark.unmount()
+  })
+
+  it('overrides color, keeps size and shape, and works outlined', () => {
+    const both = span(<Badge fill="#009E73" color="danger" size="sm" uppercase>msi</Badge>)
+    expect(both.el.style.background).toBe(rgb('#009E73'))
+    expect(both.el.style.borderRadius).toBe('999px')
+    expect(both.el.style.fontSize).toBe('9px')
+    both.unmount()
+    const outlined = span(<Badge fill="#009E73" outline>MSI</Badge>)
+    expect(outlined.el.style.color).toBe(rgb('#009E73'))
+    expect(outlined.el.style.background).toBe('transparent')
+    outlined.unmount()
+  })
+
+  it('a fill that is not hex falls back to color; without fill nothing changes', () => {
+    const bad = span(<Badge fill="var(--x)" color="blue">x</Badge>)
+    expect(bad.el.style.background).toBe(rgb(BADGE_BG.dark.blue))
+    bad.unmount()
+    const none = span(<Badge color="blue">x</Badge>)
+    expect(none.el.style.background).toBe(rgb(BADGE_BG.dark.blue))
+    none.unmount()
+  })
+})

@@ -276,6 +276,11 @@ marked from `subSelected`.
 field path as `RECORD_FIELD_MIME` (`application/x-staresdk-record-field`, exported) and as text,
 for a drop target elsewhere (OpenTrack drops a sample's field onto a Map step to map it).
 
+0.2.38: `Badge` `fill` takes a fill colour of the caller's own as hex (`#RRGGBB` or `#RGB`) in place
+of `color` — OpenStare colours VANTAGE's result chips with each class's map colour
+(kineticlogic-io/OpenStare#406). The text is chosen against it by the same `contrastText()`;
+`outline` uses it for the border and text; a value that is not hex falls back to `color`.
+
 ## Optional entry points
 
 Five components live behind their own subpath so the main barrel never loads their heavy optional
