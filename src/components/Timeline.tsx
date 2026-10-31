@@ -78,7 +78,8 @@ import {
  *   the busiest bucket in view; hovering one shows its time span and each series' count. With
  *   `density` and no entries the plot and its controls render (no empty state, no lanes, and no
  *   fit button — there are no entries to fit); drag, wheel, pinch, the zoom buttons and the arrow
- *   keys on the focused plot move the view, reported through `onRangeChange`.
+ *   keys on the focused plot move the view, reported through `onRangeChange`. A series' `color`
+ *   (0.2.39) is a colour of the caller's own in place of its tone (data-viz categories).
  *
  * Data comes in through props only; design tokens only, so it follows the dark and light themes.
  * Interaction feedback animates only `filter`, `opacity` and `transform`.
@@ -102,6 +103,9 @@ export interface TimelineEntry {
 export interface TimelineDensitySeries {
   label: string
   tone?: TimelineTone
+  /** A colour of the caller's own (0.2.39) — any CSS colour, e.g. a data-viz category colour
+   *  generated from the series' identity; overrides `tone`. */
+  color?: string
   /** One count per bucket; a missing or non-finite count is 0. */
   counts: number[]
 }
@@ -1088,7 +1092,7 @@ function DensityBand({
                       flexShrink: 0,
                       height: `${(c / max) * 100}%`,
                       minHeight: 1,
-                      background: `color-mix(in srgb, var(${TONE_TOKEN[s.tone ?? 'accent']}) 70%, transparent)`,
+                      background: `color-mix(in srgb, ${s.color ?? `var(${TONE_TOKEN[s.tone ?? 'accent']})`} 70%, transparent)`,
                     }}
                   />
                 )
