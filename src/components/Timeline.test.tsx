@@ -872,10 +872,10 @@ describe('Timeline density (0.2.37)', () => {
   })
 
   it('a series with a colour of its own draws in it (0.2.39)', () => {
-    const own = { ...DENSITY, series: [{ label: 'Car', color: 'hsl(120 72% 58%)', counts: [1, 0, 0, 0] }] }
+    const own = { ...DENSITY, series: [{ label: 'Car', color: 'var(--intel-cyan)', counts: [1, 0, 0, 0] }] }
     const { container } = render({ entries: [], density: own, range: WINDOW, 'aria-label': 'Detections' })
     const span = container.querySelector<HTMLElement>('[data-density-series]')!
-    expect(span.style.background).toContain('hsl(120')
+    expect(span.style.background).toContain('--intel-cyan')
     expect(span.style.background).not.toContain('--color-accent')
   })
 })
