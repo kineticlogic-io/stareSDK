@@ -87,6 +87,9 @@ export * from './components/useToast.js'
 export * from './context/DockContext.js'
 export * from './context/useDock.js'
 
+// Content security policy (the nonce for the styles stareSDK makes at runtime)
+export * from './csp/cspNonce.js'
+
 // Theme
 export * from './theme/ThemeContext.js'
 export * from './theme/useTheme.js'

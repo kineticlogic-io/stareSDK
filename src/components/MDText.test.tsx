@@ -44,6 +44,7 @@ vi.mock('mermaid', () => ({
   },
 }))
 
+import { setCspNonce } from '../csp/cspNonce.js'
 import { MDText } from './MDText.js'
 
 /** A trivial inline remark plugin, independent of the app's own `remarkWikilinks`, proving a
@@ -161,6 +162,36 @@ describe('MDText', () => {
     // auto` rule centers it — a future refactor that drops this class would silently
     // un-center the diagram.
     expect(container.querySelector('.mermaid-diagram svg#m')).not.toBeNull()
+  })
+
+  it("mounts a diagram in a form a strict CSP allows: the page's nonce on its <style>, style attributes through CSSOM", async () => {
+    vi.useFakeTimers()
+    setCspNonce('mdtext-nonce')
+    let measureStyle: Element | undefined
+    mermaidRenderMock.mockImplementationOnce(async () => {
+      // What mermaid does while it lays a diagram out: a measuring <style> made by script.
+      measureStyle = document.createElementNS('http://www.w3.org/2000/svg', 'style')
+      return {
+        svg: '<svg id="m" style="max-width: 80px;"><style>#m text { fill: red; }</style><title>diagram</title></svg>',
+      }
+    })
+    const { container, unmount } = await render(<MDText variant="chat" markdown={mermaidFence('graph TD; A-->B;')} />)
+    unmountFns.push(unmount, () => setCspNonce(undefined))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DEBOUNCE_MS)
+    })
+    expect(measureStyle?.getAttribute('nonce')).toBe('mdtext-nonce')
+    const svg = container.querySelector('.mermaid-diagram svg#m') as SVGSVGElement
+    expect(svg.querySelector('style')?.getAttribute('nonce')).toBe('mdtext-nonce')
+    expect(svg.style.maxWidth).toBe('80px')
+  })
+
+  it('makes no <style> of its own: the .wiki-md rules ship in styles.css', async () => {
+    const before = document.querySelectorAll('style').length
+    const { container, unmount } = await render(<MDText variant="wiki" markdown={'# Title\n\n`code`'} />)
+    unmountFns.push(unmount)
+    expect(container.querySelector('.wiki-md h1')).not.toBeNull()
+    expect(document.querySelectorAll('style').length).toBe(before)
   })
 
   it('shows a pending spinner while a mermaid fence is still debouncing/rendering (D-15/D-16)', async () => {
