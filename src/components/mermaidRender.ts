@@ -16,6 +16,7 @@
  * come from `chromeTheme.ts`'s `themeFor()` scalars.
  */
 import { themeFor, type ThemeName } from '../styles/chromeTheme.js'
+import { withCspNonce } from '../csp/cspNonce.js'
 
 export type MermaidResult = { ok: true; svg: string } | { ok: false; message: string }
 
@@ -66,7 +67,9 @@ export async function renderMermaid(code: string, theme: ThemeName): Promise<Mer
 
     renderCounter += 1
     const id = `mermaid-diagram-${renderCounter}`
-    const { svg } = await mermaid.render(id, code)
+    // mermaid measures the diagram against a `<style>` it adds to the page, and sets `style`
+    // attributes as it lays it out: under a strict content security policy both need help.
+    const { svg } = await withCspNonce(() => mermaid.render(id, code))
     return { ok: true, svg }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
