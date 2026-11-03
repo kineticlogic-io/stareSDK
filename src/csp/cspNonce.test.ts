@@ -119,7 +119,7 @@ describe('mountSvg', () => {
     expect(root.querySelector('style')?.getAttribute('nonce')).toBe('n3')
     expect(root.style.maxWidth).toBe('120px')
     expect((root.querySelector('g') as SVGGElement).style.opacity).toBe('0.5')
-    expect(root.querySelector('text')?.textContent).toBe('A B')
+    expect(root.querySelector('text')?.textContent).toBe('A\u00a0B')
   })
 
   it('mounts without a nonce when the page has none', () => {

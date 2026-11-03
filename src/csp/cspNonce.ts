@@ -31,8 +31,13 @@ export function getCspNonce(): string | undefined {
   return meta?.nonce || meta?.getAttribute('nonce') || undefined
 }
 
+const HTML_NS = 'http://www.w3.org/1999/xhtml'
+const SVG_NS = 'http://www.w3.org/2000/svg'
+
+/** An HTML or SVG `<style>`, told apart by name and namespace rather than by interface, which
+ *  not every DOM implementation exposes (jsdom has no `SVGStyleElement`). */
 function isStyleElement(el: Element): boolean {
-  return el instanceof HTMLStyleElement || el instanceof SVGStyleElement
+  return el.localName === 'style' && (el.namespaceURI === HTML_NS || el.namespaceURI === SVG_NS)
 }
 
 let depth = 0
