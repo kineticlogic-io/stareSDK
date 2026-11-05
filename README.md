@@ -374,6 +374,9 @@ and both take the page's nonce:
   - While mermaid renders, the `<style>` it makes gets the nonce, and any `style` attribute set
     from script is applied through CSSOM instead.
   - The finished SVG is mounted the same way, with any event-handler attribute dropped.
+- **`mountHtml(host, html)`** mounts already-sanitised HTML the same way (style attributes through
+  CSSOM, event handlers dropped), for apps that render outside content such as map popups. A
+  `<style>` in that markup is not given the nonce, so the policy still refuses it.
   - This only changes what scripts do. A `<style>` or `style` attribute in markup injected into
     the page is still refused.
 

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { getCspNonce, mountSvg, setCspNonce, withCspNonce } from './cspNonce.js'
+import { getCspNonce, mountHtml, mountSvg, setCspNonce, withCspNonce } from './cspNonce.js'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
@@ -143,6 +143,43 @@ describe('mountSvg', () => {
     host.innerHTML = '<p>old</p>'
     mountSvg(host, '<img src=x onerror="alert(1)">')
     expect(host.childNodes.length).toBe(0)
+  })
+})
+
+describe('mountHtml', () => {
+  it('replaces the contents and applies each style attribute through CSSOM', () => {
+    const host = document.createElement('div')
+    host.innerHTML = '<p>old</p>'
+    mountHtml(host, '<table><tr><td style="text-align: right; padding: 6px">a</td></tr></table><b>b</b> c')
+    expect(host.querySelector('p')).toBeNull()
+    const td = host.querySelector('td') as HTMLTableCellElement
+    expect(td.style.textAlign).toBe('right')
+    expect(td.style.padding).toBe('6px')
+    expect(host.querySelector('[style]')?.getAttribute('style')).toContain('text-align')
+    expect(host.textContent).toBe('ab c')
+  })
+
+  it('drops event-handler attributes, as mountSvg does', () => {
+    const host = document.createElement('div')
+    mountHtml(host, '<p onclick="alert(1)" ONMOUSEOVER="alert(2)" title="t">x</p><img src="/a.png" onerror="alert(3)">')
+    expect(host.querySelector('[onclick], [onmouseover], [onerror]')).toBeNull()
+    expect(host.querySelector('p')?.getAttribute('title')).toBe('t')
+  })
+
+  it("never gives a <style> in the markup the page's nonce", () => {
+    setCspNonce('n6')
+    const host = document.createElement('div')
+    mountHtml(host, '<style>p { color: red; }</style><p>x</p>')
+    expect(host.querySelector('style')?.hasAttribute('nonce')).toBe(false)
+  })
+
+  it('runs nothing from the markup', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    ;(window as unknown as { pwned?: boolean }).pwned = false
+    mountHtml(host, '<script>window.pwned = true</script><p>x</p>')
+    expect((window as unknown as { pwned?: boolean }).pwned).toBe(false)
+    host.remove()
   })
 })
 

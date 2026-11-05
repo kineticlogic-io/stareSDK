@@ -131,3 +131,30 @@ export function mountSvg(host: Element, svg: string): void {
   })
   host.appendChild(node)
 }
+
+/**
+ * Put HTML that has ALREADY been sanitised (a string; parsed here, never trusted to be safe) into
+ * `host`, replacing its contents, in a form a strict policy allows — the HTML twin of `mountSvg`,
+ * with the same safety steps: the markup is parsed in an inert document, every `on…`
+ * event-handler attribute is dropped, each `style` attribute — which no nonce can allow — is
+ * applied to the mounted copy through its `style` property (CSSOM) instead, and nothing in the
+ * markup runs. Unlike `mountSvg`, a `<style>` element in the markup is NOT given the nonce: this is
+ * for content from outside the app, whose stylesheets the policy is right to refuse.
+ */
+export function mountHtml(host: Element, html: string): void {
+  const body = new DOMParser().parseFromString(html, 'text/html').body
+  const inline = Array.from(body.querySelectorAll('*')).map((el) => {
+    for (const name of el.getAttributeNames()) if (name.toLowerCase().startsWith('on')) el.removeAttribute(name)
+    const style = el.getAttribute('style')
+    el.removeAttribute('style')
+    return style
+  })
+  const fragment = document.createDocumentFragment()
+  for (const child of Array.from(body.childNodes)) fragment.appendChild(document.importNode(child, true))
+  // importNode copies each tree in document order, so the same walk pairs each copy with its source.
+  Array.from(fragment.querySelectorAll('*')).forEach((copy, i) => {
+    const style = inline[i]
+    if (style) (copy as HTMLElement | SVGElement).style.cssText = style
+  })
+  host.replaceChildren(fragment)
+}
