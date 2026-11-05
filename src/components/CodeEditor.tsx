@@ -9,6 +9,7 @@ import { type Diagnostic, forceLinting, linter, lintGutter } from '@codemirror/l
 import { Compartment, EditorState, type Extension } from '@codemirror/state'
 import { EditorView, highlightActiveLine, keymap, lineNumbers, placeholder as placeholderExt } from '@codemirror/view'
 import { tags } from '@lezer/highlight'
+import { getCspNonce } from '../csp/cspNonce.js'
 
 /**
  * CodeEditor — compact code/JSON editor (stareSDK, operator-approved 2026-09-25), built on
@@ -236,6 +237,10 @@ export function CodeEditor({
     if (language === 'json') extensions.push(json())
     if (language === 'html') extensions.push(html({ autoCloseTags: false }))
     if (placeholder) extensions.push(placeholderExt(placeholder))
+    // CodeMirror styles the editor through a `<style>` it adds to the page; under a strict
+    // content security policy that element needs the page's nonce.
+    const nonce = getCspNonce()
+    if (nonce) extensions.push(EditorView.cspNonce.of(nonce))
     const v = new EditorView({ state: EditorState.create({ doc: value, extensions }), parent: host.current })
     view.current = v
     return () => {

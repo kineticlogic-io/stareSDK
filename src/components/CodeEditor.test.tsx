@@ -5,6 +5,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { CodeEditor, toCompletionResult, toDiagnostics } from './CodeEditor.js'
+import { setCspNonce } from '../csp/cspNonce.js'
 
 const cleanups: Array<() => void> = []
 afterEach(() => {
@@ -79,5 +80,19 @@ describe('CodeEditor', () => {
 
     act(() => root.render(el('[]')))
     expect(container.querySelector('.cm-content')!.textContent).toBe('[]')
+  })
+
+  it("gives CodeMirror's <style> the page's CSP nonce", () => {
+    setCspNonce('editor-nonce')
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    act(() => root.render(<CodeEditor aria-label="Spec" value="{}" />))
+    cleanups.push(() => {
+      act(() => root.unmount())
+      container.remove()
+      setCspNonce(undefined)
+    })
+    expect(document.head.querySelector('style[nonce="editor-nonce"]')?.textContent).toContain('.cm-')
   })
 })

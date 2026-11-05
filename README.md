@@ -362,6 +362,30 @@ mirroring the same two exceptions in `openstare`:
   `degraded`/`stale`/`offline`/`gps`/`fallback`) used by topology/map/HUD-style consumers. It
   deliberately keeps its own hues distinct from the `--status-*` token set.
 
+## Content Security Policy
+
+stareSDK works under a strict policy: `style-src 'self' 'nonce-…'`, with no `'unsafe-inline'`
+([W3C Content Security Policy Level 3](https://www.w3.org/TR/CSP3/)). Its CSS ships in
+`styles.css`, including MDText's `.wiki-md` prose rules. Only two things make styles at runtime,
+and both take the page's nonce:
+
+- **CodeEditor:** CodeMirror's `<style>` gets it through `EditorView.cspNonce`.
+- **MDText Mermaid diagrams:**
+  - While mermaid renders, the `<style>` it makes gets the nonce, and any `style` attribute set
+    from script is applied through CSSOM instead.
+  - The finished SVG is mounted the same way, with any event-handler attribute dropped.
+  - This only changes what scripts do. A `<style>` or `style` attribute in markup injected into
+    the page is still refused.
+
+stareSDK finds the nonce in `<meta property="csp-nonce" nonce="…">`, the tag Vite's
+`html.cspNonce` writes. If the server fills in that placeholder on each load, no code is needed.
+Otherwise, call `setCspNonce(nonce)` before rendering. Pass the same nonce to framer-motion's
+`<MotionConfig nonce>`, because some components animate with it.
+
+Chromium reports a violation for every `style` attribute in a document parsed with DOMParser
+(DOMPurify's inside mermaid, and the diagram's own), even though nothing from that parse is
+applied. So a page with Mermaid diagrams logs those reports. A page without them logs none.
+
 ## Peer dependencies
 
 `staresdk` declares its runtime dependencies as `peerDependencies` so a consuming app controls the

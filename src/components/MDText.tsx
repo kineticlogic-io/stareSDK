@@ -19,9 +19,8 @@
  * mono tool output) and were tuned by prior UAT rounds; collapsing them into one look would be
  * a visual regression, not a simplification.
  *
- * D-2 — MDText moves ZERO style rules. It calls `ensureWikiMdStyle()` (imported from
- * `../internal/wikiMdStyle`, which is NOT moved or deleted — `ArticleGallery.tsx` and
- * `ArticleSources.tsx` still import it directly) for the `.wiki-md` class it emits.
+ * D-2 — MDText moves ZERO style rules. The `.wiki-md` rules for the class it emits ship in
+ * `styles.css` (global.css), not a runtime `<style>`, so a strict content security policy allows them.
  * `ChatMessage.tsx`'s `.chat-md` rules and `ToolResultView.tsx`'s `.tool-result-md` rules stay
  * exactly where they are, because those style blobs also carry non-markdown rules
  * (`.chat-thinking-dot` + its `@keyframes`, `@keyframes spin`). Splitting three style blobs
@@ -67,12 +66,7 @@ export type { Components } from 'react-markdown'
 import { TbAlertTriangle, TbLoader2 } from 'react-icons/tb'
 import { useTheme } from '../theme/useTheme.js'
 import { renderMermaid, type MermaidResult } from './mermaidRender.js'
-import { ensureWikiMdStyle } from '../internal/wikiMdStyle.js'
-
-// Injects the shared `.wiki-md` scoped style tag once, idempotently (D-2). Safe to call even
-// when MDText is only ever used at `chat`/`tool` variants in a given bundle — the rule set only
-// ever matches elements carrying the `.wiki-md` class.
-ensureWikiMdStyle()
+import { mountSvg } from '../csp/cspNonce.js'
 
 export type MDTextVariant = 'wiki' | 'chat' | 'tool'
 
@@ -123,6 +117,7 @@ function MermaidBlock({ code }: { code: string }) {
   const [result, setResult] = useState<MermaidResult | null>(null)
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const svgHostRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -173,6 +168,12 @@ function MermaidBlock({ code }: { code: string }) {
     }
   }, [code, theme])
 
+  // Mount a rendered diagram (see mountSvg): its `<style>` gets the page's CSP nonce and its
+  // `style` attributes go through CSSOM, which a strict policy allows and innerHTML is not.
+  useEffect(() => {
+    if (result?.ok && svgHostRef.current) mountSvg(svgHostRef.current, result.svg)
+  }, [result])
+
   if (result === null) {
     // D-16 (corrects the prior "diagrams resolve in ms, no spinner needed" assumption):
     // `renderMermaid` is debounced (`MERMAID_DEBOUNCE_MS`) and mermaid's own parse/layout is not
@@ -207,8 +208,8 @@ function MermaidBlock({ code }: { code: string }) {
         className="mermaid-diagram"
         // Safe: mermaidRender.ts's `securityLevel: 'strict'` + `htmlLabels: false` sanitize
         // mermaid's own SVG output (label content, click/script directives) before it ever
-        // reaches this line — this dangerouslySetInnerHTML is the only way to mount that SVG.
-        dangerouslySetInnerHTML={{ __html: result.svg }}
+        // reaches this host; the effect above mounts it.
+        ref={svgHostRef}
       />
     )
   }
