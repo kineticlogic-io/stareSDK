@@ -135,7 +135,8 @@ describe('mountSvg', () => {
     expect(host.querySelector('svg')?.hasAttribute('onload')).toBe(false)
     const image = host.querySelector('image')!
     expect(image.getAttributeNames().filter((n) => n.startsWith('on'))).toEqual([])
-    expect(image.getAttribute('href')).toBe('x')
+    // An SVG <image> is not an <a>: its reference to another document is dropped too.
+    expect(image.hasAttribute('href')).toBe(false)
   })
 
   it('removes denied elements from the SVG and keeps nonce-stamping its own <style>', () => {
