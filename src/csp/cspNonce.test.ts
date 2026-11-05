@@ -164,6 +164,23 @@ describe('mountSvg', () => {
     expect(uses).toEqual(['#local'])
   })
 
+  it('drops external references from SVG elements other than <a> (feImage, pattern, gradients…)', () => {
+    const host = document.createElement('div')
+    mountSvg(
+      host,
+      '<svg><filter id="f"><feImage href="https://e.example/x.png"/><feImage xlink:href="#local"/></filter>' +
+        '<pattern id="p" href="https://e.example/p.svg#x"/><linearGradient id="g" xlink:href="#other"/>' +
+        '<a href="https://ok.example/"><text>t</text></a></svg>',
+    )
+    const byName = (n: string) => Array.from(host.querySelectorAll('*')).filter((el) => el.localName === n)
+    const fe = byName('feImage')
+    expect(fe[0].hasAttribute('href')).toBe(false)
+    expect(fe[1].getAttribute('xlink:href')).toBe('#local')
+    expect(byName('pattern')[0].hasAttribute('href')).toBe(false)
+    expect(byName('linearGradient')[0].getAttribute('xlink:href')).toBe('#other')
+    expect(host.querySelector('a')?.getAttribute('href')).toBe('https://ok.example/')
+  })
+
   it('mounts nothing when the markup is not an svg', () => {
     const host = document.createElement('div')
     host.innerHTML = '<p>old</p>'
@@ -210,30 +227,6 @@ describe('mountHtml', () => {
     expect(host.innerHTML).toBe('<b>y</b>')
   })
 
-  it('applies a style to MathML where the engine gives it a style object, and keeps going where it does not', () => {
-    const host = document.createElement('div')
-    mountHtml(host, '<math style="color: red"><mi>x</mi></math><span style="color: blue">s</span>')
-    const math = host.querySelector('math') as Element & Partial<ElementCSSInlineStyle>
-    if (math.style) expect(math.style.color).toBe('red')
-    else expect(math.hasAttribute('style')).toBe(false)
-    // Whichever branch this engine takes, the walk continues past it.
-    expect((host.querySelector('span') as HTMLElement).style.color).toBe('blue')
-  })
-
-  it('also covers the no-style-object branch, stubbed', () => {
-    // Shadow the `style` accessor on HTMLElement.prototype, wherever this engine defines it.
-    const own = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'style')
-    Object.defineProperty(HTMLElement.prototype, 'style', { configurable: true, get: () => undefined })
-    try {
-      const host = document.createElement('div')
-      expect(() => mountHtml(host, '<b style="color: red">b</b>')).not.toThrow()
-      expect(host.querySelector('b')?.hasAttribute('style')).toBe(false)
-    } finally {
-      if (own) Object.defineProperty(HTMLElement.prototype, 'style', own)
-      else delete (HTMLElement.prototype as unknown as Record<string, unknown>).style
-    }
-  })
-
   it('drops scripting URLs in href, src, action and formaction, however written, and keeps <a> links', () => {
     const host = document.createElement('div')
     mountHtml(
@@ -248,11 +241,29 @@ describe('mountHtml', () => {
     expect(host.querySelector('button')?.hasAttribute('formaction')).toBe(false)
   })
 
-  it('removes forms', () => {
+  it('unwraps forms, keeping their content, and drops form attributes everywhere', () => {
     const host = document.createElement('div')
-    mountHtml(host, '<form action="https://e.example"><input name="p"></form><p>x</p>')
+    mountHtml(
+      host,
+      '<form action="https://e.example"><table><tr><td>cell</td></tr></table><input name="p" form="f"></form>' +
+        '<button formaction="/x" formtarget="_blank" formmethod="post">b</button><p>x</p>',
+    )
     expect(host.querySelector('form')).toBeNull()
-    expect(host.querySelector('p')).not.toBeNull()
+    expect(host.querySelector('table td')?.textContent).toBe('cell')
+    expect(host.querySelector('input')?.hasAttribute('form')).toBe(false)
+    const button = host.querySelector('button')!
+    expect(['formaction', 'formtarget', 'formmethod'].filter((a) => button.hasAttribute(a))).toEqual([])
+  })
+
+  it('treats every data: URL but a non-SVG image as scripting', () => {
+    const host = document.createElement('div')
+    mountHtml(
+      host,
+      '<img src="data:image/png;base64,AAAA"><img src="data:image/svg+xml,<svg/>"><img src="data:text/xml,x">' +
+        '<a href="data:application/xhtml+xml,x">a</a><a href="data:text/plain,x">b</a>',
+    )
+    expect(Array.from(host.querySelectorAll('img')).map((i) => i.getAttribute('src'))).toEqual(['data:image/png;base64,AAAA', null, null])
+    expect(Array.from(host.querySelectorAll('a')).map((a) => a.getAttribute('href'))).toEqual([null, null])
   })
 })
 

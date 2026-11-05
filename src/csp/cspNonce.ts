@@ -13,6 +13,8 @@
  *
  * No nonce (no policy, or a test): the styles are made as before.
  */
+import { applyLiftedStyle } from './applyLiftedStyle.js'
+
 let explicit: string | undefined
 
 /** Set (or with `undefined`, clear) the nonce stareSDK gives its `<style>` elements. */
@@ -107,39 +109,54 @@ export async function withCspNonce<T>(work: () => Promise<T>): Promise<T> {
  *  input is already sanitised. */
 const DENIED_ELEMENTS = new Set([
   'script', 'base', 'meta', 'link', 'iframe', 'frame', 'object', 'embed', 'noscript', 'template',
-  'form', 'animate', 'set', 'animatetransform', 'animatemotion', 'fencedframe', 'portal',
+  'animate', 'set', 'animatetransform', 'animatemotion', 'fencedframe', 'portal',
 ])
+
+/** Attributes that tie a control to a form or override where/how it submits: dropped from every
+ *  element (a `<form>` itself is unwrapped, its content kept). */
+const FORM_ATTRIBUTES = new Set(['form', 'formaction', 'formtarget', 'formmethod'])
+
+const SVG_NS = 'http://www.w3.org/2000/svg'
 
 /** Attributes holding a URL a browser may navigate to or load. */
 const URL_ATTRIBUTES = new Set(['href', 'xlink:href', 'src', 'action', 'formaction'])
 
-/** True for a URL value that would run script or render a document when followed:
- *  `javascript:`, `vbscript:` or a `data:text/html` URL, resolved the way the browser resolves it
- *  (WHATWG URL parsing against the page, so tabs, newlines and case cannot hide the scheme). */
+/** True for a URL value that could run script or render a document when followed or loaded:
+ *  `javascript:`, `vbscript:`, or any `data:` URL except a non-SVG `data:image/*` (so
+ *  `data:text/html`, `application/xhtml+xml`, `text/xml` and `image/svg+xml` all count). Resolved
+ *  the way the browser resolves it (WHATWG URL parsing against the page), so tabs, newlines and
+ *  case cannot hide the scheme. */
 function isScriptingUrl(value: string): boolean {
   try {
     const url = new URL(value, document.baseURI)
     if (url.protocol === 'javascript:' || url.protocol === 'vbscript:') return true
-    return url.protocol === 'data:' && /^\s*text\/html/i.test(url.pathname)
+    if (url.protocol !== 'data:') return false
+    const mime = url.pathname.split(/[;,]/, 1)[0].trim().toLowerCase()
+    return !(mime.startsWith('image/') && mime !== 'image/svg+xml')
   } catch {
     return false
   }
 }
 
-/** An SVG `<use>` that references anything but a fragment of the same document. */
-function isExternalUse(el: Element): boolean {
-  if (el.localName !== 'use') return false
-  const ref = el.getAttribute('href') ?? el.getAttribute('xlink:href')
-  return ref !== null && !ref.trim().startsWith('#')
+/** On an SVG element other than `<a>`, an `href`/`xlink:href` that is not a same-document
+ *  fragment (`#id`) — the reference by which `<use>`, `<feImage>`, `<pattern>`, gradients,
+ *  `<filter>`, `<textPath>` and `<mpath>` pull in another document. */
+function isExternalSvgReference(el: Element, name: string): boolean {
+  if (el.namespaceURI !== SVG_NS || el.localName === 'a') return false
+  if (name !== 'href' && name !== 'xlink:href') return false
+  return !(el.getAttribute(name) ?? '').trim().startsWith('#')
 }
+
+
 
 /**
  * The one strip / lift / re-apply pipeline behind `mountSvg` and `mountHtml` — it makes markup
  * that is ALREADY sanitised compatible with a strict policy; it is not a sanitiser. In the inert
  * document `root` was parsed into, as defence in depth: denied elements (and `<style>` elements,
- * unless `keepStyleElements`) and any `<use>` of another document are removed; every `on…`
- * attribute and every scripting URL (`javascript:`, `vbscript:`, `data:text/html`) in `href`,
- * `xlink:href`, `src`, `action` or `formaction` is dropped. Then each kept `<style>` is given
+ * unless `keepStyleElements`) and any `<use>` of another document are removed, and `<form>`s
+ * unwrapped; every `on…` and form attribute, every scripting URL (`javascript:`, `vbscript:`, any
+ * `data:` but a non-SVG image) in `href`, `xlink:href`, `src`, `action` or `formaction`, and any
+ * external SVG reference (`isExternalSvgReference`) is dropped. Then each kept `<style>` is given
  * `nonce` when there is one and each `style` attribute is lifted off. `root` is imported into
  * this document and the two trees are walked in lockstep, each copy given its source's lifted
  * style through CSSOM (`.style.cssText`), which a policy never restricts; an element with no
@@ -147,18 +164,21 @@ function isExternalUse(el: Element): boolean {
  */
 function sanitizeAndImport(root: Element, options: { keepStyleElements: boolean; nonce?: string }): Element {
   const doc = root.ownerDocument
-  const removed = Array.from(root.querySelectorAll('*')).filter((el) => {
+  for (const el of Array.from(root.querySelectorAll('*'))) {
     const name = el.localName.toLowerCase()
-    return DENIED_ELEMENTS.has(name) || (!options.keepStyleElements && name === 'style') || isExternalUse(el)
-  })
-  removed.forEach((el) => el.remove())
+    const externalUse = name === 'use' && ['href', 'xlink:href'].some((a) => el.hasAttribute(a) && isExternalSvgReference(el, a))
+    if (DENIED_ELEMENTS.has(name) || (!options.keepStyleElements && name === 'style') || externalUse) el.remove()
+    // A form is unwrapped: the element goes, its content stays.
+    else if (name === 'form' && el.namespaceURI !== SVG_NS) el.replaceWith(...Array.from(el.childNodes))
+  }
   const lifted = new Map<Element, string>()
   const sources = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
   for (let el: Element | null = root; el; el = sources.nextNode() as Element | null) {
     for (const name of el.getAttributeNames()) {
       const lower = name.toLowerCase()
-      if (lower.startsWith('on')) el.removeAttribute(name)
+      if (lower.startsWith('on') || FORM_ATTRIBUTES.has(lower)) el.removeAttribute(name)
       else if (URL_ATTRIBUTES.has(lower) && isScriptingUrl(el.getAttribute(name) ?? '')) el.removeAttribute(name)
+      else if (isExternalSvgReference(el, lower)) el.removeAttribute(name)
     }
     if (options.nonce && el.localName === 'style') el.setAttribute('nonce', options.nonce)
     const style = el.getAttribute('style')
@@ -172,8 +192,7 @@ function sanitizeAndImport(root: Element, options: { keepStyleElements: boolean;
   const to = document.createTreeWalker(copy, NodeFilter.SHOW_ELEMENT)
   for (let s: Node | null = root, c: Node | null = copy; s && c; s = from.nextNode(), c = to.nextNode()) {
     const style = lifted.get(s as Element)
-    const target = (c as Partial<ElementCSSInlineStyle>).style
-    if (style && target) target.cssText = style
+    if (style) applyLiftedStyle(c as Element, style)
   }
   return copy
 }
@@ -185,9 +204,9 @@ function sanitizeAndImport(root: Element, options: { keepStyleElements: boolean;
  *
  * The input must ALREADY be safe (for diagrams, Mermaid's `securityLevel: 'strict'` output):
  * this is not a sanitiser. As defence in depth it is parsed in an inert document, and scripts,
- * `<link>` elements, embeds, frames, forms, SVG animation elements, external `<use>`, event-handler
- * (`on…`) attributes and scripting URLs are removed before it is mounted; `<a>` hyperlinks are
- * kept. Markup that is not an `<svg>` root mounts nothing.
+ * `<link>` elements, embeds, frames, SVG animation elements, external SVG references, event-handler
+ * (`on…`) and form attributes and scripting URLs are removed and forms unwrapped before it is
+ * mounted; `<a>` hyperlinks are kept. Markup that is not an `<svg>` root mounts nothing.
  */
 export function mountSvg(host: Element, svg: string): void {
   // Parsed as HTML, as `innerHTML` would: mermaid's markup is HTML-serialised, not always XML.
@@ -203,14 +222,15 @@ export function mountSvg(host: Element, svg: string): void {
  *
  * The input must ALREADY be sanitised (for example with DOMPurify): this is not a sanitiser. As
  * defence in depth it is parsed in an inert document, and scripts, `<link>` elements, embeds,
- * frames, forms, `<template>`, `<style>` elements (an un-nonced stylesheet would only be refused),
- * event-handler attributes and scripting URLs are removed; `<a>` hyperlinks are kept. Only the
+ * frames, `<template>`, `<style>` elements (an un-nonced stylesheet would only be refused),
+ * event-handler and form attributes and scripting URLs are removed and forms unwrapped (their
+ * content kept); `<a>` hyperlinks are kept. Only the
  * body is mounted: head-level content — a leading `<style>`, `<link>`, `<meta>` or `<title>`, or
  * the `<head>` of a full HTML document — is not.
  */
 export function mountHtml(host: Element, html: string): void {
   const body = new DOMParser().parseFromString(html, 'text/html').body
   const copy = sanitizeAndImport(body, { keepStyleElements: false })
-  host.replaceChildren()
-  while (copy.firstChild) host.appendChild(copy.firstChild)
+  // One atomic replacement of the live host.
+  host.replaceChildren(...Array.from(copy.childNodes))
 }

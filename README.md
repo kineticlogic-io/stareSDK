@@ -383,8 +383,10 @@ and both take the page's nonce:
 - **Both mount functions take markup that is ALREADY safe** — sanitised HTML (DOMPurify, for
   example), or Mermaid's `securityLevel: 'strict'` output. They make it work under the policy;
   they are not sanitisers. As defence in depth they remove scripts, `<link>` elements, embeds,
-  frames, forms, `<template>`, SVG animation elements and external `<use>`, and drop event-handler
-  attributes and `javascript:`/`vbscript:`/`data:text/html` URLs; `<a>` hyperlinks are kept.
+  frames, `<template>`, SVG animation elements and external SVG references (`<use>`, `<feImage>`,
+  patterns, gradients…), unwrap forms (keeping their content), and drop event-handler and form
+  attributes, `javascript:`/`vbscript:` URLs and every `data:` URL but a non-SVG image; `<a>`
+  hyperlinks are kept.
   `mountHtml` also removes `<style>` elements; `mountSvg` gives its own the nonce.
 
 stareSDK finds the nonce in `<meta property="csp-nonce" nonce="…">`, the tag Vite's
