@@ -138,6 +138,15 @@ describe('mountSvg', () => {
     expect(image.getAttribute('href')).toBe('x')
   })
 
+  it('removes denied elements from the SVG and keeps nonce-stamping its own <style>', () => {
+    setCspNonce('n7')
+    const host = document.createElement('div')
+    mountSvg(host, '<svg><style>.a{}</style><script>window.y = 1</script><foreignObject><iframe src="x"></iframe></foreignObject><a href="/x"><text>t</text></a></svg>')
+    expect(host.querySelector('script, iframe')).toBeNull()
+    expect(host.querySelector('style')?.getAttribute('nonce')).toBe('n7')
+    expect(host.querySelector('text')?.textContent).toBe('t')
+  })
+
   it('mounts nothing when the markup is not an svg', () => {
     const host = document.createElement('div')
     host.innerHTML = '<p>old</p>'
@@ -150,40 +159,44 @@ describe('mountHtml', () => {
   it('replaces the contents and applies each style attribute through CSSOM', () => {
     const host = document.createElement('div')
     host.innerHTML = '<p>old</p>'
-    mountHtml(host, '<table><tr><td style="text-align: right; padding: 6px">a</td></tr></table><b>b</b> c')
+    mountHtml(host, '<table><tr><td style="text-align: right; padding: 6px">a</td></tr></table><b style="color: red">b</b> c')
     expect(host.querySelector('p')).toBeNull()
     const td = host.querySelector('td') as HTMLTableCellElement
     expect(td.style.textAlign).toBe('right')
     expect(td.style.padding).toBe('6px')
-    expect(host.querySelector('[style]')?.getAttribute('style')).toContain('text-align')
+    expect((host.querySelector('b') as HTMLElement).style.color).toBe('red')
     expect(host.textContent).toBe('ab c')
   })
 
-  it('drops event-handler attributes, as mountSvg does', () => {
+  it('removes every denied element and every event handler, anywhere in the tree', () => {
     const host = document.createElement('div')
-    mountHtml(host, '<p onclick="alert(1)" ONMOUSEOVER="alert(2)" title="t">x</p><img src="/a.png" onerror="alert(3)">')
-    expect(host.querySelector('[onclick], [onmouseover], [onerror]')).toBeNull()
+    mountHtml(
+      host,
+      '<div onclick="a()"><p ONMOUSEOVER="b()" title="t">x<script>window.x = 1</script></p>' +
+        '<base href="https://e.example/"><meta http-equiv="refresh" content="0"><link rel="stylesheet" href="https://e.example/s.css">' +
+        '<iframe src="https://e.example"></iframe><frame><object data="x"></object><embed src="x"><noscript><img src=x></noscript>' +
+        '<template><img src=x onerror="c()"></template><img src="/a.png" onerror="d()"><style>p{}</style></div>',
+    )
+    expect(host.querySelector('script, base, meta, link, iframe, frame, object, embed, noscript, template, style')).toBeNull()
+    for (const el of Array.from(host.querySelectorAll('*'))) {
+      expect(el.getAttributeNames().filter((n) => n.toLowerCase().startsWith('on')), el.localName).toEqual([])
+    }
     expect(host.querySelector('p')?.getAttribute('title')).toBe('t')
+    expect(host.querySelector('img')?.getAttribute('src')).toBe('/a.png')
   })
 
-  it("never gives a <style> in the markup the page's nonce", () => {
-    setCspNonce('n6')
+  it('mounts body content only, never head-level content', () => {
     const host = document.createElement('div')
-    // After content, so the HTML parser keeps it in the body (a leading <style> goes to <head>
-    // and is not mounted at all).
-    mountHtml(host, '<p>x</p><style>p { color: red; }</style>')
-    const style = host.querySelector('style')
-    expect(style).not.toBeNull()
-    expect(style!.hasAttribute('nonce')).toBe(false)
+    mountHtml(host, '<title>t</title><style>p{}</style><link rel="x"><p>x</p>')
+    expect(host.innerHTML).toBe('<p>x</p>')
+    mountHtml(host, '<!doctype html><html><head><meta charset="utf-8"><style>p{}</style></head><body><b>y</b></body></html>')
+    expect(host.innerHTML).toBe('<b>y</b>')
   })
 
-  it('runs nothing from the markup', () => {
+  it('keeps going past an element with no style object', () => {
     const host = document.createElement('div')
-    document.body.appendChild(host)
-    ;(window as unknown as { pwned?: boolean }).pwned = false
-    mountHtml(host, '<script>window.pwned = true</script><p>x</p>')
-    expect((window as unknown as { pwned?: boolean }).pwned).toBe(false)
-    host.remove()
+    mountHtml(host, '<math style="color: red"><mi>x</mi></math><span style="color: blue">s</span>')
+    expect((host.querySelector('span') as HTMLElement).style.color).toBe('blue')
   })
 })
 

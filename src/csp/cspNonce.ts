@@ -100,61 +100,76 @@ export async function withCspNonce<T>(work: () => Promise<T>): Promise<T> {
   }
 }
 
+/** Elements that never survive a mount: they can run, load, navigate, or carry inert content
+ *  (`template`) whose own tree would escape the walk. Removed in the inert document, with their
+ *  contents, before anything is imported. */
+const DENIED_ELEMENTS = ['script', 'base', 'meta', 'link', 'iframe', 'frame', 'object', 'embed', 'noscript', 'template']
+
+/**
+ * The one strip / lift / re-apply pipeline behind `mountSvg` and `mountHtml`. In the inert
+ * document `root` was parsed into: denied elements (and `<style>` elements, unless
+ * `keepStyleElements`) are removed; every `on…` attribute is dropped; each kept `<style>` is given
+ * `nonce` when there is one; each `style` attribute is lifted off. `root` is then imported into this document and
+ * the two trees are walked in lockstep, each copy given its source's lifted style through CSSOM
+ * (`.style.cssText`), which a policy never restricts. An element with no `.style` (MathML in some
+ * engines) simply keeps none. Returns the imported copy of `root`.
+ */
+function sanitizeAndImport(root: Element, options: { keepStyleElements: boolean; nonce?: string }): Element {
+  const denied = options.keepStyleElements ? DENIED_ELEMENTS : [...DENIED_ELEMENTS, 'style']
+  root.querySelectorAll(denied.join(',')).forEach((el) => el.remove())
+  const lifted = new Map<Element, string>()
+  const doc = root.ownerDocument
+  const sources = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
+  for (let el: Element | null = root; el; el = sources.nextNode() as Element | null) {
+    for (const name of el.getAttributeNames()) if (name.toLowerCase().startsWith('on')) el.removeAttribute(name)
+    if (options.nonce && el.localName === 'style') el.setAttribute('nonce', options.nonce)
+    const style = el.getAttribute('style')
+    if (style !== null) {
+      lifted.set(el, style)
+      el.removeAttribute('style')
+    }
+  }
+  const copy = document.importNode(root, true)
+  const from = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
+  const to = document.createTreeWalker(copy, NodeFilter.SHOW_ELEMENT)
+  for (let s: Node | null = root, c: Node | null = copy; s && c; s = from.nextNode(), c = to.nextNode()) {
+    const style = lifted.get(s as Element)
+    const target = (c as Partial<ElementCSSInlineStyle>).style
+    if (style && target) target.cssText = style
+  }
+  return copy
+}
+
 /**
  * Put an SVG document (a string, as mermaid returns it) into `host`, replacing its contents,
  * in a form a strict policy allows: each `<style>` gets the nonce, and each `style` attribute —
  * which no nonce can allow — is applied through the element's `style` property instead.
- * The SVG is parsed in an inert document, never run, and any event-handler (`on…`) attribute is
- * dropped before it is mounted, so nothing in it executes. Markup that is not an `<svg>` root
- * mounts nothing.
+ * The SVG is parsed in an inert document, never run; scripts, links, embeds, frames and other
+ * denied elements are removed and any event-handler (`on…`) attribute is dropped before it is
+ * mounted, so nothing in it executes. Markup that is not an `<svg>` root mounts nothing.
  */
 export function mountSvg(host: Element, svg: string): void {
   // Parsed as HTML, as `innerHTML` would: mermaid's markup is HTML-serialised, not always XML.
   const root = new DOMParser().parseFromString(svg, 'text/html').body.firstElementChild
   host.replaceChildren()
   if (root?.localName !== 'svg') return
-  const nonce = getCspNonce()
-  const sources = [root, ...Array.from(root.querySelectorAll('*'))]
-  const inline = sources.map((el) => {
-    if (nonce && el.localName === 'style') el.setAttribute('nonce', nonce)
-    for (const name of el.getAttributeNames()) if (name.toLowerCase().startsWith('on')) el.removeAttribute(name)
-    const style = el.getAttribute('style')
-    el.removeAttribute('style')
-    return style
-  })
-  const node = document.importNode(root, true)
-  // importNode copies the tree in document order, so the same walk pairs each copy with its source.
-  const copies = [node, ...Array.from(node.querySelectorAll('*'))]
-  copies.forEach((copy, i) => {
-    const style = inline[i]
-    if (style) (copy as HTMLElement | SVGElement).style.cssText = style
-  })
-  host.appendChild(node)
+  host.appendChild(sanitizeAndImport(root, { keepStyleElements: true, nonce: getCspNonce() }))
 }
 
 /**
  * Put HTML that has ALREADY been sanitised (a string; parsed here, never trusted to be safe) into
  * `host`, replacing its contents, in a form a strict policy allows — the HTML twin of `mountSvg`,
- * with the same safety steps: the markup is parsed in an inert document, every `on…`
- * event-handler attribute is dropped, each `style` attribute — which no nonce can allow — is
- * applied to the mounted copy through its `style` property (CSSOM) instead, and nothing in the
- * markup runs. Unlike `mountSvg`, a `<style>` element in the markup is NOT given the nonce: this is
- * for content from outside the app, whose stylesheets the policy is right to refuse.
+ * through the same pipeline: parsed in an inert document; scripts, links, embeds, frames,
+ * `<template>` and other denied elements removed; every `on…` attribute dropped; each `style`
+ * attribute applied through CSSOM. `<style>` elements are removed too: this is for content from
+ * outside the app, and an un-nonced stylesheet would only be refused. Only the body is mounted:
+ * head-level content — a leading `<style>`, `<link>`, `<meta>` or `<title>`, or the `<head>` of a
+ * full HTML document — is not.
  */
 export function mountHtml(host: Element, html: string): void {
   const body = new DOMParser().parseFromString(html, 'text/html').body
-  const inline = Array.from(body.querySelectorAll('*')).map((el) => {
-    for (const name of el.getAttributeNames()) if (name.toLowerCase().startsWith('on')) el.removeAttribute(name)
-    const style = el.getAttribute('style')
-    el.removeAttribute('style')
-    return style
-  })
+  const copy = sanitizeAndImport(body, { keepStyleElements: false })
   const fragment = document.createDocumentFragment()
-  for (const child of Array.from(body.childNodes)) fragment.appendChild(document.importNode(child, true))
-  // importNode copies each tree in document order, so the same walk pairs each copy with its source.
-  Array.from(fragment.querySelectorAll('*')).forEach((copy, i) => {
-    const style = inline[i]
-    if (style) (copy as HTMLElement | SVGElement).style.cssText = style
-  })
+  fragment.append(...Array.from(copy.childNodes))
   host.replaceChildren(fragment)
 }
