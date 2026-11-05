@@ -116,8 +116,6 @@ const DENIED_ELEMENTS = new Set([
  *  element (a `<form>` itself is unwrapped, its content kept). */
 const FORM_ATTRIBUTES = new Set(['form', 'formaction', 'formtarget', 'formmethod'])
 
-const SVG_NS = 'http://www.w3.org/2000/svg'
-
 /** Attributes holding a URL a browser may navigate to or load. */
 const URL_ATTRIBUTES = new Set(['href', 'xlink:href', 'src', 'action', 'formaction'])
 
