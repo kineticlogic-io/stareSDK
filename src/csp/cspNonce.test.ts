@@ -169,8 +169,12 @@ describe('mountHtml', () => {
   it("never gives a <style> in the markup the page's nonce", () => {
     setCspNonce('n6')
     const host = document.createElement('div')
-    mountHtml(host, '<style>p { color: red; }</style><p>x</p>')
-    expect(host.querySelector('style')?.hasAttribute('nonce')).toBe(false)
+    // After content, so the HTML parser keeps it in the body (a leading <style> goes to <head>
+    // and is not mounted at all).
+    mountHtml(host, '<p>x</p><style>p { color: red; }</style>')
+    const style = host.querySelector('style')
+    expect(style).not.toBeNull()
+    expect(style!.hasAttribute('nonce')).toBe(false)
   })
 
   it('runs nothing from the markup', () => {
