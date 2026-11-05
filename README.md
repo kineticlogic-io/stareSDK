@@ -373,15 +373,19 @@ and both take the page's nonce:
 - **MDText Mermaid diagrams:**
   - While mermaid renders, the `<style>` it makes gets the nonce, and any `style` attribute set
     from script is applied through CSSOM instead.
-  - The finished SVG is mounted the same way (`mountSvg`), with scripts, links, frames and other
-    denied elements removed and any event-handler attribute dropped.
+  - The finished SVG is mounted the same way (`mountSvg`).
   - This only changes what scripts do. A `<style>` or `style` attribute in markup injected into
     the page is still refused.
-- **`mountHtml(host, html)`** mounts already-sanitised outside HTML (map popups, for example)
-  through the same pipeline: style attributes applied through CSSOM, event handlers dropped, and
-  scripts, links, frames, `<template>` and `<style>` elements removed. Only body content is
-  mounted; head-level content (a leading `<style>`, `<link>`, `<meta>` or `<title>`, or a full
-  HTML document's `<head>`) is not.
+- **`mountHtml(host, html)`** mounts outside HTML (map popups, for example) through the same
+  pipeline, with its `style` attributes applied through CSSOM. Only body content is mounted;
+  head-level content (a leading `<style>`, `<link>`, `<meta>` or `<title>`, or a full HTML
+  document's `<head>`) is not.
+- **Both mount functions take markup that is ALREADY safe** — sanitised HTML (DOMPurify, for
+  example), or Mermaid's `securityLevel: 'strict'` output. They make it work under the policy;
+  they are not sanitisers. As defence in depth they remove scripts, `<link>` elements, embeds,
+  frames, forms, `<template>`, SVG animation elements and external `<use>`, and drop event-handler
+  attributes and `javascript:`/`vbscript:`/`data:text/html` URLs; `<a>` hyperlinks are kept.
+  `mountHtml` also removes `<style>` elements; `mountSvg` gives its own the nonce.
 
 stareSDK finds the nonce in `<meta property="csp-nonce" nonce="…">`, the tag Vite's
 `html.cspNonce` writes. If the server fills in that placeholder on each load, no code is needed.

@@ -147,6 +147,23 @@ describe('mountSvg', () => {
     expect(host.querySelector('text')?.textContent).toBe('t')
   })
 
+  it('removes SVG animation elements, external <use> and scripting xlink:href, keeping same-document <use>', () => {
+    const host = document.createElement('div')
+    mountSvg(
+      host,
+      '<svg><a xlink:href="javascript:alert(1)"><text>t</text></a>' +
+        '<animate attributeName="href" to="javascript:alert(2)"/><set attributeName="x" to="1"/>' +
+        '<animateTransform attributeName="transform"/><animateMotion path="M0 0"/>' +
+        '<use href="https://e.example/s.svg#x"/><use xlink:href="data:image/svg+xml,x"/><use href="#local"/></svg>',
+    )
+    expect(host.querySelector('a')?.hasAttribute('xlink:href')).toBe(false)
+    for (const el of Array.from(host.querySelectorAll('*'))) {
+      expect(['animate', 'set', 'animatetransform', 'animatemotion']).not.toContain(el.localName.toLowerCase())
+    }
+    const uses = Array.from(host.querySelectorAll('use')).map((u) => u.getAttribute('href'))
+    expect(uses).toEqual(['#local'])
+  })
+
   it('mounts nothing when the markup is not an svg', () => {
     const host = document.createElement('div')
     host.innerHTML = '<p>old</p>'
@@ -174,10 +191,10 @@ describe('mountHtml', () => {
       host,
       '<div onclick="a()"><p ONMOUSEOVER="b()" title="t">x<script>window.x = 1</script></p>' +
         '<base href="https://e.example/"><meta http-equiv="refresh" content="0"><link rel="stylesheet" href="https://e.example/s.css">' +
-        '<iframe src="https://e.example"></iframe><frame><object data="x"></object><embed src="x"><noscript><img src=x></noscript>' +
+        '<iframe src="https://e.example"></iframe><object data="x"></object><embed src="x"><noscript><img src=x></noscript>' +
         '<template><img src=x onerror="c()"></template><img src="/a.png" onerror="d()"><style>p{}</style></div>',
     )
-    expect(host.querySelector('script, base, meta, link, iframe, frame, object, embed, noscript, template, style')).toBeNull()
+    expect(host.querySelector('script, base, meta, link, iframe, object, embed, noscript, template, style')).toBeNull()
     for (const el of Array.from(host.querySelectorAll('*'))) {
       expect(el.getAttributeNames().filter((n) => n.toLowerCase().startsWith('on')), el.localName).toEqual([])
     }
@@ -193,10 +210,49 @@ describe('mountHtml', () => {
     expect(host.innerHTML).toBe('<b>y</b>')
   })
 
-  it('keeps going past an element with no style object', () => {
+  it('applies a style to MathML where the engine gives it a style object, and keeps going where it does not', () => {
     const host = document.createElement('div')
     mountHtml(host, '<math style="color: red"><mi>x</mi></math><span style="color: blue">s</span>')
+    const math = host.querySelector('math') as Element & Partial<ElementCSSInlineStyle>
+    if (math.style) expect(math.style.color).toBe('red')
+    else expect(math.hasAttribute('style')).toBe(false)
+    // Whichever branch this engine takes, the walk continues past it.
     expect((host.querySelector('span') as HTMLElement).style.color).toBe('blue')
+  })
+
+  it('also covers the no-style-object branch, stubbed', () => {
+    // Shadow the `style` accessor on HTMLElement.prototype, wherever this engine defines it.
+    const own = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'style')
+    Object.defineProperty(HTMLElement.prototype, 'style', { configurable: true, get: () => undefined })
+    try {
+      const host = document.createElement('div')
+      expect(() => mountHtml(host, '<b style="color: red">b</b>')).not.toThrow()
+      expect(host.querySelector('b')?.hasAttribute('style')).toBe(false)
+    } finally {
+      if (own) Object.defineProperty(HTMLElement.prototype, 'style', own)
+      else delete (HTMLElement.prototype as unknown as Record<string, unknown>).style
+    }
+  })
+
+  it('drops scripting URLs in href, src, action and formaction, however written, and keeps <a> links', () => {
+    const host = document.createElement('div')
+    mountHtml(
+      host,
+      '<a href="java&#9;script:alert(1)">a</a><a href="JaVaScRiPt:alert(2)">b</a><a href="vbscript:x">c</a>' +
+        '<a href="data:text/html,<script>alert(3)</script>">d</a><a href="https://ok.example/p">e</a><a href="/local">f</a>' +
+        '<img src="javascript:alert(4)"><button formaction="javascript:alert(5)">g</button>',
+    )
+    const hrefs = Array.from(host.querySelectorAll('a')).map((a) => a.getAttribute('href'))
+    expect(hrefs).toEqual([null, null, null, null, 'https://ok.example/p', '/local'])
+    expect(host.querySelector('img')?.hasAttribute('src')).toBe(false)
+    expect(host.querySelector('button')?.hasAttribute('formaction')).toBe(false)
+  })
+
+  it('removes forms', () => {
+    const host = document.createElement('div')
+    mountHtml(host, '<form action="https://e.example"><input name="p"></form><p>x</p>')
+    expect(host.querySelector('form')).toBeNull()
+    expect(host.querySelector('p')).not.toBeNull()
   })
 })
 

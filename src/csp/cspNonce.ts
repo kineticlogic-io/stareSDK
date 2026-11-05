@@ -100,28 +100,66 @@ export async function withCspNonce<T>(work: () => Promise<T>): Promise<T> {
   }
 }
 
-/** Elements that never survive a mount: they can run, load, navigate, or carry inert content
- *  (`template`) whose own tree would escape the walk. Removed in the inert document, with their
- *  contents, before anything is imported. */
-const DENIED_ELEMENTS = ['script', 'base', 'meta', 'link', 'iframe', 'frame', 'object', 'embed', 'noscript', 'template']
+/** Elements that never survive a mount: they can run, load, navigate, submit or animate an
+ *  attribute into something else, or carry inert content (`template`) whose own tree would escape
+ *  the walk. Matched by lower-cased local name (SVG's `animateTransform` included). Removed in the
+ *  inert document, with their contents, before anything is imported. Defence in depth only: the
+ *  input is already sanitised. */
+const DENIED_ELEMENTS = new Set([
+  'script', 'base', 'meta', 'link', 'iframe', 'frame', 'object', 'embed', 'noscript', 'template',
+  'form', 'animate', 'set', 'animatetransform', 'animatemotion', 'fencedframe', 'portal',
+])
+
+/** Attributes holding a URL a browser may navigate to or load. */
+const URL_ATTRIBUTES = new Set(['href', 'xlink:href', 'src', 'action', 'formaction'])
+
+/** True for a URL value that would run script or render a document when followed:
+ *  `javascript:`, `vbscript:` or a `data:text/html` URL, resolved the way the browser resolves it
+ *  (WHATWG URL parsing against the page, so tabs, newlines and case cannot hide the scheme). */
+function isScriptingUrl(value: string): boolean {
+  try {
+    const url = new URL(value, document.baseURI)
+    if (url.protocol === 'javascript:' || url.protocol === 'vbscript:') return true
+    return url.protocol === 'data:' && /^\s*text\/html/i.test(url.pathname)
+  } catch {
+    return false
+  }
+}
+
+/** An SVG `<use>` that references anything but a fragment of the same document. */
+function isExternalUse(el: Element): boolean {
+  if (el.localName !== 'use') return false
+  const ref = el.getAttribute('href') ?? el.getAttribute('xlink:href')
+  return ref !== null && !ref.trim().startsWith('#')
+}
 
 /**
- * The one strip / lift / re-apply pipeline behind `mountSvg` and `mountHtml`. In the inert
- * document `root` was parsed into: denied elements (and `<style>` elements, unless
- * `keepStyleElements`) are removed; every `on…` attribute is dropped; each kept `<style>` is given
- * `nonce` when there is one; each `style` attribute is lifted off. `root` is then imported into this document and
- * the two trees are walked in lockstep, each copy given its source's lifted style through CSSOM
- * (`.style.cssText`), which a policy never restricts. An element with no `.style` (MathML in some
- * engines) simply keeps none. Returns the imported copy of `root`.
+ * The one strip / lift / re-apply pipeline behind `mountSvg` and `mountHtml` — it makes markup
+ * that is ALREADY sanitised compatible with a strict policy; it is not a sanitiser. In the inert
+ * document `root` was parsed into, as defence in depth: denied elements (and `<style>` elements,
+ * unless `keepStyleElements`) and any `<use>` of another document are removed; every `on…`
+ * attribute and every scripting URL (`javascript:`, `vbscript:`, `data:text/html`) in `href`,
+ * `xlink:href`, `src`, `action` or `formaction` is dropped. Then each kept `<style>` is given
+ * `nonce` when there is one and each `style` attribute is lifted off. `root` is imported into
+ * this document and the two trees are walked in lockstep, each copy given its source's lifted
+ * style through CSSOM (`.style.cssText`), which a policy never restricts; an element with no
+ * `.style` (MathML in some engines) keeps none. Returns the imported copy of `root`.
  */
 function sanitizeAndImport(root: Element, options: { keepStyleElements: boolean; nonce?: string }): Element {
-  const denied = options.keepStyleElements ? DENIED_ELEMENTS : [...DENIED_ELEMENTS, 'style']
-  root.querySelectorAll(denied.join(',')).forEach((el) => el.remove())
-  const lifted = new Map<Element, string>()
   const doc = root.ownerDocument
+  const removed = Array.from(root.querySelectorAll('*')).filter((el) => {
+    const name = el.localName.toLowerCase()
+    return DENIED_ELEMENTS.has(name) || (!options.keepStyleElements && name === 'style') || isExternalUse(el)
+  })
+  removed.forEach((el) => el.remove())
+  const lifted = new Map<Element, string>()
   const sources = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
   for (let el: Element | null = root; el; el = sources.nextNode() as Element | null) {
-    for (const name of el.getAttributeNames()) if (name.toLowerCase().startsWith('on')) el.removeAttribute(name)
+    for (const name of el.getAttributeNames()) {
+      const lower = name.toLowerCase()
+      if (lower.startsWith('on')) el.removeAttribute(name)
+      else if (URL_ATTRIBUTES.has(lower) && isScriptingUrl(el.getAttribute(name) ?? '')) el.removeAttribute(name)
+    }
     if (options.nonce && el.localName === 'style') el.setAttribute('nonce', options.nonce)
     const style = el.getAttribute('style')
     if (style !== null) {
@@ -141,12 +179,15 @@ function sanitizeAndImport(root: Element, options: { keepStyleElements: boolean;
 }
 
 /**
- * Put an SVG document (a string, as mermaid returns it) into `host`, replacing its contents,
- * in a form a strict policy allows: each `<style>` gets the nonce, and each `style` attribute —
+ * Put an SVG document (a string, as mermaid returns it) into `host`, replacing its contents, in
+ * a form a strict policy allows: each `<style>` gets the nonce, and each `style` attribute —
  * which no nonce can allow — is applied through the element's `style` property instead.
- * The SVG is parsed in an inert document, never run; scripts, links, embeds, frames and other
- * denied elements are removed and any event-handler (`on…`) attribute is dropped before it is
- * mounted, so nothing in it executes. Markup that is not an `<svg>` root mounts nothing.
+ *
+ * The input must ALREADY be safe (for diagrams, Mermaid's `securityLevel: 'strict'` output):
+ * this is not a sanitiser. As defence in depth it is parsed in an inert document, and scripts,
+ * `<link>` elements, embeds, frames, forms, SVG animation elements, external `<use>`, event-handler
+ * (`on…`) attributes and scripting URLs are removed before it is mounted; `<a>` hyperlinks are
+ * kept. Markup that is not an `<svg>` root mounts nothing.
  */
 export function mountSvg(host: Element, svg: string): void {
   // Parsed as HTML, as `innerHTML` would: mermaid's markup is HTML-serialised, not always XML.
@@ -157,19 +198,19 @@ export function mountSvg(host: Element, svg: string): void {
 }
 
 /**
- * Put HTML that has ALREADY been sanitised (a string; parsed here, never trusted to be safe) into
- * `host`, replacing its contents, in a form a strict policy allows — the HTML twin of `mountSvg`,
- * through the same pipeline: parsed in an inert document; scripts, links, embeds, frames,
- * `<template>` and other denied elements removed; every `on…` attribute dropped; each `style`
- * attribute applied through CSSOM. `<style>` elements are removed too: this is for content from
- * outside the app, and an un-nonced stylesheet would only be refused. Only the body is mounted:
- * head-level content — a leading `<style>`, `<link>`, `<meta>` or `<title>`, or the `<head>` of a
- * full HTML document — is not.
+ * Put HTML into `host`, replacing its contents, in a form a strict policy allows — the HTML twin of
+ * `mountSvg`, through the same pipeline: each `style` attribute is applied through CSSOM.
+ *
+ * The input must ALREADY be sanitised (for example with DOMPurify): this is not a sanitiser. As
+ * defence in depth it is parsed in an inert document, and scripts, `<link>` elements, embeds,
+ * frames, forms, `<template>`, `<style>` elements (an un-nonced stylesheet would only be refused),
+ * event-handler attributes and scripting URLs are removed; `<a>` hyperlinks are kept. Only the
+ * body is mounted: head-level content — a leading `<style>`, `<link>`, `<meta>` or `<title>`, or
+ * the `<head>` of a full HTML document — is not.
  */
 export function mountHtml(host: Element, html: string): void {
   const body = new DOMParser().parseFromString(html, 'text/html').body
   const copy = sanitizeAndImport(body, { keepStyleElements: false })
-  const fragment = document.createDocumentFragment()
-  fragment.append(...Array.from(copy.childNodes))
-  host.replaceChildren(fragment)
+  host.replaceChildren()
+  while (copy.firstChild) host.appendChild(copy.firstChild)
 }
