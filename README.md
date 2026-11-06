@@ -373,9 +373,21 @@ and both take the page's nonce:
 - **MDText Mermaid diagrams:**
   - While mermaid renders, the `<style>` it makes gets the nonce, and any `style` attribute set
     from script is applied through CSSOM instead.
-  - The finished SVG is mounted the same way, with any event-handler attribute dropped.
+  - The finished SVG is mounted the same way (`mountSvg`).
   - This only changes what scripts do. A `<style>` or `style` attribute in markup injected into
     the page is still refused.
+- **`mountHtml(host, html)`** mounts outside HTML (map popups, for example) through the same
+  pipeline, with its `style` attributes applied through CSSOM. Only body content is mounted;
+  head-level content (a leading `<style>`, `<link>`, `<meta>` or `<title>`, or a full HTML
+  document's `<head>`) is not.
+- **Both mount functions take markup that is ALREADY safe** — sanitised HTML (DOMPurify, for
+  example), or Mermaid's `securityLevel: 'strict'` output. They make it work under the policy;
+  they are not sanitisers. As defence in depth they remove scripts, `<link>` elements, embeds,
+  frames, `<template>`, SVG animation elements and external SVG references (`<use>`, `<feImage>`,
+  patterns, gradients…), unwrap forms (keeping their content), and drop event-handler and form
+  attributes, `javascript:`/`vbscript:` URLs and every `data:` URL but a non-SVG image; `<a>`
+  hyperlinks are kept.
+  `mountHtml` also removes `<style>` elements; `mountSvg` gives its own the nonce.
 
 stareSDK finds the nonce in `<meta property="csp-nonce" nonce="…">`, the tag Vite's
 `html.cspNonce` writes. If the server fills in that placeholder on each load, no code is needed.
