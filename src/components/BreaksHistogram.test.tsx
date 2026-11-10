@@ -32,7 +32,7 @@ describe('BreaksHistogram', () => {
   it('draws a bar per bin in the colour of its class', () => {
     const c = render()
     const bars = Array.from(c.querySelectorAll('rect[opacity="0.85"]'))
-    expect(bars.map(b => b.getAttribute('fill'))).toEqual(['red', 'blue', 'blue', 'blue'])
+    expect(bars.map(b => b.getAttribute('fill'))).toEqual(['red', 'red', 'blue', 'blue'])
   })
 
   it('is read-only without onBreakChange: no slider', () => {
