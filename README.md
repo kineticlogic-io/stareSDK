@@ -158,6 +158,11 @@ and token rules:
   handles to drag or move with the arrow keys (read-only without `onBreakChange`); plain SVG,
   responsive width. Added 2026-11-09 (first consumer: the Graduated style's breaks, OpenStare
   #458).
+- `RampPicker` + the ramp registry (`RAMPS`, `sampleRamp`, `rampById`, `rampGroupOf`,
+  `RAMP_GROUPS`, `getRandomByIdPalette`, `hashToPaletteIndex`, the `DEFAULT_*_RAMP_ID`s) — the one
+  list of colour ramps, each with its full published stops (ColorBrewer, matplotlib, Cividis,
+  Turbo, and a Heat gradient); every picker lists every ramp, grouped Sequential / Diverging /
+  Qualitative, and previews exactly the stops the map draws. Exported in 0.2.43 (OpenStare #463).
 
 ## Catalog components
 

@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 import { TbSwitchHorizontal } from 'react-icons/tb'
 import { Button } from './Button.js'
 import { popoverContainer, popoverDivider, popoverLabel } from '../internal/layerRowStyles.js'
-import { RAMPS, sampleRamp, type ColorRamp } from '../internal/colorRamps.js'
+import { RAMPS, RAMP_GROUPS, rampGroupOf, type ColorRamp } from '../internal/colorRamps.js'
 
 interface RampPickerProps {
   /** id of the currently selected curated ramp — see `colorRamps.ts`'s `RAMPS`. */
@@ -19,8 +19,11 @@ interface RampPickerProps {
   onChange: (rampId: string) => void
   reversed: boolean
   onReverseChange: (reversed: boolean) => void
-  /** Which curated subset to list — graduated (sequential+diverging) vs categorized (qualitative). */
-  kind: 'sequential-diverging' | 'qualitative'
+  /**
+   * @deprecated Ignored. Every picker lists every ramp, grouped Sequential / Diverging /
+   * Qualitative (operator, 2026-11-10: "the same ramps available anywhere ramps are").
+   */
+  kind?: 'sequential-diverging' | 'qualitative'
   disabled?: boolean
 }
 
@@ -41,6 +44,11 @@ function buildGradient(stops: string[], hardStops: boolean): string {
   return `linear-gradient(90deg, ${parts.join(', ')})`
 }
 
+/** A ramp's stops for a preview: its own published stops, so the preview is what the map draws. */
+function previewStops(ramp: ColorRamp, reversed = false): string[] {
+  return reversed ? [...ramp.anchors].reverse() : ramp.anchors
+}
+
 /** A single ramp row inside the popover — always previewed forward (unreversed); the reverse
  *  toggle affects only the trigger + downstream styling, not the option list itself. */
 function RampRow({
@@ -52,7 +60,7 @@ function RampRow({
   selected: boolean
   onSelect: () => void
 }) {
-  const stops = sampleRamp(ramp, 5)
+  const stops = previewStops(ramp)
   const gradient = buildGradient(stops, ramp.kind === 'qualitative')
   return (
     <button
@@ -98,7 +106,6 @@ export function RampPicker({
   onChange,
   reversed,
   onReverseChange,
-  kind,
   disabled = false,
 }: RampPickerProps) {
   const [open, setOpen] = useState(false)
@@ -113,17 +120,13 @@ export function RampPicker({
   }, [open])
 
   const selectedRamp = RAMPS.find(r => r.id === rampId) ?? RAMPS[0]
-  const triggerStops = sampleRamp(selectedRamp, 5, reversed)
+  const triggerStops = previewStops(selectedRamp, reversed)
   const triggerGradient = buildGradient(triggerStops, selectedRamp.kind === 'qualitative')
 
   function selectRamp(id: string) {
     onChange(id)
     setOpen(false)
   }
-
-  const sequentialRamps = RAMPS.filter(r => r.kind === 'sequential-single' || r.kind === 'sequential-multi')
-  const divergingRamps = RAMPS.filter(r => r.kind === 'diverging')
-  const qualitativeRamps = RAMPS.filter(r => r.kind === 'qualitative')
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -147,53 +150,19 @@ export function RampPicker({
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 1099 }} onClick={() => setOpen(false)} />
           <div style={{ ...popoverContainer, padding: 'var(--space-sm)', width: 240 }}>
-            {kind === 'sequential-diverging' ? (
-              <>
-                <div style={popoverLabel}>Sequential</div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'var(--space-xs)',
-                    marginBottom: 8,
-                  }}
-                >
-                  {sequentialRamps.map(r => (
-                    <RampRow key={r.id} ramp={r} selected={r.id === rampId} onSelect={() => selectRamp(r.id)} />
-                  ))}
+            <div style={{ maxHeight: 'min(60vh, 420px)', overflowY: 'auto', paddingRight: 'var(--space-xs)' }}>
+              {RAMP_GROUPS.map((group, gi) => (
+                <div key={group} role="group" aria-label={group}>
+                  {gi > 0 && <div style={popoverDivider} />}
+                  <div style={{ ...popoverLabel, marginTop: gi > 0 ? 8 : 0 }}>{group}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)', marginBottom: 8 }}>
+                    {RAMPS.filter(r => rampGroupOf(r) === group).map(r => (
+                      <RampRow key={r.id} ramp={r} selected={r.id === rampId} onSelect={() => selectRamp(r.id)} />
+                    ))}
+                  </div>
                 </div>
-                <div style={popoverDivider} />
-                <div style={{ ...popoverLabel, marginTop: 8 }}>Diverging</div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'var(--space-xs)',
-                    marginBottom: 8,
-                  }}
-                >
-                  {divergingRamps.map(r => (
-                    <RampRow key={r.id} ramp={r} selected={r.id === rampId} onSelect={() => selectRamp(r.id)} />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={popoverLabel}>Qualitative</div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'var(--space-xs)',
-                    marginBottom: 8,
-                  }}
-                >
-                  {qualitativeRamps.map(r => (
-                    <RampRow key={r.id} ramp={r} selected={r.id === rampId} onSelect={() => selectRamp(r.id)} />
-                  ))}
-                </div>
-              </>
-            )}
+              ))}
+            </div>
 
             <div style={popoverDivider} />
 

@@ -84,6 +84,9 @@ export * from './components/mermaidRender.js'
 export * from './components/sideNavStorage.js'
 export * from './components/useToast.js'
 
+// Colour ramps (the one registry every ramp-driven style uses)
+export * from './internal/colorRamps.js'
+
 // Dock (SideNav stacking)
 export * from './context/DockContext.js'
 export * from './context/useDock.js'
