@@ -154,6 +154,10 @@ and token rules:
 - `ProfileChart` — distance against height along a path (plain SVG, token colours, responsive
   width): `null` heights break the line, with an optional dashed sight line and obstruction
   marker. Added 2026-10-06 (first consumer: ATLAS terrain analysis, #275).
+- `BreaksHistogram` — a field's distribution as bars in its class colours, with its class breaks as
+  handles to drag or move with the arrow keys (read-only without `onBreakChange`); plain SVG,
+  responsive width. Added 2026-11-09 (first consumer: the Graduated style's breaks, OpenStare
+  #458).
 
 ## Catalog components
 
