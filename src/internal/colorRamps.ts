@@ -16,8 +16,9 @@
  *   qualitative sets.
  * - matplotlib's perceptually uniform maps (Stéfan van der Walt and Nathaniel Smith, 2015; CC0):
  *   Viridis, Magma, Inferno, Plasma — sampled at 11 evenly spaced points.
- * - Cividis (Nuñez, Anderton and Renslow, PLOS ONE 2018; as published in viridisLite, MIT) —
- *   10 evenly spaced points.
+ * - Cividis (Nuñez, Anderton and Renslow, PLOS ONE 2018) — 10 evenly spaced points of
+ *   matplotlib's published 256-colour table (`_cividis_data`, lib/matplotlib/_cm_listed.py,
+ *   matplotlib v3.9.0).
  * - Turbo (Anton Mikhailov, Google, 2019; Apache-2.0) — 11 points of d3-scale-chromatic's
  *   published polynomial approximation (`interpolateTurbo`, ISC).
  *
@@ -75,8 +76,8 @@ export const RAMPS: ColorRamp[] = [
   { id: 'seq-magma', label: 'Magma', kind: 'sequential-multi', anchors: ['#000004', '#140e36', '#3b0f70', '#641a80', '#8c2981', '#b73779', '#de4968', '#f7705c', '#fe9f6d', '#fecf92', '#fcfdbf'] },
   { id: 'seq-inferno', label: 'Inferno', kind: 'sequential-multi', anchors: ['#000004', '#160b39', '#420a68', '#6a176e', '#932667', '#bc3754', '#dd513a', '#f37819', '#fca50a', '#f6d746', '#fcffa4'] },
   { id: 'seq-plasma', label: 'Plasma', kind: 'sequential-multi', anchors: ['#0d0887', '#41049d', '#6a00a8', '#8f0da4', '#b12a90', '#cc4778', '#e16462', '#f2844b', '#fca636', '#fcce25', '#f0f921'] },
-  // Cividis (Nuñez et al. 2018, via viridisLite, MIT), 10 points.
-  { id: 'seq-cividis', label: 'Cividis', kind: 'sequential-multi', anchors: ['#00204d', '#00336f', '#39486b', '#575c6d', '#707173', '#8a8779', '#a69d75', '#c4b56c', '#e4cf5b', '#ffea46'] },
+  // Cividis (Nuñez et al. 2018): 10 points of matplotlib v3.9.0's `_cividis_data`.
+  { id: 'seq-cividis', label: 'Cividis', kind: 'sequential-multi', anchors: ['#00224e', '#123570', '#3c4a6c', '#575d6d', '#707173', '#8a8678', '#a59c74', '#c2b369', '#e1cc55', '#fee838'] },
   // Turbo (Mikhailov, Google 2019, Apache-2.0), 11 points of d3-scale-chromatic's polynomial (ISC).
   { id: 'seq-turbo', label: 'Turbo', kind: 'sequential-multi', anchors: ['#23171b', '#4a58dd', '#2f9df5', '#27d7c4', '#4df884', '#95fb51', '#dedd32', '#ffa423', '#f65f18', '#ba2208', '#900c00'] },
   // ColorBrewer 2.0, 9-class.
