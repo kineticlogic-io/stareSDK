@@ -162,7 +162,7 @@ and token rules:
   `RAMP_GROUPS`, `getRandomByIdPalette`, `hashToPaletteIndex`, the `DEFAULT_*_RAMP_ID`s) — the one
   list of colour ramps, each with its full published stops (ColorBrewer, matplotlib, Cividis,
   Turbo, and a Heat gradient); every picker lists every ramp, grouped Sequential / Diverging /
-  Qualitative, and previews exactly the stops the map draws. Exported in 0.2.43 (OpenStare #463).
+  Qualitative, and previews exactly the stops the map draws. Exported in 0.2.43 (OpenStare #463); Cividis's stops corrected to matplotlib's table in 0.2.44.
 
 ## Catalog components
 
