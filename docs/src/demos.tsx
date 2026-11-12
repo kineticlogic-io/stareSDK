@@ -15,7 +15,7 @@ import {
   Input, ItemCard, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader, PersonCard, PersonChip,
   Pagination, Popover, PopoverMenuButton, ProfileChart, RadioGroup, RampPicker, SaveButton, SearchInput, SegmentedControl, Select, SideNav, Slider,
   SortableList, Stepper, TabPanel, Tabs, TagInput, Timeline, Toggle, Tooltip, Tray, Tree, TypeaheadPicker, UnitSelect, RecordTable,
-  VirtualList, ZoomRangeSlider, distanceToMeters, durationToSeconds, sortRows, speedToMetersPerSecond, useTheme, useToast, useTypeaheadKeyboard,
+  VirtualList, RangeSlider, ZoomRangeSlider, distanceToMeters, durationToSeconds, sortRows, speedToMetersPerSecond, useTheme, useToast, useTypeaheadKeyboard,
   type BadgeColor, type ClassificationMarking, type ClassifyOptions, type DataTableColumn,
   type DataTableSort,
   type DistanceUnit, type FlyoutItem, type RecordRow, type TimelineEntry, type SpeedUnit, type StepItem, type TimeUnit, type TreeNode,
@@ -407,6 +407,23 @@ function OpacitySliderDemo() {
     <div className="row" style={narrow}>
       <OpacitySlider value={opacity} onChange={setOpacity} aria-label="Layer opacity" />
       <span className="caption mono" style={{ minWidth: 36 }}>{opacity}%</span>
+    </div>
+  )
+}
+
+function RangeSliderDemo() {
+  const [range, setRange] = useState<[number, number]>([16, 48])
+  return (
+    <div style={narrow}>
+      <RangeSlider
+        minValue={range[0]}
+        maxValue={range[1]}
+        min={8}
+        max={96}
+        ariaLabels={['Smallest cluster', 'Largest cluster']}
+        formatValue={v => `${v} px`}
+        onChange={(lo, hi) => setRange([lo, hi])}
+      />
     </div>
   )
 }
@@ -1648,6 +1665,7 @@ export const DEMOS: Record<string, ComponentType> = {
   toggle: ToggleDemo,
   slider: SliderDemo,
   opacityslider: OpacitySliderDemo,
+  rangeslider: RangeSliderDemo,
   zoomrangeslider: ZoomRangeSliderDemo,
   colorpicker: ColorPickerDemo,
   ramppicker: RampPickerDemo,

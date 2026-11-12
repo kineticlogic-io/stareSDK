@@ -158,6 +158,9 @@ and token rules:
   handles to drag or move with the arrow keys (read-only without `onBreakChange`); plain SVG,
   responsive width. Added 2026-11-09 (first consumer: the Graduated style's breaks, OpenStare
   #458).
+- `RangeSlider` — a dual-handle numeric range (a minimum and a maximum that never cross), with
+  each end's value shown through `formatValue`; `ZoomRangeSlider` is built on it. Added 2026-11-12
+  (first consumer: the cluster size range, OpenStare #464).
 - `RampPicker` + the ramp registry (`RAMPS`, `sampleRamp`, `rampById`, `rampGroupOf`,
   `RAMP_GROUPS`, `getRandomByIdPalette`, `hashToPaletteIndex`, the `DEFAULT_*_RAMP_ID`s) — the one
   list of colour ramps, each with its full published stops (ColorBrewer, matplotlib, Cividis,

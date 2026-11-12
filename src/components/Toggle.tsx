@@ -23,7 +23,7 @@ import type { CSSProperties } from 'react'
  *     check because inline styles cannot express a pseudo-class selector, and a small
  *     scoped class rule is the simplest correct implementation)
  *   - a `disabled` state (`opacity: 0.4; cursor: not-allowed`, matching the app-wide
- *     `.opacity-slider:disabled` / `.zoom-range-slider__input:disabled` convention)
+ *     `.opacity-slider:disabled` / `.range-slider__input:disabled` convention)
  */
 
 export interface ToggleProps {

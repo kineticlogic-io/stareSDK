@@ -109,7 +109,7 @@ Every page is a full-height column, top to bottom:
 | Pick a unit, orientation convention or confidence level | `UnitSelect` (`family`: distance, elevation, elevation-reference, orientation, confidence; conversions in `units.ts`) | a hand-built unit list, inline unit math |
 | Search-and-pick from many | `TypeaheadPicker` | |
 | On/off setting | `Toggle` | checkboxes for settings |
-| Numeric range | `Slider`, `OpacitySlider`, `ZoomRangeSlider` | `<input type="range">` |
+| Numeric range | `Slider`, `OpacitySlider`, `RangeSlider`, `ZoomRangeSlider` | `<input type="range">` |
 | Multi-step flow | `Stepper` at the top of the panel body, with the cancel control beside it | numbered headings |
 | Paging a long list | `Pagination` (or `DataTable` virtualisation) | infinite scroll |
 | Explaining a field, setting or heading | `InfoTip` (ⓘ beside the label; shows above a `Modal`) | helper text under every field, `title` attributes |
