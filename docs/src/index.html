@@ -165,7 +165,7 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
         <tr><td>Pick one of a list</td><td><a href="#fieldselect"><code>FieldSelect</code></a>, <a href="#select"><code>Select</code></a></td><td>bare <code>&lt;select&gt;</code></td></tr>
         <tr><td>Pick a unit or convention</td><td><a href="#unitselect"><code>UnitSelect</code></a></td><td>inline unit math</td></tr>
         <tr><td>On/off setting</td><td><a href="#toggle"><code>Toggle</code></a></td><td>checkboxes for settings</td></tr>
-        <tr><td>Numeric range</td><td><a href="#slider"><code>Slider</code></a>, <a href="#opacityslider"><code>OpacitySlider</code></a>, <a href="#zoomrangeslider"><code>ZoomRangeSlider</code></a></td><td><code>&lt;input type="range"&gt;</code></td></tr>
+        <tr><td>Numeric range</td><td><a href="#slider"><code>Slider</code></a>, <a href="#opacityslider"><code>OpacitySlider</code></a>, <a href="#rangeslider"><code>RangeSlider</code></a>, <a href="#zoomrangeslider"><code>ZoomRangeSlider</code></a></td><td><code>&lt;input type="range"&gt;</code></td></tr>
         <tr><td>Multi-step flow</td><td><a href="#stepper"><code>Stepper</code></a></td><td>numbered headings</td></tr>
         <tr><td>Paging a long list</td><td><a href="#pagination"><code>Pagination</code></a></td><td>infinite scroll</td></tr>
         <tr><td>Explaining a field</td><td><a href="#infotip"><code>InfoTip</code></a></td><td>helper text under every field</td></tr>
@@ -468,6 +468,16 @@ durationToSeconds(2, 'h') // 7200</code></pre>
       <div class="example-label">Example <code>OpacitySlider</code></div>
       <div class="demo" data-demo="opacityslider"></div>
 <pre><code>&lt;OpacitySlider value={opacity} onChange={setOpacity} aria-label="Layer opacity" /&gt;</code></pre>
+    </div>
+
+    <h3>RangeSlider <span class="since">Available in 0.2.45+</span></h3>
+    <p>A dual-handle numeric range: a minimum and a maximum on one track that never cross. <code>formatValue</code> shows each end's value.</p>
+    <div class="example">
+      <div class="example-label">Example <code>RangeSlider</code></div>
+      <div class="demo" data-demo="rangeslider"></div>
+<pre><code>&lt;RangeSlider minValue={lo} maxValue={hi} min={8} max={96}
+  ariaLabels={['Smallest cluster', 'Largest cluster']} formatValue={v =&gt; `${v} px`}
+  onChange={(a, b) =&gt; { setLo(a); setHi(b) }} /&gt;</code></pre>
     </div>
 
     <h3>ZoomRangeSlider <span class="since">Available in 0.2.0+</span></h3>

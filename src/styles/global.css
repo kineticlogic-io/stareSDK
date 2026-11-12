@@ -498,7 +498,7 @@ body {
 
 /* ui/Slider — the single, standardized generic single-handle numeric slider (any
    min/max/step, e.g. a multiplier). Mirrors `.opacity-slider`'s track/thumb visual
-   language exactly; the optional value label mirrors `.zoom-range-slider__value`. */
+   language exactly; the optional value label mirrors `.range-slider__value`. */
 .ui-slider {
   display: flex;
   align-items: center;
@@ -577,7 +577,7 @@ body {
   border-color: var(--color-accent);
 }
 
-/* ZoomRangeSlider — dual-handle zoom-range control (D-20). Two native range inputs are
+/* RangeSlider — the dual-handle range control (ZoomRangeSlider is built on it). Two native range inputs are
    stacked over one shared visual track; each input's own track is transparent and
    pointer-events are limited to its thumb so both handles stay independently draggable. */
 .zoom-range-slider {
@@ -585,25 +585,25 @@ body {
   flex-direction: column;
   gap: var(--space-xs);
 }
-.zoom-range-slider__row {
+.range-slider {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
 }
-.zoom-range-slider__value {
+.range-slider__value {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--color-text-secondary);
   min-width: 16px;
   text-align: center;
 }
-.zoom-range-slider__track-wrap {
+.range-slider__track-wrap {
   position: relative;
   flex: 1;
   height: 16px;
   min-width: 60px;
 }
-.zoom-range-slider__fill {
+.range-slider__fill {
   position: absolute;
   top: 6px;
   height: 4px;
@@ -611,7 +611,7 @@ body {
   background: var(--color-accent);
   pointer-events: none;
 }
-.zoom-range-slider__input {
+.range-slider__input {
   -webkit-appearance: none; appearance: none;
   position: absolute;
   top: 0;
@@ -622,12 +622,12 @@ body {
   background: transparent;
   pointer-events: none;
 }
-.zoom-range-slider__input::-webkit-slider-runnable-track {
+.range-slider__input::-webkit-slider-runnable-track {
   height: 4px;
   background: var(--border-strong);
   border-radius: var(--radius-sm);
 }
-.zoom-range-slider__input::-webkit-slider-thumb {
+.range-slider__input::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
   width: 12px; height: 12px; border-radius: 50%;
   background: var(--color-accent);
@@ -636,20 +636,20 @@ body {
   pointer-events: auto;
   margin-top: -4px;
 }
-.zoom-range-slider__input::-moz-range-track {
+.range-slider__input::-moz-range-track {
   height: 4px;
   background: var(--border-strong);
   border-radius: var(--radius-sm);
 }
-.zoom-range-slider__input::-moz-range-thumb {
+.range-slider__input::-moz-range-thumb {
   width: 12px; height: 12px; border-radius: 50%;
   background: var(--color-accent);
   border: 1px solid var(--color-bg-primary);
   cursor: pointer;
   pointer-events: auto;
 }
-.zoom-range-slider__input:disabled::-webkit-slider-thumb { cursor: not-allowed; opacity: 0.4; }
-.zoom-range-slider__input:disabled::-moz-range-thumb { cursor: not-allowed; opacity: 0.4; }
+.range-slider__input:disabled::-webkit-slider-thumb { cursor: not-allowed; opacity: 0.4; }
+.range-slider__input:disabled::-moz-range-thumb { cursor: not-allowed; opacity: 0.4; }
 .zoom-range-slider__actions {
   display: flex;
   align-items: center;

@@ -8,12 +8,12 @@
  * (react-icons/tb, ui/Button) snaps that handle to `Math.round(currentZoom)` when a
  * `currentZoom` prop is supplied — operators think in "what I see now", not zoom numbers.
  *
- * Implemented as two native `<input type="range">` elements stacked over a shared visual
- * track (no dual-handle analog existed in this codebase — see 62-PATTERNS.md). Styled by
- * the `.zoom-range-slider` class family in global.css (tokenized, compositor-safe).
+ * The track is the generic `RangeSlider`; this adds the zoom bounds, the zoom aria labels and
+ * the two "set from current zoom" buttons (`.zoom-range-slider__actions` in global.css).
  */
 import { TbCurrentLocation } from 'react-icons/tb'
 import { Button } from './Button.js'
+import { RangeSlider } from './RangeSlider.js'
 
 interface ZoomRangeSliderProps {
   /** Current minimum zoom (inclusive). Always <= maxValue after any onChange. */
@@ -40,71 +40,30 @@ export function ZoomRangeSlider({
   currentZoom,
   disabled = false,
 }: ZoomRangeSliderProps) {
-  /** Single choke point for the min<=max invariant — every emitted pair passes through here. */
+  /** The "set from current zoom" buttons: the same non-crossing, in-bounds clamp `RangeSlider`
+   *  applies to a drag, with the other handle held. */
   function commit(nextMin: number, nextMax: number) {
-    const clampedMin = Math.min(Math.max(nextMin, min), max)
-    const clampedMax = Math.min(Math.max(nextMax, min), max)
-    // Never emit an inverted range — smaller value always wins the min slot.
-    const finalMin = Math.min(clampedMin, clampedMax)
-    const finalMax = Math.max(clampedMin, clampedMax)
-    onChange(finalMin, finalMax)
+    const a = Math.min(Math.max(nextMin, min), max)
+    const b = Math.min(Math.max(nextMax, min), max)
+    onChange(Math.min(a, b), Math.max(a, b))
   }
-
-  function handleMinChange(v: number) {
-    // Clamp the min handle so it cannot pass the max handle.
-    commit(Math.min(v, maxValue), maxValue)
-  }
-
-  function handleMaxChange(v: number) {
-    // Clamp the max handle so it cannot pass the min handle.
-    commit(minValue, Math.max(v, minValue))
-  }
-
-  const range = max - min || 1
-  const minPct = ((minValue - min) / range) * 100
-  const maxPct = ((maxValue - min) / range) * 100
+  const handleMinChange = (v: number) => commit(Math.min(v, maxValue), maxValue)
+  const handleMaxChange = (v: number) => commit(minValue, Math.max(v, minValue))
   const canSetFromZoom = currentZoom != null && !disabled
 
   return (
     <div className="zoom-range-slider" aria-disabled={disabled}>
-      <div className="zoom-range-slider__row">
-        <span className="zoom-range-slider__value" aria-hidden>
-          {minValue}
-        </span>
-        <div className="zoom-range-slider__track-wrap">
-          <div
-            className="zoom-range-slider__fill"
-            style={{ left: `${minPct}%`, width: `${Math.max(maxPct - minPct, 0)}%` }}
-          />
-          <input
-            type="range"
-            className="zoom-range-slider__input zoom-range-slider__input--min"
-            min={min}
-            max={max}
-            step={1}
-            value={minValue}
-            disabled={disabled}
-            aria-label="Minimum zoom"
-            aria-valuetext={`Zoom ${minValue}`}
-            onChange={e => handleMinChange(Number(e.target.value))}
-          />
-          <input
-            type="range"
-            className="zoom-range-slider__input zoom-range-slider__input--max"
-            min={min}
-            max={max}
-            step={1}
-            value={maxValue}
-            disabled={disabled}
-            aria-label="Maximum zoom"
-            aria-valuetext={`Zoom ${maxValue}`}
-            onChange={e => handleMaxChange(Number(e.target.value))}
-          />
-        </div>
-        <span className="zoom-range-slider__value" aria-hidden>
-          {maxValue}
-        </span>
-      </div>
+      <RangeSlider
+        minValue={minValue}
+        maxValue={maxValue}
+        onChange={onChange}
+        min={min}
+        max={max}
+        step={1}
+        disabled={disabled}
+        ariaLabels={['Minimum zoom', 'Maximum zoom']}
+        formatValue={v => String(v)}
+      />
 
       <div className="zoom-range-slider__actions">
         <Button

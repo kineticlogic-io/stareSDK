@@ -69,6 +69,7 @@ export * from './components/KeyValueTree.js'
 export * from './components/UnitSelect.js'
 export * from './components/TypeaheadPicker.js'
 export * from './components/VirtualList.js'
+export * from './components/RangeSlider.js'
 export * from './components/ZoomRangeSlider.js'
 
 // Helpers
