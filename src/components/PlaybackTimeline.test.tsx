@@ -167,6 +167,15 @@ describe('PlaybackTimeline', () => {
     expect(label.style.pointerEvents).not.toBe('none')
   })
 
+  it('shows a LIVE badge and announces it when live (0.2.47)', () => {
+    const { container, rerender } = render(props())
+    expect(container.querySelector('[data-pt-live]')).toBeNull()
+    expect(q(container, '[role="status"]').textContent).toBe('')
+    rerender(props({ live: true }))
+    expect(q(container, '[data-pt-live]').textContent?.toUpperCase()).toBe('LIVE')
+    expect(q(container, '[role="status"]').textContent).toBe('Live')
+  })
+
   it('shows the window as UTC text', () => {
     const { container } = render(props())
     expect(q(container, '[data-pt-readout]').textContent).toBe('1 Jan 2024 06:00:00 – 1 Jan 2024 08:00:00 UTC')
