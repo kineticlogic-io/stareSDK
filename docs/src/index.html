@@ -177,6 +177,7 @@ commitTheme('light')  // paint and remember the choice (localStorage 'theme')</c
         <tr><td>Editing a flow (drag-and-drop steps)</td><td><a href="#flowcanvas"><code>FlowCanvas</code></a></td><td>a second flow library</td></tr>
         <tr><td>Values over time</td><td><a href="#timeserieschart"><code>TimeSeriesChart</code></a></td><td>a second chart library</td></tr>
         <tr><td>Dated events and periods</td><td><a href="#timeline"><code>Timeline</code></a></td><td>a hand-built Gantt</td></tr>
+        <tr><td>Playing data back over time (lanes, a time range, play and step)</td><td><a href="#playbacktimeline"><code>PlaybackTimeline</code></a></td><td>a range slider with hand-rolled play buttons</td></tr>
         <tr><td>Records side by side, with what changed</td><td><a href="#recordtable"><code>RecordTable</code></a></td><td>JSON blocks one after another</td></tr>
         <tr><td>A panel docked to the bottom of a workspace</td><td><a href="#tray"><code>Tray</code></a></td><td>a fixed-height div, a modal</td></tr>
         <tr><td>Rendered Markdown</td><td><a href="#mdtext"><code>MDText</code></a></td><td></td></tr>
@@ -1038,6 +1039,31 @@ import 'uplot/dist/uPlot.min.css'
   entries={[
     { id: 'dep', label: 'Deployment', start: '2025-02-10', end: '2025-08-28', meta: 'Deployment' },
     { id: 'port', label: 'Port visit, Gdynia', start: '2025-06-24', tone: 'info' },
+  ]} /&gt;</code></pre>
+    </div>
+
+    <h3>PlaybackTimeline <span class="since">Available in 0.2.46+</span></h3>
+    <p>A time axis for playing data back. Each series gets a named <strong>swim lane</strong> showing when it has data: bars
+      of its counts in equal buckets (<code>density</code>), marks for individual events (<code>instants</code>), or both. A
+      resizable <strong>time range</strong> says what is shown; its end is the <strong>playhead</strong>. Drag the range to
+      move it, drag a handle to resize it, press anywhere else on the plot to scrub (the range keeps its width and its end
+      follows the pointer). Every change is reported as it happens, then once more with <code>final: true</code> on release.</p>
+    <p>The toolbar has step back, play/pause, step forward and the step size (presets from one second to a day, or
+      <em>Custom…</em>: a value and a time unit). Playback is controlled and the component owns no timer: the caller's clock
+      advances the range with <code>advanceSelection(selection, step, dir, extent)</code>, which stops at the edge of the
+      extent. Wheel or pinch zooms the view about the pointer, a sideways wheel or Shift+drag pans it, and the view never
+      leaves <code>extent</code>. Times are epoch milliseconds, shown in UTC.</p>
+    <div class="example">
+      <div class="example-label">Example <code>PlaybackTimeline</code></div>
+      <div class="demo" data-demo="playbacktimeline"></div>
+<pre><code>&lt;PlaybackTimeline aria-label="Workspace time" extent={extent} selection={range}
+  onSelectionChange={(next) =&gt; setRange(next)}
+  playing={playing} onPlayingChange={setPlaying}
+  onStep={(dir) =&gt; setRange(advanceSelection(range, step, dir, extent).selection)}
+  step={step} onStepChange={setStep}
+  lanes={[
+    { id: 'ships', label: 'Ships', density: { start, end, counts } },
+    { id: 'events', label: 'Events of interest', instants: [t1, t2, t3], tone: 'warning' },
   ]} /&gt;</code></pre>
     </div>
 

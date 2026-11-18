@@ -161,6 +161,14 @@ and token rules:
 - `RangeSlider` — a dual-handle numeric range (a minimum and a maximum that never cross), with
   each end's value shown through `formatValue`; `ZoomRangeSlider` is built on it. Added 2026-11-12
   (first consumer: the cluster size range, OpenStare #464).
+- `PlaybackTimeline` — a time axis for playing data back: one named swim lane per series
+  (`density` bars and/or `instants` marks, `loading` / `error`), a resizable time range whose end
+  is the playhead (drag to move, handles to resize, press elsewhere to scrub; continuous
+  `onSelectionChange(sel, { final })`), and controlled playback (`playing`, `onStep`, `step` from
+  presets or Custom…). It owns no timer: the caller advances with `advanceSelection`; the pure
+  helpers (`clampSelection`, `moveSelection`, `resizeSelection`, `scrubSelection`, `formatStep`,
+  `stepFromUnit`, `STEP_PRESETS_MS`) are exported. Added 2026-11-18 (first consumer: the ATLAS
+  timeline, OpenStare #331/#532).
 - `RampPicker` + the ramp registry (`RAMPS`, `sampleRamp`, `rampById`, `rampGroupOf`,
   `RAMP_GROUPS`, `getRandomByIdPalette`, `hashToPaletteIndex`, the `DEFAULT_*_RAMP_ID`s) — the one
   list of colour ramps, each with its full published stops (ColorBrewer, matplotlib, Cividis,
