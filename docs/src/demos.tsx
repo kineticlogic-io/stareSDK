@@ -1,7 +1,7 @@
 // The guide's live examples, keyed by the `data-demo` slot they render into. Each one uses the real
 // component from `src/` with sample data. The optional views (map, graph, chart, code editor) load
 // lazily so their peer dependencies only download when the reader reaches them.
-import { lazy, useMemo, useRef, useState, type ComponentType, type CSSProperties, type ReactElement } from 'react'
+import { lazy, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties, type ReactElement } from 'react'
 import {
   TbAlertTriangle, TbBell, TbBolt, TbChartLine, TbDatabase, TbDownload, TbFilter, TbFocus2, TbHome,
   TbGridDots, TbInfoCircle, TbLayersSubtract, TbMap2, TbPencil, TbPhoto, TbPlus, TbPointer, TbPolygon, TbRadar2,
@@ -14,7 +14,7 @@ import {
   Disclosure, DraggablePopup, EmptyState, Facets, FieldSelect, FileDropZone, Flyout, HomeButton, InfoTip,
   Input, ItemCard, ItemClassificationBar, Label, MDText, Modal, MultiSelect, OpacitySlider, PageHeader, PersonCard, PersonChip,
   Pagination, Popover, PopoverMenuButton, ProfileChart, RadioGroup, RampPicker, SaveButton, SearchInput, SegmentedControl, Select, SideNav, Slider,
-  SortableList, Stepper, TabPanel, Tabs, TagInput, Timeline, Toggle, Tooltip, Tray, Tree, TypeaheadPicker, UnitSelect, RecordTable,
+  SortableList, Stepper, TabPanel, Tabs, TagInput, Timeline, PlaybackTimeline, advanceSelection, Toggle, Tooltip, Tray, Tree, TypeaheadPicker, UnitSelect, RecordTable,
   VirtualList, RangeSlider, ZoomRangeSlider, distanceToMeters, durationToSeconds, sortRows, speedToMetersPerSecond, useTheme, useToast, useTypeaheadKeyboard,
   type BadgeColor, type ClassificationMarking, type ClassifyOptions, type DataTableColumn,
   type DataTableSort,
@@ -1553,6 +1553,56 @@ function TimelineDemo() {
   )
 }
 
+const PT_START = Date.UTC(2026, 9, 1)
+const PT_END = Date.UTC(2026, 9, 4)
+/** A deterministic, busy-by-day ship count per hour for the demo. */
+const PT_COUNTS = Array.from({ length: 72 }, (_, i) => Math.round(20 + 18 * Math.sin((i / 24) * Math.PI * 2 - 1.2) + ((i * 7) % 5)))
+const PT_EVENTS = [5, 17.5, 26, 31, 49.25, 58, 66.5].map(h => PT_START + h * 3_600_000)
+
+function PlaybackTimelineDemo() {
+  const extent = { start: PT_START, end: PT_END }
+  const [range, setRange] = useState({ start: PT_START + 6 * 3_600_000, end: PT_START + 9 * 3_600_000 })
+  const [playing, setPlaying] = useState(false)
+  const [step, setStep] = useState(15 * 60_000)
+  // The caller's clock: one step a second while playing, stopping at the end. The step is worked
+  // out from the current range, outside any state updater (updaters stay pure).
+  const rangeRef = useRef(range)
+  useEffect(() => {
+    rangeRef.current = range
+  }, [range])
+  useEffect(() => {
+    if (!playing) return
+    const id = setInterval(() => {
+      const next = advanceSelection(rangeRef.current, step, 1, extent)
+      setRange(next.selection)
+      if (next.atEdge) setPlaying(false)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [playing, step]) // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="stack" style={{ gap: 'var(--space-sm)' }}>
+      <PlaybackTimeline
+        aria-label="Playback timeline"
+        extent={extent}
+        selection={range}
+        onSelectionChange={setRange}
+        playing={playing}
+        onPlayingChange={setPlaying}
+        onStep={dir => setRange(r => advanceSelection(r, step, dir, extent).selection)}
+        step={step}
+        onStepChange={setStep}
+        lanes={[
+          { id: 'ships', label: 'Ships (AIS)', density: { start: PT_START, end: PT_END, counts: PT_COUNTS } },
+          { id: 'aircraft', label: 'Aircraft (ADS-B)', tone: 'info', density: { start: PT_START, end: PT_END, counts: PT_COUNTS.map((c, i) => (i % 24 < 6 ? 0 : Math.round(c / 2))) } },
+          { id: 'events', label: 'Events of interest', tone: 'warning', instants: PT_EVENTS },
+          { id: 'video', label: 'FMV recording', tone: 'neutral', loading: true },
+        ]}
+      />
+      <span className="caption">Drag the range or its handles; press elsewhere on the plot to scrub. Play advances one step a second.</span>
+    </div>
+  )
+}
+
 const RECORDS: RecordRow[] = [
   {
     id: 's1',
@@ -1710,6 +1760,7 @@ export const DEMOS: Record<string, ComponentType> = {
   mdtext: MDTextDemo,
   profilechart: ProfileChartDemo,
   timeline: TimelineDemo,
+  playbacktimeline: PlaybackTimelineDemo,
   recordtable: RecordTableDemo,
   tray: TrayDemo,
   timeserieschart: TimeSeriesChartDemo,
