@@ -21,6 +21,7 @@ import {
   TbZoomIn,
   TbZoomOut,
 } from 'react-icons/tb'
+import { Badge } from './Badge.js'
 import { Button } from './Button.js'
 import { EmptyState } from './EmptyState.js'
 import { Input } from './Input.js'
@@ -70,6 +71,8 @@ import type { TimeUnit } from '../units/units.js'
  *   `step` / `onStepChange` from `stepOptions` (default 1 s to 1 day) or **Custom…** (a value and a
  *   time unit). The caller's clock advances the window with `advanceSelection`; the operator's rule
  *   is one step per second while playing.
+ * - **Live** (0.2.47): `live` shows a LIVE badge beside the readout (the caller decides: its range
+ *   reaches now and live data is shown), announced politely to screen readers.
  * - **Keyboard**: the window body and its handles are focusable — Left/Right move or resize by one
  *   step (Shift: ten); Space plays/pauses from the plot, the window or a handle; `+`/`-` zoom.
  *
@@ -121,6 +124,9 @@ export interface PlaybackTimelineProps {
   stepOptions?: readonly number[]
   /** The narrowest window, ms (default one second). */
   minSelectionMs?: number
+  /** The range reaches now and live data is shown (0.2.47): a LIVE badge beside the readout,
+   *  announced politely to screen readers. */
+  live?: boolean
   'aria-label': string
   /** Total height in px. Without it the timeline is as tall as its lanes, between `minHeight` and
    *  `maxHeight`; more lanes scroll. */
@@ -209,6 +215,7 @@ export function PlaybackTimeline({
   onStepChange,
   stepOptions = STEP_PRESETS_MS,
   minSelectionMs = PLAYBACK_MIN_SELECTION_MS,
+  live = false,
   'aria-label': ariaLabel,
   height,
   minHeight,
@@ -523,6 +530,14 @@ export function PlaybackTimeline({
           }}
         >
           {formatTimelineInstant(sel.start)} – {formatTimelineInstant(sel.end)} UTC
+        </span>
+        {live && (
+          <span data-pt-live="" aria-hidden style={{ flexShrink: 0, display: 'inline-flex' }}>
+            <Badge color="brand" outline uppercase size="sm">Live</Badge>
+          </span>
+        )}
+        <span role="status" aria-live="polite" style={SR_ONLY}>
+          {live ? 'Live' : ''}
         </span>
         <span style={{ display: 'inline-flex', gap: 2, flexShrink: 0 }}>
           <Button size="xs" variant="ghost" icon={<TbZoomOut />} aria-label="Zoom out" title="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} />

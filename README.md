@@ -169,6 +169,7 @@ and token rules:
   helpers (`clampSelection`, `moveSelection`, `resizeSelection`, `scrubSelection`, `formatStep`,
   `stepFromUnit`, `STEP_PRESETS_MS`) are exported. Added 2026-11-18 (first consumer: the ATLAS
   timeline, OpenStare #331/#532).
+  0.2.47: `live` shows a LIVE badge beside the range readout (OpenStare #536).
 - `RampPicker` + the ramp registry (`RAMPS`, `sampleRamp`, `rampById`, `rampGroupOf`,
   `RAMP_GROUPS`, `getRandomByIdPalette`, `hashToPaletteIndex`, the `DEFAULT_*_RAMP_ID`s) — the one
   list of colour ramps, each with its full published stops (ColorBrewer, matplotlib, Cividis,

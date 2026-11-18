@@ -1052,7 +1052,8 @@ import 'uplot/dist/uPlot.min.css'
       <em>Custom…</em>: a value and a time unit). Playback is controlled and the component owns no timer: the caller's clock
       advances the range with <code>advanceSelection(selection, step, dir, extent)</code>, which stops at the edge of the
       extent. Wheel or pinch zooms the view about the pointer, a sideways wheel or Shift+drag pans it, and the view never
-      leaves <code>extent</code>. Times are epoch milliseconds, shown in UTC.</p>
+      leaves <code>extent</code>. Times are epoch milliseconds, shown in UTC. Since 0.2.47, <code>live</code> shows a LIVE
+      badge beside the readout (the caller decides: its range reaches now and live data is shown).</p>
     <div class="example">
       <div class="example-label">Example <code>PlaybackTimeline</code></div>
       <div class="demo" data-demo="playbacktimeline"></div>
