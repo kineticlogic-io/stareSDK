@@ -18,14 +18,14 @@
     document.documentElement.dataset.theme = t
   })()
 </script>
-  <script type="module" crossorigin src="./assets/index-Bfh-VNMT.js"></script>
+  <script type="module" crossorigin src="./assets/index-DuvZwbJf.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-B0Z9INg1.js">
   <link rel="stylesheet" crossorigin href="./assets/index-BaobkdsM.css">
 </head>
 <body>
 <header class="guide-header">
   <a class="guide-brand" href="#overview">stare<span>SDK</span></a>
-  <span class="guide-version">v0.2.48</span>
+  <span class="guide-version">v0.2.49</span>
   <nav class="guide-nav" aria-label="Site">
     <a href="#getting-started">Start</a>
     <a href="#foundations">Foundations</a>
@@ -1050,9 +1050,9 @@ import 'uplot/dist/uPlot.min.css'
       resizable <strong>time range</strong> says what is shown; its end is the <strong>playhead</strong>. Drag the range to
       move it, drag a handle to resize it, press anywhere else on the plot to scrub (the range keeps its width and its end
       follows the pointer). Every change is reported as it happens, then once more with <code>final: true</code> on release.</p>
-    <p>The toolbar has the step size on the left (presets from one second to a day, or <em>Custom…</em>: a value and a time
-      unit, with an InfoTip saying it sets playback speed), step back, play/pause and step forward centred, and the readout
-      and zoom on the right. Playback is controlled and the component owns no timer: the caller's clock
+    <p>The toolbar centres the step size (presets from one second to a day, or <em>Custom…</em>: a value and a time unit,
+      with an InfoTip saying it sets playback speed) directly left of step back, play/pause and step forward, with the
+      readout and zoom on the right. Playback is controlled and the component owns no timer: the caller's clock
       advances the range with <code>advanceSelection(selection, step, dir, extent)</code>, which stops at the edge of the
       extent. Wheel or pinch zooms the view about the pointer, a sideways wheel or Shift+drag pans it, and the view never
       leaves <code>extent</code>. Times are epoch milliseconds, shown in UTC. Since 0.2.47, <code>live</code> shows a LIVE
@@ -1175,7 +1175,7 @@ npm run docs      # this guide, into docs/</code></pre>
     <p><a href="https://github.com/kineticlogic-io/stareSDK/blob/main/LICENSE">MIT</a>. © 2026 kineticlogic.io. For consulting
       or support, email <a href="mailto:admin@kineticlogic.io">admin@kineticlogic.io</a>.</p>
 
-    <footer class="guide-footer">stareSDK v0.2.48 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
+    <footer class="guide-footer">stareSDK v0.2.49 · the Elite Command Design System · built from <code>docs/src/</code> with <code>npm run docs</code></footer>
   </main>
 </div>
 </body>

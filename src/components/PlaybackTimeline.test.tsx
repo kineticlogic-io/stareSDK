@@ -193,17 +193,19 @@ describe('PlaybackTimeline', () => {
     expect(q(container, '[role="status"]').textContent).toBe('Live')
   })
 
-  it('the toolbar puts the step size (with its InfoTip) left, playback centred, readout and zoom right (0.2.48)', () => {
+  it('the toolbar centres the step size (with its InfoTip) directly left of playback; readout and zoom right (0.2.49)', () => {
     const { container } = render(props())
     const bar = q<HTMLElement>(container, '[data-pt-toolbar]')
     const cells = [...bar.children] as HTMLElement[]
     expect(cells).toHaveLength(3)
     expect(bar.style.gridTemplateColumns).toBe('minmax(0, 1fr) auto minmax(0, 1fr)')
-    expect(cells[0].matches('[data-pt-step]')).toBe(true)
-    expect(cells[0].querySelector('[aria-label="Step size"]')).not.toBeNull()
-    expect(cells[0].querySelector('[aria-label="About Step size"]')).not.toBeNull()
-    expect(cells[1].matches('[data-pt-playback]')).toBe(true)
-    expect([...cells[1].querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Step back', 'Play', 'Step forward'])
+    expect(cells[0].children).toHaveLength(0)
+    const centre = [...cells[1].children] as HTMLElement[]
+    expect(cells[1].matches('[data-pt-controls]')).toBe(true)
+    expect(centre.map((c) => (c.matches('[data-pt-step]') ? 'step' : c.matches('[data-pt-playback]') ? 'playback' : '?'))).toEqual(['step', 'playback'])
+    expect(centre[0].querySelector('[aria-label="Step size"]')).not.toBeNull()
+    expect(centre[0].querySelector('[aria-label="About Step size"]')).not.toBeNull()
+    expect([...centre[1].querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Step back', 'Play', 'Step forward'])
     expect(cells[2].querySelector('[data-pt-readout]')).not.toBeNull()
     expect(cells[2].querySelector('[aria-label="Fit to extent"]')).not.toBeNull()
   })
