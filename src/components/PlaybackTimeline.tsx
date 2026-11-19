@@ -566,7 +566,7 @@ export function PlaybackTimeline({
         with Shift. Plus and minus zoom.
       </div>
 
-      {/* ---- toolbar: the step size and playback together in the centre, the window as text and zoom on the right */}
+      {/* ---- toolbar: the window as text on the left, playback then the step size in the centre, zoom on the right */}
       <div
         data-pt-toolbar=""
         style={{
@@ -580,42 +580,7 @@ export function PlaybackTimeline({
           borderBottom: '1px solid var(--color-glass-border)',
         }}
       >
-        {/* Left column: empty, so the centre group stays centred on the toolbar. */}
-        <span aria-hidden />
-        <span data-pt-controls="" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-        <span data-pt-step="" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-xs)', minWidth: 0 }}>
-          <span ref={stepRef} style={{ flexShrink: 0, width: 104 }}>
-            <Select
-              options={stepSelectOptions}
-              value={String(step)}
-              ariaLabel="Step size"
-              title="Step size"
-              disabled={!onStepChange}
-              onChange={(v) => {
-                if (v === CUSTOM) setCustomOpen(true)
-                else if (v !== null) onStepChange?.(Number(v))
-              }}
-            />
-          </span>
-          <InfoTip label="Step size" width={260}>
-            This controls playback speed: how far the time range moves with each step. Playing moves one step every second.
-          </InfoTip>
-        </span>
-        <span data-pt-playback="" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-          <Button size="xs" variant="ghost" icon={<TbPlayerTrackPrev />} aria-label="Step back" title="Step back" disabled={atStart} onClick={() => onStep(-1)} />
-          <Button
-            size="xs"
-            variant="ghost"
-            icon={playing ? <TbPlayerPause /> : <TbPlayerPlay />}
-            aria-label={playing ? 'Pause' : 'Play'}
-            title={playing ? 'Pause' : 'Play'}
-            disabled={!playing && atEnd}
-            onClick={() => onPlayingChange(!playing)}
-          />
-          <Button size="xs" variant="ghost" icon={<TbPlayerTrackNext />} aria-label="Step forward" title="Step forward" disabled={atEnd} onClick={() => onStep(1)} />
-        </span>
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-sm)', minWidth: 0 }}>
+        <span data-pt-left="" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', minWidth: 0 }}>
           <span
             data-pt-readout=""
             style={{
@@ -638,6 +603,41 @@ export function PlaybackTimeline({
           <span role="status" aria-live="polite" style={SR_ONLY}>
             {live ? 'Live' : ''}
           </span>
+        </span>
+        <span data-pt-controls="" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+        <span data-pt-playback="" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+          <Button size="xs" variant="ghost" icon={<TbPlayerTrackPrev />} aria-label="Step back" title="Step back" disabled={atStart} onClick={() => onStep(-1)} />
+          <Button
+            size="xs"
+            variant="ghost"
+            icon={playing ? <TbPlayerPause /> : <TbPlayerPlay />}
+            aria-label={playing ? 'Pause' : 'Play'}
+            title={playing ? 'Pause' : 'Play'}
+            disabled={!playing && atEnd}
+            onClick={() => onPlayingChange(!playing)}
+          />
+          <Button size="xs" variant="ghost" icon={<TbPlayerTrackNext />} aria-label="Step forward" title="Step forward" disabled={atEnd} onClick={() => onStep(1)} />
+        </span>
+        <span data-pt-step="" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-xs)', minWidth: 0 }}>
+          <span ref={stepRef} style={{ flexShrink: 0, width: 104 }}>
+            <Select
+              options={stepSelectOptions}
+              value={String(step)}
+              ariaLabel="Step size"
+              title="Step size"
+              disabled={!onStepChange}
+              onChange={(v) => {
+                if (v === CUSTOM) setCustomOpen(true)
+                else if (v !== null) onStepChange?.(Number(v))
+              }}
+            />
+          </span>
+          <InfoTip label="Step size" width={260}>
+            This controls playback speed: how far the time range moves with each step. Playing moves one step every second.
+          </InfoTip>
+        </span>
+        </span>
+        <span data-pt-right="" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 }}>
           <span style={{ display: 'inline-flex', gap: 2, flexShrink: 0 }}>
             <Button size="xs" variant="ghost" icon={<TbZoomOut />} aria-label="Zoom out" title="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} />
             <Button size="xs" variant="ghost" icon={<TbZoomIn />} aria-label="Zoom in" title="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} />
