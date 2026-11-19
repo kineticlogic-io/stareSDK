@@ -1048,12 +1048,16 @@ import 'uplot/dist/uPlot.min.css'
       resizable <strong>time range</strong> says what is shown; its end is the <strong>playhead</strong>. Drag the range to
       move it, drag a handle to resize it, press anywhere else on the plot to scrub (the range keeps its width and its end
       follows the pointer). Every change is reported as it happens, then once more with <code>final: true</code> on release.</p>
-    <p>The toolbar has step back, play/pause, step forward and the step size (presets from one second to a day, or
-      <em>Custom…</em>: a value and a time unit). Playback is controlled and the component owns no timer: the caller's clock
+    <p>The toolbar has the step size on the left (presets from one second to a day, or <em>Custom…</em>: a value and a time
+      unit, with an InfoTip saying it sets playback speed), step back, play/pause and step forward centred, and the readout
+      and zoom on the right. Playback is controlled and the component owns no timer: the caller's clock
       advances the range with <code>advanceSelection(selection, step, dir, extent)</code>, which stops at the edge of the
       extent. Wheel or pinch zooms the view about the pointer, a sideways wheel or Shift+drag pans it, and the view never
       leaves <code>extent</code>. Times are epoch milliseconds, shown in UTC. Since 0.2.47, <code>live</code> shows a LIVE
-      badge beside the readout (the caller decides: its range reaches now and live data is shown).</p>
+      badge beside the readout (the caller decides: its range reaches now and live data is shown). Since 0.2.48,
+      <code>resizable</code> adds a drag handle on the top edge (Up/Down arrows on it too) that sets the height between
+      <code>minHeight</code> and <code>maxHeight</code>; with <code>storageKey</code> the height persists, like
+      <code>SideNav</code>'s width.</p>
     <div class="example">
       <div class="example-label">Example <code>PlaybackTimeline</code></div>
       <div class="demo" data-demo="playbacktimeline"></div>

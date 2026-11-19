@@ -24,6 +24,7 @@ import {
 import { Badge } from './Badge.js'
 import { Button } from './Button.js'
 import { EmptyState } from './EmptyState.js'
+import { InfoTip } from './InfoTip.js'
 import { Input } from './Input.js'
 import { Popover } from './Popover.js'
 import { Select } from './Select.js'
@@ -43,6 +44,8 @@ import {
   clampSelection,
   formatStep,
   moveSelection,
+  readTimelineHeight,
+  writeTimelineHeight,
   resizeSelection,
   scrubSelection,
   stepFromUnit,
@@ -73,6 +76,12 @@ import type { TimeUnit } from '../units/units.js'
  *   is one step per second while playing.
  * - **Live** (0.2.47): `live` shows a LIVE badge beside the readout (the caller decides: its range
  *   reaches now and live data is shown), announced politely to screen readers.
+ * - **Resizable height** (0.2.48, operator 2026-11-18): `resizable` adds a drag handle on the top
+ *   edge (the timeline sits at the bottom of a page, so dragging up makes it taller), also moved by
+ *   Up/Down arrows. With `storageKey` the height persists in localStorage, the same opt-in-by-key
+ *   rule as `SideNav`'s width. The drag is clamped to `minHeight`–`maxHeight` (default 600).
+ * - **Toolbar** (0.2.48): the step size on the left with an InfoTip, the playback buttons centred,
+ *   the readout, LIVE and zoom on the right.
  * - **Keyboard**: the window body and its handles are focusable — Left/Right move or resize by one
  *   step (Shift: ten); Space plays/pauses from the plot, the window or a handle; `+`/`-` zoom.
  *
@@ -128,6 +137,10 @@ export interface PlaybackTimelineProps {
    *  announced politely to screen readers. */
   live?: boolean
   'aria-label': string
+  /** A drag handle on the top edge resizes the height (0.2.48); Up/Down arrows on it too. */
+  resizable?: boolean
+  /** localStorage key for the user-resized height (0.2.48). Omit to keep it for the session only. */
+  storageKey?: string
   /** Total height in px. Without it the timeline is as tall as its lanes, between `minHeight` and
    *  `maxHeight`; more lanes scroll. */
   height?: number
@@ -159,6 +172,11 @@ const GRIP_W = 8
 const DRAG_THRESHOLD_PX = 3
 const ZOOM_STEP = 0.5
 const AUTO_MAX = 280
+/** The tallest a resizable timeline is dragged to, unless `maxHeight` says otherwise. */
+const RESIZE_MAX = 600
+/** How far one Up/Down press on the resize handle moves the height: one lane. */
+const RESIZE_KEY_PX = 24
+const RESIZE_HIT = 6
 const CUSTOM = '__custom'
 /** The narrowest view: one second. */
 const MIN_VIEW_MS = 1000
@@ -217,6 +235,8 @@ export function PlaybackTimeline({
   minSelectionMs = PLAYBACK_MIN_SELECTION_MS,
   live = false,
   'aria-label': ariaLabel,
+  resizable = false,
+  storageKey,
   height,
   minHeight,
   maxHeight,
@@ -319,10 +339,76 @@ export function PlaybackTimeline({
     return [...values.map((v) => ({ value: String(v), label: formatStep(v) })), { value: CUSTOM, label: 'Custom…' }]
   }, [stepOptions, step])
 
-  // ---- render
+  // ---- the user-resized height (resizable only), read once from storage
   const autoMin = minHeight ?? TOOLBAR_H + AXIS_H + 2 * LANE_H + 2
+  const resizeMax = Math.max(autoMin, maxHeight ?? RESIZE_MAX)
+  const clampH = (h: number) => Math.round(Math.min(resizeMax, Math.max(autoMin, h)))
+  const [userHeight, setUserHeight] = useState<number | null>(() => (resizable ? readTimelineHeight(storageKey) : null))
+  const [resizeHover, setResizeHover] = useState(false)
+  const resizeRef = useRef<{ y: number; h: number } | null>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const commitHeight = (h: number) => {
+    const next = clampH(h)
+    setUserHeight(next)
+    writeTimelineHeight(storageKey, next)
+  }
+
+  // ---- render
   const autoMax = Math.max(autoMin, maxHeight ?? AUTO_MAX)
-  const resolvedHeight = height ?? Math.min(autoMax, Math.max(autoMin, TOOLBAR_H + AXIS_H + Math.max(1, lanes.length) * LANE_H + 2))
+  const autoHeight = Math.min(autoMax, Math.max(autoMin, TOOLBAR_H + AXIS_H + Math.max(1, lanes.length) * LANE_H + 2))
+  const resolvedHeight = height ?? (resizable && userHeight !== null ? clampH(userHeight) : autoHeight)
+  const resizeHandle = resizable && height === undefined ? (
+    <div
+      role="separator"
+      aria-orientation="horizontal"
+      aria-label="Resize timeline"
+      aria-valuemin={autoMin}
+      aria-valuemax={resizeMax}
+      aria-valuenow={resolvedHeight}
+      tabIndex={0}
+      data-pt-resize=""
+      onPointerDown={(e) => {
+        resizeRef.current = { y: e.clientY, h: rootRef.current?.getBoundingClientRect().height ?? resolvedHeight }
+        try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* noop */ }
+        e.preventDefault()
+        e.stopPropagation()
+      }}
+      onPointerMove={(e) => {
+        const r = resizeRef.current
+        if (r) setUserHeight(clampH(r.h + (r.y - e.clientY)))
+      }}
+      onPointerUp={(e) => {
+        if (!resizeRef.current) return
+        resizeRef.current = null
+        try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* noop */ }
+        commitHeight(rootRef.current?.getBoundingClientRect().height ?? resolvedHeight)
+      }}
+      onPointerCancel={() => { resizeRef.current = null }}
+      onKeyDown={(e) => {
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
+        e.preventDefault()
+        e.stopPropagation()
+        commitHeight(resolvedHeight + (e.key === 'ArrowUp' ? 1 : -1) * RESIZE_KEY_PX * (e.shiftKey ? 4 : 1))
+      }}
+      onPointerEnter={() => setResizeHover(true)}
+      onPointerLeave={() => setResizeHover(false)}
+      onFocus={() => setResizeHover(true)}
+      onBlur={() => setResizeHover(false)}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: RESIZE_HIT,
+        zIndex: 2,
+        cursor: 'ns-resize',
+        touchAction: 'none',
+        outline: 'none',
+        borderTop: `2px solid ${resizeHover ? 'var(--color-accent)' : 'transparent'}`,
+        boxSizing: 'border-box',
+      }}
+    />
+  ) : null
   const rootStyle: CSSProperties = {
     position: 'relative',
     display: 'flex',
@@ -339,7 +425,8 @@ export function PlaybackTimeline({
 
   if (!extent || !view) {
     return (
-      <div role="region" aria-label={ariaLabel} className="ui-playback-timeline" style={{ ...rootStyle, justifyContent: 'center' }}>
+      <div ref={rootRef} role="region" aria-label={ariaLabel} className="ui-playback-timeline" style={{ ...rootStyle, justifyContent: 'center' }}>
+        {resizeHandle}
         <EmptyState size="sm" title={emptyTitle} description={emptyDescription} />
       </div>
     )
@@ -472,16 +559,19 @@ export function PlaybackTimeline({
   const extentLen = extent.end - extent.start
 
   return (
-    <div role="region" aria-label={ariaLabel} aria-describedby={helpId} className="ui-playback-timeline" style={rootStyle} onKeyDown={onKeyDown}>
+    <div ref={rootRef} role="region" aria-label={ariaLabel} aria-describedby={helpId} className="ui-playback-timeline" style={rootStyle} onKeyDown={onKeyDown}>
+      {resizeHandle}
       <div id={helpId} style={SR_ONLY}>
         Space plays and pauses. On the time range or its handles, left and right arrow keys move or resize it by one step, ten
         with Shift. Plus and minus zoom.
       </div>
 
-      {/* ---- toolbar: playback, the window as text, zoom */}
+      {/* ---- toolbar: the step size on the left, playback centred, the window as text and zoom on the right */}
       <div
+        data-pt-toolbar=""
         style={{
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
           alignItems: 'center',
           gap: 'var(--space-sm)',
           height: TOOLBAR_H,
@@ -490,7 +580,25 @@ export function PlaybackTimeline({
           borderBottom: '1px solid var(--color-glass-border)',
         }}
       >
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+        <span data-pt-step="" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-xs)', minWidth: 0 }}>
+          <span ref={stepRef} style={{ flexShrink: 0, width: 104 }}>
+            <Select
+              options={stepSelectOptions}
+              value={String(step)}
+              ariaLabel="Step size"
+              title="Step size"
+              disabled={!onStepChange}
+              onChange={(v) => {
+                if (v === CUSTOM) setCustomOpen(true)
+                else if (v !== null) onStepChange?.(Number(v))
+              }}
+            />
+          </span>
+          <InfoTip label="Step size" width={260}>
+            This controls playback speed: how far the time range moves with each step. Playing moves one step every second.
+          </InfoTip>
+        </span>
+        <span data-pt-playback="" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
           <Button size="xs" variant="ghost" icon={<TbPlayerTrackPrev />} aria-label="Step back" title="Step back" disabled={atStart} onClick={() => onStep(-1)} />
           <Button
             size="xs"
@@ -503,46 +611,34 @@ export function PlaybackTimeline({
           />
           <Button size="xs" variant="ghost" icon={<TbPlayerTrackNext />} aria-label="Step forward" title="Step forward" disabled={atEnd} onClick={() => onStep(1)} />
         </span>
-        <span ref={stepRef} style={{ flexShrink: 0, width: 104 }}>
-          <Select
-            options={stepSelectOptions}
-            value={String(step)}
-            ariaLabel="Step size"
-            title="Step size"
-            disabled={!onStepChange}
-            onChange={(v) => {
-              if (v === CUSTOM) setCustomOpen(true)
-              else if (v !== null) onStepChange?.(Number(v))
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-sm)', minWidth: 0 }}>
+          <span
+            data-pt-readout=""
+            style={{
+              minWidth: 0,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              color: 'var(--color-text-secondary)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
-          />
-        </span>
-        <span
-          data-pt-readout=""
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11,
-            color: 'var(--color-text-secondary)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {formatTimelineInstant(sel.start)} – {formatTimelineInstant(sel.end)} UTC
-        </span>
-        {live && (
-          <span data-pt-live="" aria-hidden style={{ flexShrink: 0, display: 'inline-flex' }}>
-            <Badge color="brand" outline uppercase size="sm">Live</Badge>
+          >
+            {formatTimelineInstant(sel.start)} – {formatTimelineInstant(sel.end)} UTC
           </span>
-        )}
-        <span role="status" aria-live="polite" style={SR_ONLY}>
-          {live ? 'Live' : ''}
-        </span>
-        <span style={{ display: 'inline-flex', gap: 2, flexShrink: 0 }}>
-          <Button size="xs" variant="ghost" icon={<TbZoomOut />} aria-label="Zoom out" title="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} />
-          <Button size="xs" variant="ghost" icon={<TbZoomIn />} aria-label="Zoom in" title="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} />
-          <Button size="xs" variant="ghost" icon={<TbArrowAutofitWidth />} aria-label="Fit to extent" title="Fit to extent" onClick={() => commitView(null)} />
+          {live && (
+            <span data-pt-live="" aria-hidden style={{ flexShrink: 0, display: 'inline-flex' }}>
+              <Badge color="brand" outline uppercase size="sm">Live</Badge>
+            </span>
+          )}
+          <span role="status" aria-live="polite" style={SR_ONLY}>
+            {live ? 'Live' : ''}
+          </span>
+          <span style={{ display: 'inline-flex', gap: 2, flexShrink: 0 }}>
+            <Button size="xs" variant="ghost" icon={<TbZoomOut />} aria-label="Zoom out" title="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} />
+            <Button size="xs" variant="ghost" icon={<TbZoomIn />} aria-label="Zoom in" title="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} />
+            <Button size="xs" variant="ghost" icon={<TbArrowAutofitWidth />} aria-label="Fit to extent" title="Fit to extent" onClick={() => commitView(null)} />
+          </span>
         </span>
       </div>
 
