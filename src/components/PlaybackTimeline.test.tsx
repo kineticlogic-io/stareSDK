@@ -193,21 +193,24 @@ describe('PlaybackTimeline', () => {
     expect(q(container, '[role="status"]').textContent).toBe('Live')
   })
 
-  it('the toolbar centres the step size (with its InfoTip) directly left of playback; readout and zoom right (0.2.49)', () => {
-    const { container } = render(props())
+  it('the toolbar: readout and LIVE left, playback then the step size (with its InfoTip) centred, zoom right (0.2.50)', () => {
+    const { container } = render(props({ live: true }))
     const bar = q<HTMLElement>(container, '[data-pt-toolbar]')
     const cells = [...bar.children] as HTMLElement[]
     expect(cells).toHaveLength(3)
     expect(bar.style.gridTemplateColumns).toBe('minmax(0, 1fr) auto minmax(0, 1fr)')
-    expect(cells[0].children).toHaveLength(0)
+    expect(cells[0].matches('[data-pt-left]')).toBe(true)
+    expect(cells[0].querySelector('[data-pt-readout]')).not.toBeNull()
+    expect(cells[0].querySelector('[data-pt-live]')).not.toBeNull()
     const centre = [...cells[1].children] as HTMLElement[]
     expect(cells[1].matches('[data-pt-controls]')).toBe(true)
-    expect(centre.map((c) => (c.matches('[data-pt-step]') ? 'step' : c.matches('[data-pt-playback]') ? 'playback' : '?'))).toEqual(['step', 'playback'])
-    expect(centre[0].querySelector('[aria-label="Step size"]')).not.toBeNull()
-    expect(centre[0].querySelector('[aria-label="About Step size"]')).not.toBeNull()
-    expect([...centre[1].querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Step back', 'Play', 'Step forward'])
-    expect(cells[2].querySelector('[data-pt-readout]')).not.toBeNull()
-    expect(cells[2].querySelector('[aria-label="Fit to extent"]')).not.toBeNull()
+    expect(centre.map((c) => (c.matches('[data-pt-step]') ? 'step' : c.matches('[data-pt-playback]') ? 'playback' : '?'))).toEqual(['playback', 'step'])
+    expect([...centre[0].querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Step back', 'Play', 'Step forward'])
+    expect(centre[1].querySelector('[aria-label="Step size"]')).not.toBeNull()
+    expect(centre[1].querySelector('[aria-label="About Step size"]')).not.toBeNull()
+    expect(cells[2].matches('[data-pt-right]')).toBe(true)
+    expect(cells[2].querySelector('[data-pt-readout]')).toBeNull()
+    expect([...cells[2].querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Zoom out', 'Zoom in', 'Fit to extent'])
   })
 
   it('resizable: the top edge drags the height, arrows move it, and it persists under storageKey (0.2.48)', () => {

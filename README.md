@@ -175,6 +175,8 @@ and token rules:
   step size (with an InfoTip) left, playback centred, readout and zoom right (OpenStare #536).
   0.2.49: the step size sits directly left of the playback buttons, the two centred together
   (OpenStare #536).
+  0.2.50: the readout (and LIVE) move to the left; the step size sits directly right of the
+  playback buttons, still centred together; zoom stays right (OpenStare #536).
 - `RampPicker` + the ramp registry (`RAMPS`, `sampleRamp`, `rampById`, `rampGroupOf`,
   `RAMP_GROUPS`, `getRandomByIdPalette`, `hashToPaletteIndex`, the `DEFAULT_*_RAMP_ID`s) — the one
   list of colour ramps, each with its full published stops (ColorBrewer, matplotlib, Cividis,
