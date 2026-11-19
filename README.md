@@ -177,6 +177,10 @@ and token rules:
   (OpenStare #536).
   0.2.50: the readout (and LIVE) move to the left; the step size sits directly right of the
   playback buttons, still centred together; zoom stays right (OpenStare #536).
+  0.2.51: the toolbar is configurable. `toolbar` (`PlaybackToolbarLayout`) lists which controls sit
+  in the left, centred and right cells (`'readout' | 'live' | 'playback' | 'step' | 'zoom'`; a
+  control listed nowhere is hidden; default `DEFAULT_PLAYBACK_TOOLBAR`), and `stepInfo` sets the step
+  size's InfoTip text (`null` hides it). An app rearranges the toolbar without a stareSDK release.
 - `RampPicker` + the ramp registry (`RAMPS`, `sampleRamp`, `rampById`, `rampGroupOf`,
   `RAMP_GROUPS`, `getRandomByIdPalette`, `hashToPaletteIndex`, the `DEFAULT_*_RAMP_ID`s) — the one
   list of colour ramps, each with its full published stops (ColorBrewer, matplotlib, Cividis,

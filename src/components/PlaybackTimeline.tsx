@@ -1,4 +1,5 @@
 import {
+  Fragment,
   memo,
   useEffect,
   useId,
@@ -112,6 +113,28 @@ export interface PlaybackLane {
   error?: string | null
 }
 
+/** A toolbar control (0.2.51). `readout` is the range as text; `live` the LIVE badge (shown only while
+ *  `live`); `playback` step back / play-pause / step forward; `step` the step-size select and its
+ *  InfoTip; `zoom` zoom out / in / fit. */
+export type PlaybackToolbarItem = 'readout' | 'live' | 'playback' | 'step' | 'zoom'
+
+/** Where each toolbar control sits (0.2.51). The centre cell is centred on the toolbar; a control
+ *  listed nowhere is not shown. Listing a control twice is not supported. */
+export interface PlaybackToolbarLayout {
+  left?: readonly PlaybackToolbarItem[]
+  center?: readonly PlaybackToolbarItem[]
+  right?: readonly PlaybackToolbarItem[]
+}
+
+/** The default toolbar: the readout and LIVE left, playback then the step size centred, zoom right. */
+export const DEFAULT_PLAYBACK_TOOLBAR: Required<PlaybackToolbarLayout> = {
+  left: ['readout', 'live'],
+  center: ['playback', 'step'],
+  right: ['zoom'],
+}
+
+const DEFAULT_STEP_INFO = 'This controls playback speed: how far the time range moves with each step. Playing moves one step every second.'
+
 export interface PlaybackTimelineProps {
   /** The outer bounds, epoch ms. The view and the window stay inside them. `null`: the empty state. */
   extent: PlaybackSpan | null
@@ -136,6 +159,10 @@ export interface PlaybackTimelineProps {
   /** The range reaches now and live data is shown (0.2.47): a LIVE badge beside the readout,
    *  announced politely to screen readers. */
   live?: boolean
+  /** Where each toolbar control sits (0.2.51; default `DEFAULT_PLAYBACK_TOOLBAR`). */
+  toolbar?: PlaybackToolbarLayout
+  /** The step size's InfoTip text (0.2.51); `null` hides the InfoTip. */
+  stepInfo?: ReactNode
   'aria-label': string
   /** A drag handle on the top edge resizes the height (0.2.48); Up/Down arrows on it too. */
   resizable?: boolean
@@ -234,6 +261,8 @@ export function PlaybackTimeline({
   stepOptions = STEP_PRESETS_MS,
   minSelectionMs = PLAYBACK_MIN_SELECTION_MS,
   live = false,
+  toolbar = DEFAULT_PLAYBACK_TOOLBAR,
+  stepInfo = DEFAULT_STEP_INFO,
   'aria-label': ariaLabel,
   resizable = false,
   storageKey,
@@ -558,6 +587,74 @@ export function PlaybackTimeline({
   const helpId = `${uid}-help`
   const extentLen = extent.end - extent.start
 
+  const toolbarItem: Record<PlaybackToolbarItem, ReactNode> = {
+    readout: (
+      <span
+        data-pt-readout=""
+        style={{
+          minWidth: 0,
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+          color: 'var(--color-text-secondary)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {formatTimelineInstant(sel.start)} – {formatTimelineInstant(sel.end)} UTC
+      </span>
+    ),
+    live: live ? (
+      <span data-pt-live="" aria-hidden style={{ flexShrink: 0, display: 'inline-flex' }}>
+        <Badge color="brand" outline uppercase size="sm">Live</Badge>
+      </span>
+    ) : null,
+    playback: (
+      <span data-pt-playback="" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+        <Button size="xs" variant="ghost" icon={<TbPlayerTrackPrev />} aria-label="Step back" title="Step back" disabled={atStart} onClick={() => onStep(-1)} />
+        <Button
+          size="xs"
+          variant="ghost"
+          icon={playing ? <TbPlayerPause /> : <TbPlayerPlay />}
+          aria-label={playing ? 'Pause' : 'Play'}
+          title={playing ? 'Pause' : 'Play'}
+          disabled={!playing && atEnd}
+          onClick={() => onPlayingChange(!playing)}
+        />
+        <Button size="xs" variant="ghost" icon={<TbPlayerTrackNext />} aria-label="Step forward" title="Step forward" disabled={atEnd} onClick={() => onStep(1)} />
+      </span>
+    ),
+    step: (
+      <span data-pt-step="" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-xs)', minWidth: 0 }}>
+        <span ref={stepRef} style={{ flexShrink: 0, width: 104 }}>
+          <Select
+            options={stepSelectOptions}
+            value={String(step)}
+            ariaLabel="Step size"
+            title="Step size"
+            disabled={!onStepChange}
+            onChange={(v) => {
+              if (v === CUSTOM) setCustomOpen(true)
+              else if (v !== null) onStepChange?.(Number(v))
+            }}
+          />
+        </span>
+        {stepInfo != null && stepInfo !== false && (
+          <InfoTip label="Step size" width={260}>
+            {stepInfo}
+          </InfoTip>
+        )}
+      </span>
+    ),
+    zoom: (
+      <span style={{ display: 'inline-flex', gap: 2, flexShrink: 0 }}>
+        <Button size="xs" variant="ghost" icon={<TbZoomOut />} aria-label="Zoom out" title="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} />
+        <Button size="xs" variant="ghost" icon={<TbZoomIn />} aria-label="Zoom in" title="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} />
+        <Button size="xs" variant="ghost" icon={<TbArrowAutofitWidth />} aria-label="Fit to extent" title="Fit to extent" onClick={() => commitView(null)} />
+      </span>
+    ),
+  }
+
   return (
     <div ref={rootRef} role="region" aria-label={ariaLabel} aria-describedby={helpId} className="ui-playback-timeline" style={rootStyle} onKeyDown={onKeyDown}>
       {resizeHandle}
@@ -566,7 +663,7 @@ export function PlaybackTimeline({
         with Shift. Plus and minus zoom.
       </div>
 
-      {/* ---- toolbar: the window as text on the left, playback then the step size in the centre, zoom on the right */}
+      {/* ---- toolbar: three cells (left, centred, right), filled from the `toolbar` layout */}
       <div
         data-pt-toolbar=""
         style={{
@@ -580,69 +677,26 @@ export function PlaybackTimeline({
           borderBottom: '1px solid var(--color-glass-border)',
         }}
       >
-        <span data-pt-left="" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', minWidth: 0 }}>
+        {(['left', 'center', 'right'] as const).map((cell) => (
           <span
-            data-pt-readout=""
+            key={cell}
+            data-pt-cell={cell}
+            {...(cell === 'center' ? { 'data-pt-controls': '' } : {})}
             style={{
+              display: cell === 'center' ? 'inline-flex' : 'flex',
+              alignItems: 'center',
+              justifyContent: cell === 'right' ? 'flex-end' : 'flex-start',
+              gap: 'var(--space-sm)',
               minWidth: 0,
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              color: 'var(--color-text-secondary)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
             }}
           >
-            {formatTimelineInstant(sel.start)} – {formatTimelineInstant(sel.end)} UTC
+            {(toolbar[cell] ?? []).map((item) => (
+              <Fragment key={item}>{toolbarItem[item]}</Fragment>
+            ))}
           </span>
-          {live && (
-            <span data-pt-live="" aria-hidden style={{ flexShrink: 0, display: 'inline-flex' }}>
-              <Badge color="brand" outline uppercase size="sm">Live</Badge>
-            </span>
-          )}
-          <span role="status" aria-live="polite" style={SR_ONLY}>
-            {live ? 'Live' : ''}
-          </span>
-        </span>
-        <span data-pt-controls="" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-        <span data-pt-playback="" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-          <Button size="xs" variant="ghost" icon={<TbPlayerTrackPrev />} aria-label="Step back" title="Step back" disabled={atStart} onClick={() => onStep(-1)} />
-          <Button
-            size="xs"
-            variant="ghost"
-            icon={playing ? <TbPlayerPause /> : <TbPlayerPlay />}
-            aria-label={playing ? 'Pause' : 'Play'}
-            title={playing ? 'Pause' : 'Play'}
-            disabled={!playing && atEnd}
-            onClick={() => onPlayingChange(!playing)}
-          />
-          <Button size="xs" variant="ghost" icon={<TbPlayerTrackNext />} aria-label="Step forward" title="Step forward" disabled={atEnd} onClick={() => onStep(1)} />
-        </span>
-        <span data-pt-step="" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-xs)', minWidth: 0 }}>
-          <span ref={stepRef} style={{ flexShrink: 0, width: 104 }}>
-            <Select
-              options={stepSelectOptions}
-              value={String(step)}
-              ariaLabel="Step size"
-              title="Step size"
-              disabled={!onStepChange}
-              onChange={(v) => {
-                if (v === CUSTOM) setCustomOpen(true)
-                else if (v !== null) onStepChange?.(Number(v))
-              }}
-            />
-          </span>
-          <InfoTip label="Step size" width={260}>
-            This controls playback speed: how far the time range moves with each step. Playing moves one step every second.
-          </InfoTip>
-        </span>
-        </span>
-        <span data-pt-right="" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 }}>
-          <span style={{ display: 'inline-flex', gap: 2, flexShrink: 0 }}>
-            <Button size="xs" variant="ghost" icon={<TbZoomOut />} aria-label="Zoom out" title="Zoom out" onClick={() => zoomBy(1 / ZOOM_STEP)} />
-            <Button size="xs" variant="ghost" icon={<TbZoomIn />} aria-label="Zoom in" title="Zoom in" onClick={() => zoomBy(ZOOM_STEP)} />
-            <Button size="xs" variant="ghost" icon={<TbArrowAutofitWidth />} aria-label="Fit to extent" title="Fit to extent" onClick={() => commitView(null)} />
-          </span>
+        ))}
+        <span role="status" aria-live="polite" style={SR_ONLY}>
+          {live ? 'Live' : ''}
         </span>
       </div>
 

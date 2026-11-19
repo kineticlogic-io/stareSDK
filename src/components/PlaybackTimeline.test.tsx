@@ -7,7 +7,7 @@
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { PlaybackTimeline, type PlaybackTimelineProps } from './PlaybackTimeline.js'
+import { DEFAULT_PLAYBACK_TOOLBAR, PlaybackTimeline, type PlaybackTimelineProps } from './PlaybackTimeline.js'
 import {
   STEP_PRESETS_MS,
   advanceSelection,
@@ -193,24 +193,50 @@ describe('PlaybackTimeline', () => {
     expect(q(container, '[role="status"]').textContent).toBe('Live')
   })
 
-  it('the toolbar: readout and LIVE left, playback then the step size (with its InfoTip) centred, zoom right (0.2.50)', () => {
-    const { container } = render(props({ live: true }))
+  const cellsOf = (container: HTMLElement) => {
     const bar = q<HTMLElement>(container, '[data-pt-toolbar]')
-    const cells = [...bar.children] as HTMLElement[]
-    expect(cells).toHaveLength(3)
     expect(bar.style.gridTemplateColumns).toBe('minmax(0, 1fr) auto minmax(0, 1fr)')
-    expect(cells[0].matches('[data-pt-left]')).toBe(true)
-    expect(cells[0].querySelector('[data-pt-readout]')).not.toBeNull()
-    expect(cells[0].querySelector('[data-pt-live]')).not.toBeNull()
-    const centre = [...cells[1].children] as HTMLElement[]
-    expect(cells[1].matches('[data-pt-controls]')).toBe(true)
-    expect(centre.map((c) => (c.matches('[data-pt-step]') ? 'step' : c.matches('[data-pt-playback]') ? 'playback' : '?'))).toEqual(['playback', 'step'])
-    expect([...centre[0].querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Step back', 'Play', 'Step forward'])
-    expect(centre[1].querySelector('[aria-label="Step size"]')).not.toBeNull()
-    expect(centre[1].querySelector('[aria-label="About Step size"]')).not.toBeNull()
-    expect(cells[2].matches('[data-pt-right]')).toBe(true)
-    expect(cells[2].querySelector('[data-pt-readout]')).toBeNull()
-    expect([...cells[2].querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Zoom out', 'Zoom in', 'Fit to extent'])
+    const cells = [...bar.querySelectorAll<HTMLElement>(':scope > [data-pt-cell]')]
+    expect(cells.map((c) => c.dataset.ptCell)).toEqual(['left', 'center', 'right'])
+    return cells
+  }
+  const itemsOf = (cell: HTMLElement) =>
+    [...cell.children].map((c) =>
+      c.matches('[data-pt-readout]') ? 'readout' : c.matches('[data-pt-live]') ? 'live' : c.matches('[data-pt-playback]') ? 'playback' : c.matches('[data-pt-step]') ? 'step' : c.querySelector('[aria-label="Fit to extent"]') ? 'zoom' : '?',
+    )
+
+  it('the default toolbar: readout and LIVE left, playback then the step size centred, zoom right (0.2.51)', () => {
+    const { container } = render(props({ live: true }))
+    const [left, centre, right] = cellsOf(container)
+    expect(itemsOf(left)).toEqual(['readout', 'live'])
+    expect(centre.matches('[data-pt-controls]')).toBe(true)
+    expect(itemsOf(centre)).toEqual(['playback', 'step'])
+    expect(itemsOf(right)).toEqual(['zoom'])
+    expect([...centre.querySelectorAll('[data-pt-playback] button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Step back', 'Play', 'Step forward'])
+    expect(centre.querySelector('[aria-label="About Step size"]')).not.toBeNull()
+    expect(DEFAULT_PLAYBACK_TOOLBAR).toEqual({ left: ['readout', 'live'], center: ['playback', 'step'], right: ['zoom'] })
+  })
+
+  it('toolbar places each control where the caller lists it, and leaves out what is not listed (0.2.51)', () => {
+    const { container } = render(props({ live: true, toolbar: { left: ['zoom'], center: ['step', 'playback'], right: ['live', 'readout'] } }))
+    const [left, centre, right] = cellsOf(container)
+    expect(itemsOf(left)).toEqual(['zoom'])
+    expect(itemsOf(centre)).toEqual(['step', 'playback'])
+    expect(itemsOf(right)).toEqual(['live', 'readout'])
+    const sparse = render(props({ toolbar: { center: ['playback'] } })).container
+    const [l2, c2, r2] = cellsOf(sparse)
+    expect(itemsOf(l2)).toEqual([])
+    expect(itemsOf(c2)).toEqual(['playback'])
+    expect(itemsOf(r2)).toEqual([])
+    expect(sparse.querySelector('[aria-label="Step size"]')).toBeNull()
+    // The LIVE badge shows only while live, wherever it is placed; the announcement is always there.
+    expect(container.querySelector('[role="status"]')?.textContent).toBe('Live')
+  })
+
+  it('stepInfo sets the step size InfoTip text, and null hides it (0.2.51)', () => {
+    const { container } = render(props({ stepInfo: 'How far each step moves.' }))
+    expect(container.querySelector('[aria-label="About Step size"]')).not.toBeNull()
+    expect(render(props({ stepInfo: null })).container.querySelector('[aria-label="About Step size"]')).toBeNull()
   })
 
   it('resizable: the top edge drags the height, arrows move it, and it persists under storageKey (0.2.48)', () => {
