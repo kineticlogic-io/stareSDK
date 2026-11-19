@@ -80,8 +80,8 @@ import type { TimeUnit } from '../units/units.js'
  *   edge (the timeline sits at the bottom of a page, so dragging up makes it taller), also moved by
  *   Up/Down arrows. With `storageKey` the height persists in localStorage, the same opt-in-by-key
  *   rule as `SideNav`'s width. The drag is clamped to `minHeight`–`maxHeight` (default 600).
- * - **Toolbar** (0.2.48): the step size on the left with an InfoTip, the playback buttons centred,
- *   the readout, LIVE and zoom on the right.
+ * - **Toolbar** (0.2.49): the step size (with an InfoTip) directly left of the playback buttons,
+ *   the two centred together; the readout, LIVE and zoom on the right.
  * - **Keyboard**: the window body and its handles are focusable — Left/Right move or resize by one
  *   step (Shift: ten); Space plays/pauses from the plot, the window or a handle; `+`/`-` zoom.
  *
@@ -566,7 +566,7 @@ export function PlaybackTimeline({
         with Shift. Plus and minus zoom.
       </div>
 
-      {/* ---- toolbar: the step size on the left, playback centred, the window as text and zoom on the right */}
+      {/* ---- toolbar: the step size and playback together in the centre, the window as text and zoom on the right */}
       <div
         data-pt-toolbar=""
         style={{
@@ -580,6 +580,9 @@ export function PlaybackTimeline({
           borderBottom: '1px solid var(--color-glass-border)',
         }}
       >
+        {/* Left column: empty, so the centre group stays centred on the toolbar. */}
+        <span aria-hidden />
+        <span data-pt-controls="" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
         <span data-pt-step="" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-xs)', minWidth: 0 }}>
           <span ref={stepRef} style={{ flexShrink: 0, width: 104 }}>
             <Select
@@ -610,6 +613,7 @@ export function PlaybackTimeline({
             onClick={() => onPlayingChange(!playing)}
           />
           <Button size="xs" variant="ghost" icon={<TbPlayerTrackNext />} aria-label="Step forward" title="Step forward" disabled={atEnd} onClick={() => onStep(1)} />
+        </span>
         </span>
         <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--space-sm)', minWidth: 0 }}>
           <span

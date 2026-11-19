@@ -173,6 +173,8 @@ and token rules:
   0.2.48: `resizable` (+ `storageKey`) adds a drag handle on the top edge that resizes the height,
   persisted like `SideNav`'s width (`readTimelineHeight`/`writeTimelineHeight`); the toolbar puts the
   step size (with an InfoTip) left, playback centred, readout and zoom right (OpenStare #536).
+  0.2.49: the step size sits directly left of the playback buttons, the two centred together
+  (OpenStare #536).
 - `RampPicker` + the ramp registry (`RAMPS`, `sampleRamp`, `rampById`, `rampGroupOf`,
   `RAMP_GROUPS`, `getRandomByIdPalette`, `hashToPaletteIndex`, the `DEFAULT_*_RAMP_ID`s) — the one
   list of colour ramps, each with its full published stops (ColorBrewer, matplotlib, Cividis,
