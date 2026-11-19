@@ -117,3 +117,30 @@ export function advanceSelection(
   const atEdge = dir > 0 ? selection.end >= extent.end : selection.start <= extent.start
   return { selection, atEdge }
 }
+
+/**
+ * A resizable timeline's persisted height (0.2.48): `null` when there is no key, nothing stored, a
+ * stored value that is not a positive whole number of pixels, or storage that throws. Opt-in by key
+ * presence, like `SideNav`'s width.
+ */
+export function readTimelineHeight(storageKey: string | undefined): number | null {
+  if (!storageKey) return null
+  try {
+    const raw = localStorage.getItem(storageKey)
+    if (raw === null || !/^\d+$/.test(raw)) return null
+    const n = parseInt(raw, 10)
+    return n > 0 ? n : null
+  } catch {
+    return null
+  }
+}
+
+/** Persists a resizable timeline's height; a no-op without a key or when storage throws. */
+export function writeTimelineHeight(storageKey: string | undefined, height: number): void {
+  if (!storageKey) return
+  try {
+    localStorage.setItem(storageKey, String(Math.round(height)))
+  } catch {
+    /* ignore */
+  }
+}

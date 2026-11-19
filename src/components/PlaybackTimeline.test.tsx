@@ -14,9 +14,11 @@ import {
   clampSelection,
   formatStep,
   moveSelection,
+  readTimelineHeight,
   resizeSelection,
   scrubSelection,
   stepFromUnit,
+  writeTimelineHeight,
 } from './PlaybackTimeline.helpers.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -130,6 +132,21 @@ describe('PlaybackTimeline helpers', () => {
   })
 })
 
+describe('timeline height storage (0.2.48)', () => {
+  it('reads back only a positive whole number, and needs a key', () => {
+    expect(readTimelineHeight(undefined)).toBeNull()
+    writeTimelineHeight(undefined, 200)
+    writeTimelineHeight('pt.h', 212.6)
+    expect(readTimelineHeight('pt.h')).toBe(213)
+    for (const bad of ['', 'abc', '-5', '0', '12.5']) {
+      localStorage.setItem('pt.h', bad)
+      expect(readTimelineHeight('pt.h')).toBeNull()
+    }
+    localStorage.removeItem('pt.h')
+    expect(readTimelineHeight('pt.h')).toBeNull()
+  })
+})
+
 describe('PlaybackTimeline', () => {
   it('draws one named lane per series: density bars, event marks, loading and error', () => {
     const { container, rerender } = render(props())
@@ -174,6 +191,48 @@ describe('PlaybackTimeline', () => {
     rerender(props({ live: true }))
     expect(q(container, '[data-pt-live]').textContent?.toUpperCase()).toBe('LIVE')
     expect(q(container, '[role="status"]').textContent).toBe('Live')
+  })
+
+  it('the toolbar puts the step size (with its InfoTip) left, playback centred, readout and zoom right (0.2.48)', () => {
+    const { container } = render(props())
+    const bar = q<HTMLElement>(container, '[data-pt-toolbar]')
+    const cells = [...bar.children] as HTMLElement[]
+    expect(cells).toHaveLength(3)
+    expect(bar.style.gridTemplateColumns).toBe('minmax(0, 1fr) auto minmax(0, 1fr)')
+    expect(cells[0].matches('[data-pt-step]')).toBe(true)
+    expect(cells[0].querySelector('[aria-label="Step size"]')).not.toBeNull()
+    expect(cells[0].querySelector('[aria-label="About Step size"]')).not.toBeNull()
+    expect(cells[1].matches('[data-pt-playback]')).toBe(true)
+    expect([...cells[1].querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Step back', 'Play', 'Step forward'])
+    expect(cells[2].querySelector('[data-pt-readout]')).not.toBeNull()
+    expect(cells[2].querySelector('[aria-label="Fit to extent"]')).not.toBeNull()
+  })
+
+  it('resizable: the top edge drags the height, arrows move it, and it persists under storageKey (0.2.48)', () => {
+    localStorage.removeItem('pt.test.height')
+    expect(render(props()).container.querySelector('[data-pt-resize]')).toBeNull()
+    const { container } = render(props({ resizable: true, storageKey: 'pt.test.height', minHeight: 100, maxHeight: 400 }))
+    const root = q<HTMLElement>(container, '.ui-playback-timeline')
+    const grip = q<HTMLElement>(container, '[data-pt-resize]')
+    expect(grip.getAttribute('role')).toBe('separator')
+    const start = parseFloat(root.style.height)
+    // jsdom has no layout: the drag starts from the rendered height (getBoundingClientRect reads 0).
+    vi.spyOn(root, 'getBoundingClientRect').mockImplementation(() => ({ height: parseFloat(root.style.height) }) as DOMRect)
+    act(() => { grip.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientY: 500 })) })
+    act(() => { grip.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientY: 440 })) })
+    expect(parseFloat(root.style.height)).toBe(start + 60)
+    act(() => { grip.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientY: 440 })) })
+    expect(localStorage.getItem('pt.test.height')).toBe(String(start + 60))
+    key(grip, 'ArrowUp')
+    expect(parseFloat(root.style.height)).toBe(start + 84)
+    key(grip, 'ArrowUp', { shiftKey: true }) // four lanes at once
+    expect(parseFloat(root.style.height)).toBe(start + 180)
+    for (let i = 0; i < 4; i++) key(grip, 'ArrowUp', { shiftKey: true })
+    expect(parseFloat(root.style.height)).toBe(400) // clamped to maxHeight
+    // A fresh mount reads the stored height back.
+    const again = render(props({ resizable: true, storageKey: 'pt.test.height', minHeight: 100, maxHeight: 400 }))
+    expect(q<HTMLElement>(again.container, '.ui-playback-timeline').style.height).toBe('400px')
+    localStorage.removeItem('pt.test.height')
   })
 
   it('shows the window as UTC text', () => {

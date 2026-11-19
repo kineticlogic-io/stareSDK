@@ -1592,6 +1592,7 @@ function PlaybackTimelineDemo() {
         step={step}
         onStepChange={setStep}
         live={range.end >= PT_END}
+        resizable
         lanes={[
           { id: 'ships', label: 'Ships (AIS)', density: { start: PT_START, end: PT_END, counts: PT_COUNTS } },
           { id: 'aircraft', label: 'Aircraft (ADS-B)', tone: 'info', density: { start: PT_START, end: PT_END, counts: PT_COUNTS.map((c, i) => (i % 24 < 6 ? 0 : Math.round(c / 2))) } },
@@ -1599,7 +1600,7 @@ function PlaybackTimelineDemo() {
           { id: 'video', label: 'FMV recording', tone: 'neutral', loading: true },
         ]}
       />
-      <span className="caption">Drag the range or its handles; press elsewhere on the plot to scrub. Play advances one step a second; at the end of the extent the range is live.</span>
+      <span className="caption">Drag the range or its handles; press elsewhere on the plot to scrub. Play advances one step a second; at the end of the extent the range is live. Drag the top edge to make it taller.</span>
     </div>
   )
 }
