@@ -1048,9 +1048,12 @@ import 'uplot/dist/uPlot.min.css'
       resizable <strong>time range</strong> says what is shown; its end is the <strong>playhead</strong>. Drag the range to
       move it, drag a handle to resize it, press anywhere else on the plot to scrub (the range keeps its width and its end
       follows the pointer). Every change is reported as it happens, then once more with <code>final: true</code> on release.</p>
-    <p>The toolbar shows the range readout (and LIVE) on the left, centres step back, play/pause and step forward with
-      the step size directly to their right (presets from one second to a day, or <em>Custom…</em>: a value and a time
-      unit, with an InfoTip saying it sets playback speed), and puts zoom on the right. Playback is controlled and the component owns no timer: the caller's clock
+    <p>The toolbar has three cells, left, centred and right, and <code>toolbar</code> lists which controls go in each:
+      <code>readout</code> (the range as text), <code>live</code>, <code>playback</code> (step back, play/pause, step
+      forward), <code>step</code> (presets from one second to a day, or <em>Custom…</em>: a value and a time unit, with an
+      InfoTip whose text is <code>stepInfo</code>) and <code>zoom</code>. A control listed nowhere is hidden. By default
+      (<code>DEFAULT_PLAYBACK_TOOLBAR</code>) the readout and LIVE are on the left, playback then the step size are
+      centred, and zoom is on the right. Playback is controlled and the component owns no timer: the caller's clock
       advances the range with <code>advanceSelection(selection, step, dir, extent)</code>, which stops at the edge of the
       extent. Wheel or pinch zooms the view about the pointer, a sideways wheel or Shift+drag pans it, and the view never
       leaves <code>extent</code>. Times are epoch milliseconds, shown in UTC. Since 0.2.47, <code>live</code> shows a LIVE
